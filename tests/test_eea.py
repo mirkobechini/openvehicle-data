@@ -215,3 +215,48 @@ def test_main(monkeypatch, capsys):
     eea.main(["--table", "t", "--year", "2024", "--db", "y.db", "--country", "DE"])
     assert calls == [("x.db", "t", 2025, "IT"), ("y.db", "t", 2024, "DE")]
     assert capsys.readouterr().out.count("{'ok': 1}") == 2
+
+
+@pytest.mark.parametrize("mk,cn,out", [
+    ("FIAT", "FIAT PANDA", "PANDA"),
+    ("FIAT", "PANDA", "PANDA"),
+    ("FIAT", "FIAT 500 HYBRID", "500 HYBRID"),
+    ("ALFA ROMEO", "ALFA ROMEO GIULIA", "GIULIA"),
+    ("MERCEDES-BENZ", "MERCEDES-BENZ A 180", "A 180"),
+    ("BMW", "BMW", "BMW"),
+    ("TESLA", "TESLA", "TESLA"),
+    ("FIAT", "FIATTIPO", "FIATTIPO"),
+    ("FORD", "FORD-FOCUS", "FORD-FOCUS"),
+    ("DS AUTOMOBILES", "DS 3", "DS 3"),
+    ("SKODA", "ŠKODA FABIA", "FABIA"),
+    ("FIAT", "GRANDE PUNTO", "GRANDE PUNTO"),
+])
+def test_strip_brand(mk, cn, out):
+    assert eea._strip(mk, cn) == out
+
+
+def test_brand_prefix_merges_models(st):
+    rs = [row(Cn="PANDA", Ve="B1", n=5), row(Cn="FIAT PANDA", Ve="B2", n=1), row(Cn="FIAT PANDA", Ve="B1", n=2)]
+    s = eea.load(rs, st, 2025, TODAY)
+    assert (s["models"], s["variants"]) == (1, 2)
+    m = st.find(CarModel)[0]
+    assert (m.id, m.name, m.aliases) == ("model_fiat-panda", "PANDA", ["FIAT PANDA"])
+    assert [v.id for v in st.find(Variant)] == ["var_fiat-panda-312-a-b1", "var_fiat-panda-312-a-b2"]
+    assert {v.generation_id for v in st.find(Variant)} == {"gen_fiat-panda-observed"}
+
+
+def test_prefixed_only_model_gets_clean_name(st):
+    eea.load([row(Cn="FIAT TIPO")], st, 2025, TODAY)
+    m = st.find(CarModel)[0]
+    assert (m.id, m.name, m.aliases) == ("model_fiat-tipo", "TIPO", ["FIAT TIPO"])
+
+
+def test_prefixed_names_stay_searchable(st):
+    eea.load([row(Cn="FIAT PANDA")], st, 2025, TODAY)
+    assert [m.id for m in st.find(CarModel, q="fiat panda")] == ["model_fiat-panda"]
+    assert [m.id for m in st.find(CarModel, q="panda")] == ["model_fiat-panda"]
+
+
+def test_different_names_are_not_merged(st):
+    eea.load([row(Cn="PUNTO"), row(Cn="GRANDE PUNTO"), row(Cn="500 ABARTH"), row(Cn="ABARTH 500")], st, 2025, TODAY)
+    assert sorted(m.name for m in st.find(CarModel)) == ["500 ABARTH", "ABARTH 500", "GRANDE PUNTO", "PUNTO"]
