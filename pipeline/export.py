@@ -6,7 +6,7 @@ import shutil
 from datetime import date
 from pathlib import Path
 
-from core.models import Brand, CarModel, Engine, Generation, Variant
+from core.models import Brand, CarModel, Engine, Family, Generation, Variant
 from core.provenance import Source
 from core.storage import Store
 from pipeline.validation import ensure
@@ -16,6 +16,7 @@ DB = "openvehicle-data.db"
 LICENSE = "CC-BY-4.0"
 TABLES = {
     "brands": Brand,
+    "families": Family,
     "models": CarModel,
     "generations": Generation,
     "engines": Engine,

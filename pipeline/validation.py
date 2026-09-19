@@ -2,7 +2,7 @@ from enum import StrEnum
 
 from core.enums import Fuel
 from core.ids import slug
-from core.models import Base, Brand, CarModel, Engine, Generation, Variant
+from core.models import Base, Brand, CarModel, Engine, Family, Generation, Variant
 from core.provenance import Source, Status
 
 RANGES = [
@@ -117,8 +117,26 @@ def _prov(st):
                     yield _w("source_conflict", o.id, f"{f}: sources disagree")
 
 
+def _families(st):
+    fs = {f.id: f for f in st.find(Family)}
+    tot = {}
+    for m in st.find(CarModel):
+        if m.family_id is None:
+            yield _w("family_missing", m.id, "model has no family")
+            continue
+        f = fs[m.family_id]
+        if f.brand_id != m.brand_id:
+            yield _e("family_brand", m.id, f"family {f.id} belongs to {f.brand_id}, not {m.brand_id}")
+        n, r = tot.get(f.id, (0, 0))
+        tot[f.id] = (n + 1, r + (m.registrations or 0))
+    for i, f in fs.items():
+        n, r = tot.get(i, (0, 0))
+        if f.model_count != n or (f.registrations or 0) != r:
+            yield _e("family_totals", i, f"model_count={f.model_count}, registrations={f.registrations} do not match its {n} models ({r})")
+
+
 def validate(st):
-    vs = [*_ranges(st), *_units(st), *_dups(st), *_years(st), *_prov(st)]
+    vs = [*_ranges(st), *_units(st), *_dups(st), *_years(st), *_prov(st), *_families(st)]
     return sorted(vs, key=lambda v: (v.severity != Severity.ERROR, v.rule, v.entity_id))
 
 
