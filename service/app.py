@@ -1,17 +1,19 @@
 import os
-from contextlib import contextmanager
+from contextlib import asynccontextmanager, contextmanager
 from importlib.metadata import version
 from pathlib import Path
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from mcp.server.transport_security import TransportSecuritySettings
 
 from core.enums import Fuel
 from core.models import Brand, CarModel, Engine, Generation, Variant
 from core.provenance import Source
 from core.storage import Store
 from service import queries as qs
+from service.mcp_server import build_mcp
 from service.queries import ATTR, Found, Meta, Page, VariantDetail
 
 Q = Annotated[str | None, Query(min_length=1, description="Case-insensitive search in name and aliases")]
@@ -35,10 +37,24 @@ def create_app(db=None):
     p = Path(db or os.environ.get("OVD_DB", "openvehicle-data.db"))
     if not p.is_file():
         raise FileNotFoundError(p)
+    mcp = build_mcp(p)
+    mcp_app = mcp.streamable_http_app(
+        streamable_http_path="/mcp",
+        json_response=True,
+        stateless_http=True,
+        transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False),
+    )
+
+    @asynccontextmanager
+    async def life(_):
+        async with mcp.session_manager.run():
+            yield
+
     app = FastAPI(
         title="openvehicle-data",
         version=version("openvehicle-data"),
         description="Open, verified vehicle brand/model/spec data. Read-only. " + ATTR,
+        lifespan=life,
     )
     app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET"])
 
@@ -120,4 +136,5 @@ def create_app(db=None):
         with rd() as st:
             return qs.search(st, q)
 
+    app.mount("/", mcp_app)
     return app
