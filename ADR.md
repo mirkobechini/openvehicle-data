@@ -2,7 +2,7 @@
 
 **Progetto:** openvehicle-data
 **Data:** 2026-09-18
-**Autore:**
+**Autore:** Mirko Bechini
 
 ## Decisione
 
