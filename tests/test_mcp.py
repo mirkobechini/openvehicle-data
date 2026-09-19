@@ -273,3 +273,27 @@ def test_variant_provenance_with_a_confirmed_and_a_conflicting_status(tmp_path):
     out = call(mm, "get_variant", variant_id=PANDA)
     jsonschema.validate(out, schema)
     assert {x["field"]: x["status"] for x in out["provenance"] if x["entity_id"] == PANDA} == {"mass_kg": "confirmed", "co2_wltp_g_km": "conflict"}
+
+
+def test_mcp_lists_have_paging_metadata(m):
+    j = call(m, "list_models", limit=4)
+    assert (j["total"], j["count"], j["has_more"], j["next_offset"]) == (10, 4, True, 4)
+    j = call(m, "list_models", limit=4, offset=8)
+    assert (j["count"], j["has_more"], j["next_offset"]) == (2, False, None)
+    assert call(m, "list_variants", model_id="model_none")["count"] == 0
+
+
+def test_mcp_paging_with_next_offset_visits_every_variant_once(m):
+    seen, off = [], 0
+    while off is not None:
+        j = call(m, "list_variants", limit=5, offset=off)
+        seen += [i["id"] for i in j["items"]]
+        off = j["next_offset"]
+    assert len(seen) == len(set(seen)) == 14
+
+
+def test_mcp_paging_is_explained(m):
+    assert "next_offset" in INSTR and "Do not count" in INSTR
+    ts = {t.name: t for t in asyncio.run(m.list_tools())}
+    assert "next_offset" in ts["list_models"].input_schema["properties"]["offset"]["description"]
+    assert {"count", "has_more", "next_offset"} <= set(ts["list_variants"].output_schema["properties"])
