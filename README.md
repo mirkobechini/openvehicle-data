@@ -14,9 +14,10 @@ importer (about 12,700 variants for Italy, 2025 provisional). Wikidata
 enrichment and an RDW cross-check are planned.
 
 Known limits of v0.1: no trims or equipment, no wheelbase or track width
-(empty in the Italian EEA data), names as reported by the EEA (upper case, and a few
-near-duplicates with reordered words such as `500 ABARTH` and `ABARTH 500`), and
-only the years seen in the data (registration years, not production years).
+(empty in the Italian EEA data), names as reported by the EEA (upper case, a few
+near-duplicates with reordered words, and models split by trim or engine, such as
+Mercedes `GLC 220 D 4MATIC`), and only the years seen in the data (registration
+years, not production years).
 
 ## Quick start
 
