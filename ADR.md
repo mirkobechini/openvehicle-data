@@ -16,7 +16,7 @@ Non esiste un catalogo aperto e affidabile di marchi e modelli con specifiche te
 
 - Frontend: nessuno (solo API, server MCP e dataset)
 - Backend: Python 3.12+, FastAPI, Pydantic, SDK MCP ufficiale Python; httpx e pandas per l'import, Playwright solo per siti brand che richiedono JavaScript
-- Database: SQLite (master, sola lettura in produzione) + export Parquet/JSON
+- Database: SQLite (master, sola lettura in produzione) + export Parquet/JSON; accesso con il modulo standard `sqlite3`, senza ORM
 - Deploy: API e server MCP su Render (un solo servizio), sottodomini Cloudflare `openvehicle-api.mirkobechini.com` e `openvehicle-mcp.mirkobechini.com` (nomi provvisori); dataset su GitHub Releases; refresh pianificato con GitHub Actions
 - Repository: git dedicato (`main` + `dev`, come da AGENT_FLOW.md), separato dal repository padre AI_developed
 - Test: pytest + coverage (100% obbligatorio)
@@ -44,6 +44,7 @@ Struttura del repository: `core/` (modelli Pydantic e storage, condivisi), `pipe
 - **Open source ora, pagamento eventuale poi**: alternativa a pagamento subito → scelta gratuito, per adozione e fiducia. Dataset con licenza aperta; API predisposta a chiavi e rate limit in futuro, senza implementarli ora.
 - **SQLite invece di Postgres**: dataset piccolo e in sola lettura, zero server da gestire, clonabile dai contributori. Accesso al database isolato in un modulo per poter cambiare in seguito.
 - **ID stabili: generati una volta dalla chiave naturale, poi persistiti**: formato `prefisso_slug` (`brand_fiat`, `model_fiat-500`, `gen_...`, `eng_...`, `var_...`) prodotto da `make_id`. Dopo la pubblicazione un ID non si ricalcola mai: un nome corretto o rinominato diventa un alias, non un nuovo ID. Alternativa scartata: hash del nome, illeggibile e comunque instabile se il nome cambia.
+- **`sqlite3` standard invece di SQLAlchemy**: schema piccolo, nessuna dipendenza in più, e l'accesso è comunque isolato in `core/storage.py` (`Store`, con `put`/`get`/`find` generici sui modelli Pydantic e apertura `ro=True` per il servizio). Un ORM avrebbe senso solo passando a Postgres, quando la migrazione dello storage andrà rivalutata. Le chiavi esterne sono attive, quindi una variante senza generazione o motore viene rifiutata.
 - **Export statici come canale primario**: gli utenti possono usare i dati senza dipendere dall'API.
 - **Provenienza per campo**: consente di scartare una fonte problematica senza perdere il resto e di dichiarare la licenza di ogni dato.
 - **Fonti**: Wikidata (scheletro e ID, CC0), EEA CO₂ (dati misurati, filtrati per l'Italia, CC BY 4.0), RDW Paesi Bassi (dati di omologazione, CC0, opzionale come riscontro), cardata.wiki (CC BY 4.0, con attribuzione, solo candidato da verificare), siti dei marchi (solo fatti: nomi di modelli, generazioni, motorizzazioni; niente testi, immagini o documenti). Prima di ogni scraping si controllano ToS e robots.txt del sito.
