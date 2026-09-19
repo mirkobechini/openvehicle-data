@@ -2,7 +2,7 @@ from datetime import date
 from enum import StrEnum
 from typing import Annotated
 
-from pydantic import Field, computed_field
+from pydantic import Field, computed_field, model_validator
 
 from core.models import Base
 
@@ -40,6 +40,11 @@ class FieldProvenance(Base):
     field: str = Field(min_length=1)
     evidence: list[Evidence] = Field(min_length=1)
     last_verified: date
+
+    @model_validator(mode="before")
+    @classmethod
+    def _derived(cls, d):
+        return {k: v for k, v in d.items() if k != "status"} if isinstance(d, dict) else d
 
     @computed_field
     @property
