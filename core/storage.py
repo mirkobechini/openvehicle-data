@@ -90,14 +90,38 @@ class Store:
         r = self.c.execute(f"SELECT * FROM {TB[cls]} WHERE id=?", (i,)).fetchone()
         return None if r is None else self._m(cls, r)
 
-    def find(self, cls, **w):
+    def _w(self, cls, q, w):
         bad = set(w) - set(cls.model_fields)
         if bad:
             raise ValueError(f"unknown columns: {sorted(bad)}")
-        q = f"SELECT * FROM {TB[cls]}"
-        if w:
-            q += " WHERE " + " AND ".join(f"{k}=?" for k in w)
-        return [self._m(cls, r) for r in self.c.execute(f"{q} ORDER BY id", list(w.values()))]
+        cs, ps = [], []
+        for k, v in w.items():
+            if isinstance(v, (list, tuple, set)):
+                v = list(v)
+                cs.append(f"{k} IN ({','.join('?' * len(v))})")
+                ps += v
+            else:
+                cs.append(f"{k}=?")
+                ps.append(v)
+        if q is not None:
+            if not {"name", "aliases"} <= set(cls.model_fields):
+                raise ValueError(f"{cls.__name__} is not searchable")
+            e = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            cs.append("(name LIKE ? ESCAPE '\\' OR aliases LIKE ? ESCAPE '\\')")
+            ps += [f"%{e}%"] * 2
+        return (" WHERE " + " AND ".join(cs) if cs else ""), ps
+
+    def find(self, cls, *, q=None, limit=None, offset=0, **w):
+        wh, ps = self._w(cls, q, w)
+        sql = f"SELECT * FROM {TB[cls]}{wh} ORDER BY id"
+        if limit is not None:
+            sql += " LIMIT ? OFFSET ?"
+            ps += [limit, offset]
+        return [self._m(cls, r) for r in self.c.execute(sql, ps)]
+
+    def count(self, cls, *, q=None, **w):
+        wh, ps = self._w(cls, q, w)
+        return self.c.execute(f"SELECT COUNT(*) FROM {TB[cls]}{wh}", ps).fetchone()[0]
 
     def put_prov(self, *ps):
         with self.c:
