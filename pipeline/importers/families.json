@@ -1,0 +1,246 @@
+{
+  "brands": {
+    "BMW": {
+      "reason": "BMW names carry the engine and drive (X1 SDRIVE18D, 320D XDRIVE, 118D): the family is the SUV code or the series number.",
+      "rules": [
+        {
+          "pattern": "^(I?X\\d)(?!\\d)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(IX|XM)\\b",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^M?([1-8])\\d{2}(?!\\d)",
+          "family": "\\1 SERIES"
+        },
+        {
+          "pattern": "^(I[3-8]|Z4|M[2-8])\\b",
+          "family": "\\1"
+        }
+      ]
+    },
+    "MERCEDES-BENZ": {
+      "reason": "Mercedes names carry the engine and drive (GLC 220 D 4MATIC, AMG A 35 4MATIC): the family is the class code.",
+      "rules": [
+        {
+          "pattern": "^(?:AMG )?(EQ[A-Z])\\b",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(?:AMG )?(GL[A-Z]|CL[A-Z]|SL[A-Z]?)(?= ?\\d)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(?:AMG )?([ABCEGST])(?= ?\\d)",
+          "family": "\\1-CLASS"
+        },
+        {
+          "pattern": "^E?(CITAN|VITO)\\b",
+          "family": "\\1"
+        },
+        {
+          "pattern": "\\b(SPRINTER)\\b",
+          "family": "\\1"
+        }
+      ]
+    },
+    "MERCEDES-AMG": {
+      "reason": "Mercedes-AMG names carry the engine and drive (AMG GT 63 4MATIC+): the family is the AMG line.",
+      "rules": [
+        {
+          "pattern": "^(AMG (?:GT|SL|G)) ?\\d",
+          "family": "\\1"
+        }
+      ]
+    },
+    "AUDI": {
+      "reason": "Audi names carry the body and engine (A3 SPORTBACK, Q5 SB, RS 6 AVANT): the family is the model code.",
+      "rules": [
+        {
+          "pattern": "\\b(E-TRON GT)\\b",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(RS ?Q?\\d+)\\b",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(SQ?\\d+)\\b",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^([AQ]\\d+)\\b",
+          "family": "\\1"
+        }
+      ]
+    },
+    "PORSCHE": {
+      "reason": "Porsche names carry the version (911 CARRERA 4 GTS, MACAN 4S): the family is the first word.",
+      "rules": [
+        {
+          "pattern": "^(\\S+)",
+          "family": "\\1"
+        }
+      ]
+    },
+    "VOLKSWAGEN": {
+      "reason": "Volkswagen lists each electric ID. car by battery and power (ID.4 PRO 210 KW) and a few others by version; T CROSS, T-ROC and the rest are single models.",
+      "rules": [
+        {
+          "pattern": "^ID\\.(\\d)",
+          "family": "ID.\\1"
+        },
+        {
+          "pattern": "^ID\\. ?BUZZ",
+          "family": "ID. BUZZ"
+        },
+        {
+          "pattern": "^(TOUAREG|CADDY)\\b",
+          "family": "\\1"
+        }
+      ]
+    },
+    "MASERATI": {
+      "reason": "Maserati names carry the trim (GRECALE MODENA, GHIBLI TROFEO): the family is the model.",
+      "rules": [
+        {
+          "pattern": "^(MC ?PURA)\\b",
+          "family": "MC PURA"
+        },
+        {
+          "pattern": "^(MC\\d+)\\b",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(GRECALE|GRANTURISMO|GRANCABRIO|GHIBLI|LEVANTE|QUATTROPORTE)\\b",
+          "family": "\\1"
+        }
+      ]
+    },
+    "FERRARI": {
+      "reason": "Ferrari names carry the body (296 GTS, SF90 SPIDER) and are spelled with and without a space (SF 90, 12 CILINDRI).",
+      "rules": [
+        {
+          "pattern": "^SF ?(90)\\b",
+          "family": "SF\\1"
+        },
+        {
+          "pattern": "^12 ?CILINDRI",
+          "family": "12CILINDRI"
+        },
+        {
+          "pattern": "^(296|812|849)\\b",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(ROMA)\\b",
+          "family": "\\1"
+        }
+      ]
+    },
+    "CUPRA": {
+      "reason": "Cupra names carry the engine and trim (LEON SP E-HYBRID150, BORN 170 KW 60 63 KWH): the family is the first word.",
+      "rules": [
+        {
+          "pattern": "^(\\S+)",
+          "family": "\\1"
+        }
+      ]
+    },
+    "MINI": {
+      "reason": "MINI names carry the trim (COOPER SE, JCW COUNTRYMAN ALL4): the family is the body name, else the trim line.",
+      "rules": [
+        {
+          "pattern": "\\b(COUNTRYMAN|ACEMAN|CLUBMAN)\\b",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(COOPER|JCW)\\b",
+          "family": "\\1"
+        }
+      ]
+    },
+    "LEXUS": {
+      "reason": "Lexus names carry the engine (NX450H+, UX300H): the family is the two-letter model code.",
+      "rules": [
+        {
+          "pattern": "^([A-Z]{2})\\d{3}",
+          "family": "\\1"
+        }
+      ]
+    },
+    "SKODA": {
+      "reason": "Skoda names carry the battery or trim (ENYAQ 85X, OCTAVIA RS): the family is the first word.",
+      "rules": [
+        {
+          "pattern": "^(\\S+)",
+          "family": "\\1"
+        }
+      ]
+    },
+    "VOLVO": {
+      "reason": "Volvo lists the Cross Country versions apart (V60 CROSS COUNTRY): the family is the first word.",
+      "rules": [
+        {
+          "pattern": "^(\\S+)",
+          "family": "\\1"
+        }
+      ]
+    },
+    "HYUNDAI": {
+      "reason": "Hyundai names carry the fuel (I20 BI-FUEL) and are spelled IONIQ5 or IONIQ 5 or I 30: the family is the model with its number.",
+      "rules": [
+        {
+          "pattern": "^IONIQ ?(\\d+)",
+          "family": "IONIQ \\1"
+        },
+        {
+          "pattern": "^I ?(\\d{2})\\b",
+          "family": "I\\1"
+        },
+        {
+          "pattern": "^(BAYON|KONA|STARIA|TUCSON|SANTA FE)\\b",
+          "family": "\\1"
+        }
+      ]
+    },
+    "RENAULT": {
+      "reason": "Renault names carry the powertrain (CAPTUR E-TECH HYBRID, CLIO AUTOSCUOLA): the family is the first word.",
+      "rules": [
+        {
+          "pattern": "^(\\S+)",
+          "family": "\\1"
+        }
+      ]
+    },
+    "OPEL": {
+      "reason": "Opel names carry the body or version (ASTRA SPORTS TOURER, ZAFIRA LIFE): the family is the first word.",
+      "rules": [
+        {
+          "pattern": "^(\\S+)",
+          "family": "\\1"
+        }
+      ]
+    },
+    "BENTLEY": {
+      "reason": "Bentley names carry the engine and coachbuilder version (BENTAYGA SPEED, CONTINENTAL GTC AZURE): the family is the model.",
+      "rules": [
+        {
+          "pattern": "^(BENTAYGA|CONTINENTAL|FLYING SPUR)\\b",
+          "family": "\\1"
+        }
+      ]
+    },
+    "ROLLS ROYCE": {
+      "reason": "Rolls-Royce lists the Black Badge versions apart (BLACK BADGE GHOST): the family is the model.",
+      "rules": [
+        {
+          "pattern": "^(?:BLACK BADGE )?(CULLINAN|GHOST|SPECTRE|PHANTOM)\\b",
+          "family": "\\1"
+        }
+      ]
+    }
+  }
+}

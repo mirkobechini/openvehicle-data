@@ -201,14 +201,14 @@ def test_deterministic_outputs(v1, tmp_path):
 
 def test_families_are_exported(v1):
     m, out = v1
-    assert m["counts"]["families"] == 10 and "families.csv" in m["files"]
+    assert m["counts"]["families"] == 9 and "families.csv" in m["files"]
     rs = read_csv(out / "families.csv")
-    assert len(rs) == 10 and list(rs[0])[0] == "id"
+    assert len(rs) == 9 and list(rs[0])[0] == "id"
     assert set(rs[0]) == {"id", "name", "aliases", "brand_id", "model_count", "registrations"}
     panda = next(r for r in rs if r["id"] == "family_fiat-panda")
     assert (panda["name"], panda["model_count"], panda["registrations"]) == ("PANDA", "1", "77180")
     d = json.loads((out / "dataset.json").read_text(encoding="utf-8"))
-    assert len(d["families"]) == 10 and d["families"][0]["id"] == sorted(x["id"] for x in d["families"])[0]
+    assert len(d["families"]) == 9 and d["families"][0]["id"] == sorted(x["id"] for x in d["families"])[0]
 
 
 def test_model_family_id_is_in_the_models_csv_and_json(v1):
