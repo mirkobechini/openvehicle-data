@@ -1,6 +1,7 @@
 import csv
 import hashlib
 import json
+import sqlite3
 from datetime import date
 from pathlib import Path
 
@@ -229,3 +230,25 @@ def test_changelog_lists_family_changes(v1, tmp_path):
     assert ch["families"]["added"] == ["family_alfa-romeo-giulia"] and ch["families"]["removed"] == ["family_dacia-sandero"]
     md = (tmp_path / "out2" / "CHANGELOG.md").read_text(encoding="utf-8")
     assert "- families: +1 -1 ~0" in md
+
+
+def strip_families(db):
+    c = sqlite3.connect(db)
+    c.execute("PRAGMA foreign_keys=OFF")
+    c.execute("UPDATE models SET family_id = NULL")
+    c.execute("DROP TABLE families")
+    c.commit()
+    c.close()
+
+
+def test_comparing_with_an_older_release_that_has_no_families(v1, tmp_path):
+    _, d1 = v1
+    strip_families(d1 / DB)
+    with store() as st:
+        m = export(st, tmp_path / "out2", "0.2.0", TODAY, prev=d1)
+    assert m["previous"] == "0.1.0" and m["counts"]["families"] == 9
+    ch = json.loads((tmp_path / "out2" / "changelog.json").read_text(encoding="utf-8"))["changes"]
+    assert len(ch["families"]["added"]) == 9 and ch["families"]["removed"] == [] and ch["families"]["changed"] == []
+    assert len(ch["models"]["changed"]) == 10 and ch["models"]["added"] == [] and ch["models"]["removed"] == []
+    assert ch["variants"] == {"added": [], "removed": [], "changed": []}
+    assert "- families: +9 -0 ~0" in (tmp_path / "out2" / "CHANGELOG.md").read_text(encoding="utf-8")

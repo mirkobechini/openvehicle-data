@@ -323,3 +323,10 @@ def test_families_survive_a_backup(st, tmp_path):
     st.backup(tmp_path / "f.db")
     with Store(tmp_path / "f.db", ro=True) as r:
         assert r.get(Family, F.id) == F and r.get(CarModel, M.id).family_id == F.id
+
+
+def test_has_reports_whether_a_type_has_its_table(st):
+    assert all(st.has(c) for c in (Brand, CarModel, Family, Generation, Engine, Variant, Source))
+    st.c.execute("PRAGMA foreign_keys=OFF")
+    st.c.execute("DROP TABLE families")
+    assert st.has(Family) is False and st.has(Brand) is True
