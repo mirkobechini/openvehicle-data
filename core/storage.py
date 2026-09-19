@@ -110,6 +110,19 @@ class Store:
                     (d["entity_id"], d["field"], d["last_verified"], json.dumps(d["evidence"], ensure_ascii=False)),
                 )
 
+    def _p(self, r):
+        return FieldProvenance(**{**dict(r), "evidence": json.loads(r["evidence"])})
+
     def prov(self, eid):
         rs = self.c.execute("SELECT * FROM provenance WHERE entity_id=? ORDER BY field", (eid,))
-        return [FieldProvenance(**{**dict(r), "evidence": json.loads(r["evidence"])}) for r in rs]
+        return [self._p(r) for r in rs]
+
+    def all_prov(self):
+        return [self._p(r) for r in self.c.execute("SELECT * FROM provenance ORDER BY entity_id, field")]
+
+    def backup(self, path):
+        d = sqlite3.connect(path)
+        try:
+            self.c.backup(d)
+        finally:
+            d.close()
