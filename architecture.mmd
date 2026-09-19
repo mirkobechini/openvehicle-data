@@ -1,0 +1,39 @@
+flowchart LR
+  subgraph SRC[Fonti aperte v0.1]
+    WD[Wikidata CC0]
+    EEA[EEA CO2 CC BY 4.0]
+    RDW[RDW CC0]
+  end
+  subgraph PIPE[pipeline - batch offline]
+    IMP[Importer per fonte]
+    VAL[Validazione qualita]
+    MRG[Merge e verifica]
+    EXP[Export dataset]
+  end
+  subgraph CORE[core - condiviso]
+    MOD[Modelli Pydantic]
+    STO[Storage SQLite]
+  end
+  subgraph SVC[service - deploy Render]
+    API[API REST FastAPI]
+    MCP[Server MCP]
+  end
+  GH[GitHub Releases]
+  CF[Cloudflare mirkobechini.com]
+  USR[App agenti sviluppatori]
+  GA[GitHub Actions refresh]
+
+  WD --> IMP
+  EEA --> IMP
+  RDW --> IMP
+  IMP --> VAL --> MRG --> STO
+  MOD --- IMP
+  MOD --- STO
+  STO --> EXP --> GH
+  GH -->|dataset di ogni deploy| SVC
+  STO -.-> API
+  STO -.-> MCP
+  GA -->|pianifica| PIPE
+  USR --> CF --> API
+  USR --> CF --> MCP
+  USR -->|scarica| GH
