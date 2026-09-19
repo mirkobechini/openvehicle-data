@@ -187,3 +187,80 @@ def test_backup(st, tmp_path):
     with Store(f, ro=True) as r:
         assert r.find(Variant) == [V]
         assert r.get(Brand, B.id) == B
+
+
+def test_registrations_round_trip(st):
+    m = M.model_copy(update={"registrations": 120})
+    v = V.model_copy(update={"registrations": 7})
+    st.put(m, v)
+    assert st.get(CarModel, M.id).registrations == 120
+    assert st.get(Variant, V.id).registrations == 7
+
+
+def test_registrations_default_is_null(st):
+    assert st.get(CarModel, M.id).registrations is None
+    assert st.get(Variant, V.id).registrations is None
+
+
+def test_unknown_columns_are_ignored_when_reading(st):
+    st.c.execute("ALTER TABLE brands ADD COLUMN note TEXT")
+    st.c.execute("UPDATE brands SET note = 'x'")
+    assert st.get(Brand, B.id) == B
+    assert st.find(Brand) == [B]
+
+
+def regs(st):
+    st.put(
+        CarModel(id="model_citroen-c4", brand_id=B.id, name="C4", registrations=50),
+        CarModel(id="model_citroen-c5", brand_id=B.id, name="C5", registrations=900),
+        CarModel(id="model_citroen-c6", brand_id=B.id, name="C6", registrations=50),
+        M.model_copy(update={"registrations": None}),
+    )
+
+
+def test_sort_by_registrations_descending(st):
+    regs(st)
+    assert [m.id for m in st.find(CarModel, sort="-registrations")] == [
+        "model_citroen-c5", "model_citroen-c4", "model_citroen-c6", "model_citroen-c3",
+    ]
+
+
+def test_sort_ascending_and_default(st):
+    regs(st)
+    assert [m.id for m in st.find(CarModel, sort="registrations")][0] == "model_citroen-c3"
+    assert [m.id for m in st.find(CarModel, sort="-name")][0] == "model_citroen-c6"
+    assert [m.id for m in st.find(CarModel)] == ["model_citroen-c3", "model_citroen-c4", "model_citroen-c5", "model_citroen-c6"]
+
+
+def test_sort_with_paging(st):
+    regs(st)
+    assert [m.id for m in st.find(CarModel, sort="-registrations", limit=2, offset=1)] == ["model_citroen-c4", "model_citroen-c6"]
+
+
+def test_minimum_filter(st):
+    regs(st)
+    assert [m.id for m in st.find(CarModel, registrations__gte=50, sort="-registrations")] == [
+        "model_citroen-c5", "model_citroen-c4", "model_citroen-c6",
+    ]
+    assert [m.id for m in st.find(CarModel, registrations__gte=51)] == ["model_citroen-c5"]
+    assert st.count(CarModel, registrations__gte=50) == 3
+    assert st.count(CarModel, registrations__gte=0) == 3
+    assert st.count(CarModel, registrations__gte=1000) == 0
+
+
+def test_minimum_filter_combines_with_search_and_equality(st):
+    regs(st)
+    assert [m.id for m in st.find(CarModel, q="c", registrations__gte=100, brand_id=B.id)] == ["model_citroen-c5"]
+
+
+@pytest.mark.parametrize("kw", [{"sort": "colour"}, {"sort": "-colour"}])
+def test_unknown_sort_column(st, kw):
+    with pytest.raises(ValueError, match="unknown sort column"):
+        st.find(CarModel, **kw)
+
+
+def test_unknown_minimum_column(st):
+    with pytest.raises(ValueError, match="unknown columns"):
+        st.find(CarModel, nope__gte=1)
+    with pytest.raises(ValueError, match="unknown columns"):
+        st.count(CarModel, nope__gte=1)

@@ -2,7 +2,7 @@ import os
 from contextlib import asynccontextmanager, contextmanager
 from importlib.metadata import version
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,6 +18,8 @@ from service.mcp_server import build_mcp
 from service.queries import ATTR, Found, Meta, Page, VariantDetail
 
 Q = Annotated[str | None, Query(min_length=1, description="Case-insensitive search in name and aliases")]
+Sort = Annotated[Literal["id", "registrations"], Query(description="'registrations' lists the most registered first")]
+MinReg = Annotated[int | None, Query(ge=0, description="Only entries with at least this many registrations")]
 
 
 def _pg(limit: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0)):
@@ -86,9 +88,9 @@ def create_app(db=None):
             return _get(qs.one, st, Brand, i)
 
     @app.get("/api/v1/models", response_model=Page[CarModel])
-    def models(pg: Pg, q: Q = None, brand_id: str | None = None):
+    def models(pg: Pg, q: Q = None, brand_id: str | None = None, sort: Sort = "id", min_registrations: MinReg = None):
         with rd() as st:
-            return qs.page(st, CarModel, pg, q, **({"brand_id": brand_id} if brand_id else {}))
+            return qs.page(st, CarModel, pg, q, sort, min_registrations, **({"brand_id": brand_id} if brand_id else {}))
 
     @app.get("/api/v1/models/{i}", response_model=CarModel)
     def model(i: str):
@@ -118,9 +120,11 @@ def create_app(db=None):
         generation_id: str | None = None,
         engine_id: str | None = None,
         fuel: Fuel | None = None,
+        sort: Sort = "id",
+        min_registrations: MinReg = None,
     ):
         with rd() as st:
-            return qs.variants_page(st, pg, q, model_id, generation_id, engine_id, fuel)
+            return qs.variants_page(st, pg, q, model_id, generation_id, engine_id, fuel, sort, min_registrations)
 
     @app.get("/api/v1/variants/{i}", response_model=VariantDetail)
     def variant(i: str):

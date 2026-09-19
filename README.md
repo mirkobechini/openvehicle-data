@@ -14,9 +14,9 @@ importer (about 12,700 variants for Italy, 2025 provisional). Wikidata
 enrichment and an RDW cross-check are planned.
 
 Known limits of v0.1: no trims or equipment, no wheelbase or track width
-(empty in the Italian EEA data), names as reported by the EEA (upper case, some
-duplicates such as `FIAT PANDA` next to `PANDA`), and only the years seen in the
-data (registration years, not production years).
+(empty in the Italian EEA data), names as reported by the EEA (upper case, and a few
+near-duplicates with reordered words such as `500 ABARTH` and `ABARTH 500`), and
+only the years seen in the data (registration years, not production years).
 
 ## Quick start
 
@@ -43,6 +43,8 @@ previous release (`--prev <folder>`).
   verification status (single source vs. confirmed by two independent sources).
 - Cars only in v0.1 (category M1). Vans, trucks and motorcycles are out of scope for now.
 - No personal data, no plate or VIN lookups, no prices.
+- Models and variants carry `registrations` (cars registered in the source data), so
+  clients can sort by popularity and skip one-off or mistyped entries.
 
 ## Layout
 

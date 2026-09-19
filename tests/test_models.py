@@ -84,3 +84,18 @@ def test_variant():
 def test_variant_range(k):
     with pytest.raises(ValidationError):
         var(**k)
+
+
+def test_registrations_default_and_values():
+    assert CarModel(id="model_a", brand_id="brand_a", name="A").registrations is None
+    assert CarModel(id="model_a", brand_id="brand_a", name="A", registrations=0).registrations == 0
+    assert var(registrations=12).registrations == 12
+    assert var().registrations is None
+
+
+@pytest.mark.parametrize("v", [-1, 1.5, "many"])
+def test_registrations_invalid(v):
+    with pytest.raises(ValidationError):
+        var(registrations=v)
+    with pytest.raises(ValidationError):
+        CarModel(id="model_a", brand_id="brand_a", name="A", registrations=v)
