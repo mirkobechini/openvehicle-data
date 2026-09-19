@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: openvehicle-data
+    runtime: docker
+    plan: free
+    branch: main
+    autoDeployTrigger: checksPass
+    healthCheckPath: /api/v1/health
+    domains:
+      - openvehicle-api.mirkobechini.com
+      - openvehicle-mcp.mirkobechini.com

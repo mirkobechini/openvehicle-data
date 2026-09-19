@@ -1,0 +1,21 @@
+Data license
+
+The datasets published by the openvehicle-data project (files distributed through
+GitHub Releases and served by its API and MCP server) are licensed under the
+Creative Commons Attribution 4.0 International license (CC BY 4.0).
+
+Copyright (c) 2026 Mirko Bechini
+
+Full legal code: https://creativecommons.org/licenses/by/4.0/legalcode
+Human-readable summary: https://creativecommons.org/licenses/by/4.0/
+
+Attribution: when you use the data, credit "openvehicle-data
+(https://github.com/mirkobechini/openvehicle-data), CC BY 4.0" and keep the
+attributions listed in NOTICE.
+
+Third-party data: the license above applies to the selection, arrangement and
+original contributions of this project. Individual facts keep the status and
+license of their original source, recorded per field in the data and listed in
+NOTICE. This project cannot grant rights it does not hold.
+
+The source code is licensed separately under Apache-2.0 (see LICENSE).
