@@ -4,6 +4,7 @@ from datetime import date
 from importlib.metadata import version
 from pathlib import Path
 
+import jsonschema
 import pytest
 from fastapi.testclient import TestClient
 from mcp.server.mcpserver.exceptions import ToolError
@@ -222,3 +223,53 @@ def test_popularity_options_are_described(m):
         props = ts[n].input_schema["properties"]
         assert "most registered first" in props["sort"]["description"]
         assert "skip rare or mistyped" in props["min_registrations"]["description"]
+
+
+CALLS = {
+    "list_brands": {"limit": 2},
+    "list_models": {"brand_id": "brand_fiat", "limit": 2},
+    "list_variants": {"model_id": "model_fiat-panda", "limit": 2},
+    "get_variant": {"variant_id": PANDA},
+    "search_catalog": {"q": "fiat"},
+    "dataset_info": {},
+}
+
+
+def test_every_tool_output_matches_its_declared_schema(m):
+    schemas = {t.name: t.output_schema for t in asyncio.run(m.list_tools())}
+    assert set(schemas) == set(CALLS)
+    for name, args in CALLS.items():
+        jsonschema.validate(call(m, name, **args), schemas[name])
+
+
+@pytest.mark.parametrize("name", list(CALLS))
+def test_endpoint_output_matches_the_schema_a_client_sees(http, name):
+    schemas = {t["name"]: t["outputSchema"] for t in rpc(http, "tools/list").json()["result"]["tools"]}
+    res = rpc(http, "tools/call", {"name": name, "arguments": CALLS[name]}).json()["result"]
+    assert res["isError"] is False
+    jsonschema.validate(res["structuredContent"], schemas[name])
+
+
+def test_variant_provenance_status_is_declared(m):
+    schema = next(t.output_schema for t in asyncio.run(m.list_tools()) if t.name == "get_variant")
+    entry = schema["$defs"]["ProvenanceOut"]
+    assert {"entity_id", "field", "evidence", "last_verified", "status"} <= set(entry["properties"])
+    assert "status" in entry["required"]
+
+
+def test_variant_provenance_with_a_confirmed_and_a_conflicting_status(tmp_path):
+    from datetime import date as d
+
+    from core.provenance import Evidence, FieldProvenance, Source
+    p = tmp_path / "c.db"
+    with Store(p) as st:
+        eea.load(ROWS, st, 2025, d(2026, 9, 19))
+        st.put(Source(id="rdw", name="RDW", license="CC0-1.0", license_url="https://x.org/l", license_checked=d(2026, 9, 19)))
+        for f, vals in (("mass_kg", (1045, 1045)), ("co2_wltp_g_km", (113, 120))):
+            ev = [Evidence(source_id=s, value=v, retrieved=d(2026, 9, 19)) for s, v in zip(("eea-co2", "rdw"), vals)]
+            st.put_prov(FieldProvenance(entity_id=PANDA, field=f, evidence=ev, last_verified=d(2026, 9, 19)))
+    mm = build_mcp(p)
+    schema = next(t.output_schema for t in asyncio.run(mm.list_tools()) if t.name == "get_variant")
+    out = call(mm, "get_variant", variant_id=PANDA)
+    jsonschema.validate(out, schema)
+    assert {x["field"]: x["status"] for x in out["provenance"] if x["entity_id"] == PANDA} == {"mass_kg": "confirmed", "co2_wltp_g_km": "conflict"}
