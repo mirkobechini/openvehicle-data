@@ -52,6 +52,13 @@ def _out(o):
     return _scrub(to_jsonable_python(o))
 
 
+def _run(fn, *a):
+    try:
+        return _out(fn(*a))
+    except LookupError as e:
+        raise ToolError(str(e)) from None
+
+
 def build_mcp(p):
     m = MCPServer("openvehicle-data", instructions=INSTR, version=version("openvehicle-data"))
 
@@ -72,7 +79,7 @@ def build_mcp(p):
     ) -> qs.Page[CarModel]:
         """List car models, optionally for one brand and/or filtered by text, most registered first."""
         with Store(p, ro=True) as st:
-            return _out(qs.page(st, CarModel, (limit, offset), q, sort, min_registrations, **({"brand_id": brand_id} if brand_id else {})))
+            return _run(qs.models_page, st, (limit, offset), q, brand_id, sort, min_registrations)
 
     @m.tool(annotations=RO)
     def list_variants(
@@ -89,16 +96,13 @@ def build_mcp(p):
     ) -> qs.Page[Variant]:
         """List variants (type-approval versions) filtered by brand, model, generation, engine, fuel or text, most registered first."""
         with Store(p, ro=True) as st:
-            return _out(qs.variants_page(st, (limit, offset), q, model_id, generation_id, engine_id, fuel, sort, min_registrations, brand_id))
+            return _run(qs.variants_page, st, (limit, offset), q, model_id, generation_id, engine_id, fuel, sort, min_registrations, brand_id)
 
     @m.tool(annotations=RO)
     def get_variant(variant_id: Annotated[str, Field(description="Variant id, e.g. var_fiat-panda-312-pyd1b-s5g")]) -> qs.VariantDetail:
         """Get one variant with its engine and the source, license and verification status of every field."""
         with Store(p, ro=True) as st:
-            try:
-                return _out(qs.variant_detail(st, variant_id))
-            except LookupError as e:
-                raise ToolError(str(e)) from None
+            return _run(qs.variant_detail, st, variant_id)
 
     @m.tool(annotations=RO)
     def search_catalog(q: Annotated[str, Field(min_length=1, description="Text to find in brand and model names")]) -> qs.Found:
