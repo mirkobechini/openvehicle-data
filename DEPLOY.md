@@ -8,7 +8,7 @@ from a GitHub Release and checked against a SHA-256.
 GitHub Release (data)  -->  Dockerfile (ADD --checksum)  -->  Render service
                                                               /api/v1/...  REST
                                                               /mcp         MCP
-Cloudflare DNS: openvehicle-api.<domain>, openvehicle-mcp.<domain> --> the same service
+Cloudflare DNS: openvehicle.<domain> --> the service (REST and MCP on the same name)
 ```
 
 ## 1. Publish the first data release
@@ -38,25 +38,27 @@ Render deploys from `main` (see `render.yaml`). Follow the release flow in
 3. Wait for the first build. The service is healthy when
    `https://<service>.onrender.com/api/v1/health` returns `{"status":"ok"}`.
 
-The Blueprint also declares the two custom domains. Change them in
-`render.yaml` if you use other names.
+The Blueprint also declares one custom domain, `openvehicle.mirkobechini.com`,
+used for both the REST API and the MCP server. Change it in `render.yaml` if you
+use another name. Render asks for a payment method above 2 custom domains, so a
+single name keeps the free plan free.
 
 ## 4. DNS on Cloudflare
 
 1. SSL/TLS > Overview: set the encryption mode to **Full**.
-2. DNS: add two CNAME records, `openvehicle-api` and `openvehicle-mcp`, both
-   pointing to `<service>.onrender.com`, with proxy status **DNS only**.
-3. In Render (Settings > Custom Domains) wait until both domains are verified and
-   their certificates issued.
-4. Optionally switch both records to **Proxied**. Then add a rate-limiting rule
+2. DNS: add one CNAME record, `openvehicle`, pointing to `<service>.onrender.com`,
+   with proxy status **DNS only**.
+3. In Render (Settings > Custom Domains) wait until the domain is verified and its
+   certificate issued.
+4. Optionally switch the record to **Proxied**. Then add a rate-limiting rule
    (Security > WAF > Rate limiting rules), for example 60 requests per minute per
-   IP on the hostnames, since the API has no authentication.
+   IP on the hostname, since the API has no authentication.
 
 ## 5. Check that everything works
 
 ```bash
-curl https://openvehicle-api.<domain>/api/v1/meta
-curl -X POST https://openvehicle-mcp.<domain>/mcp \
+curl https://openvehicle.<domain>/api/v1/meta
+curl -X POST https://openvehicle.<domain>/mcp \
   -H 'Content-Type: application/json' -H 'Accept: application/json, text/event-stream' \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 ```
@@ -64,7 +66,7 @@ curl -X POST https://openvehicle-mcp.<domain>/mcp \
 Connect an MCP client, for example Claude Code:
 
 ```bash
-claude mcp add --transport http openvehicle https://openvehicle-mcp.<domain>/mcp
+claude mcp add --transport http openvehicle https://openvehicle.<domain>/mcp
 ```
 
 ## Updating the data
