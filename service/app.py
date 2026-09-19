@@ -90,7 +90,7 @@ def create_app(db=None):
     @app.get("/api/v1/models", response_model=Page[CarModel])
     def models(pg: Pg, q: Q = None, brand_id: str | None = None, sort: Sort = "id", min_registrations: MinReg = None):
         with rd() as st:
-            return qs.page(st, CarModel, pg, q, sort, min_registrations, **({"brand_id": brand_id} if brand_id else {}))
+            return _get(qs.models_page, st, pg, q, brand_id, sort, min_registrations)
 
     @app.get("/api/v1/models/{i}", response_model=CarModel)
     def model(i: str):
@@ -100,7 +100,7 @@ def create_app(db=None):
     @app.get("/api/v1/generations", response_model=Page[Generation])
     def generations(pg: Pg, model_id: str | None = None):
         with rd() as st:
-            return qs.page(st, Generation, pg, **({"model_id": model_id} if model_id else {}))
+            return _get(qs.generations_page, st, pg, model_id)
 
     @app.get("/api/v1/engines", response_model=Page[Engine])
     def engines(pg: Pg, fuel: Fuel | None = None):
@@ -125,7 +125,7 @@ def create_app(db=None):
         min_registrations: MinReg = None,
     ):
         with rd() as st:
-            return qs.variants_page(st, pg, q, model_id, generation_id, engine_id, fuel, sort, min_registrations, brand_id)
+            return _get(qs.variants_page, st, pg, q, model_id, generation_id, engine_id, fuel, sort, min_registrations, brand_id)
 
     @app.get("/api/v1/variants/{i}", response_model=VariantDetail)
     def variant(i: str):
