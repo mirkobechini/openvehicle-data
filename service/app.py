@@ -116,6 +116,7 @@ def create_app(db=None):
     def variants(
         pg: Pg,
         q: Q = None,
+        brand_id: str | None = None,
         model_id: str | None = None,
         generation_id: str | None = None,
         engine_id: str | None = None,
@@ -124,7 +125,7 @@ def create_app(db=None):
         min_registrations: MinReg = None,
     ):
         with rd() as st:
-            return qs.variants_page(st, pg, q, model_id, generation_id, engine_id, fuel, sort, min_registrations)
+            return qs.variants_page(st, pg, q, model_id, generation_id, engine_id, fuel, sort, min_registrations, brand_id)
 
     @app.get("/api/v1/variants/{i}", response_model=VariantDetail)
     def variant(i: str):
