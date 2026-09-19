@@ -76,6 +76,7 @@ def build_mcp(p):
 
     @m.tool(annotations=RO)
     def list_variants(
+        brand_id: Annotated[str | None, Field(description="Brand id, e.g. brand_tesla: all variants of the brand")] = None,
         model_id: Annotated[str | None, Field(description="Model id, e.g. model_fiat-panda")] = None,
         generation_id: str | None = None,
         engine_id: str | None = None,
@@ -86,9 +87,9 @@ def build_mcp(p):
         limit: Lim = 25,
         offset: Off = 0,
     ) -> qs.Page[Variant]:
-        """List variants (type-approval versions) filtered by model, generation, engine, fuel or text, most registered first."""
+        """List variants (type-approval versions) filtered by brand, model, generation, engine, fuel or text, most registered first."""
         with Store(p, ro=True) as st:
-            return _out(qs.variants_page(st, (limit, offset), q, model_id, generation_id, engine_id, fuel, sort, min_registrations))
+            return _out(qs.variants_page(st, (limit, offset), q, model_id, generation_id, engine_id, fuel, sort, min_registrations, brand_id))
 
     @m.tool(annotations=RO)
     def get_variant(variant_id: Annotated[str, Field(description="Variant id, e.g. var_fiat-panda-312-pyd1b-s5g")]) -> qs.VariantDetail:

@@ -79,8 +79,11 @@ def _ix(cur, ids):
     return ids if cur is None else cur & ids
 
 
-def variants_page(st, lo, q=None, model_id=None, generation_id=None, engine_id=None, fuel=None, sort="id", min_reg=None):
+def variants_page(st, lo, q=None, model_id=None, generation_id=None, engine_id=None, fuel=None, sort="id", min_reg=None, brand_id=None):
     w, g, e = {}, None, None
+    if brand_id:
+        ms = [x.id for x in st.find(CarModel, brand_id=brand_id)]
+        g = _ix(g, (x.id for x in st.find(Generation, model_id=ms)))
     if model_id:
         g = _ix(g, (x.id for x in st.find(Generation, model_id=model_id)))
     if generation_id:

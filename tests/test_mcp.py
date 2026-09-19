@@ -297,3 +297,15 @@ def test_mcp_paging_is_explained(m):
     ts = {t.name: t for t in asyncio.run(m.list_tools())}
     assert "next_offset" in ts["list_models"].input_schema["properties"]["offset"]["description"]
     assert {"count", "has_more", "next_offset"} <= set(ts["list_variants"].output_schema["properties"])
+
+
+def test_mcp_variants_by_brand(m):
+    j = call(m, "list_variants", brand_id="brand_tesla", fuel="electric", sort="registrations")
+    assert j["total"] == 3 and j["items"][0]["id"] == "var_tesla-model-3-003-h6mr-bfb1s5t1w"
+    assert call(m, "list_variants", brand_id="brand_fiat", model_id="model_tesla-model-3")["total"] == 0
+    assert call(m, "list_variants", brand_id="brand_none")["total"] == 0
+
+
+def test_mcp_variants_brand_filter_is_described(m):
+    props = next(t.input_schema["properties"] for t in asyncio.run(m.list_tools()) if t.name == "list_variants")
+    assert "brand_id" in props and "all variants of the brand" in props["brand_id"]["description"]
