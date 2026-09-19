@@ -77,7 +77,7 @@ def _diff(old, new):
 def _md(v, today, pv, rows, ch):
     ls = [f"# openvehicle-data {v} ({today})", ""]
     if ch is None:
-        ls.append("Initial release." if pv is None else f"No comparison with {pv}.")
+        ls.append("Initial release.")
         ls += [f"- {t}: {len(rs)}" for t, rs in rows.items()]
     else:
         ls.append(f"Changes since {pv}:")
