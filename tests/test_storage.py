@@ -4,7 +4,7 @@ from datetime import date
 import pytest
 
 from core.enums import Fuel
-from core.models import Brand, CarModel, Engine, Generation, Variant
+from core.models import Brand, CarModel, Engine, Family, Generation, Variant
 from core.provenance import Evidence, FieldProvenance, Source, Status
 from core.storage import Store
 
@@ -276,3 +276,57 @@ def test_ids_are_sorted_and_per_type(st):
 def test_ids_of_an_empty_table():
     with Store() as s:
         assert s.ids(Brand) == []
+
+
+F = Family(id="family_citroen-c3", brand_id=B.id, name="C3", aliases=["C-3"], model_count=2, registrations=500)
+
+
+def with_family(st):
+    st.put(F, M.model_copy(update={"family_id": F.id}), CarModel(id="model_citroen-c3-aircross", brand_id=B.id, name="C3 AIRCROSS", family_id=F.id))
+
+
+def test_family_round_trip_and_defaults(st):
+    st.put(F)
+    assert st.get(Family, F.id) == F
+    assert st.get(CarModel, M.id).family_id is None
+
+
+def test_model_family_id_round_trip(st):
+    with_family(st)
+    assert st.get(CarModel, M.id).family_id == F.id
+    assert [m.id for m in st.find(CarModel, family_id=F.id)] == ["model_citroen-c3", "model_citroen-c3-aircross"]
+    assert st.find(CarModel, family_id="family_none") == []
+    assert st.count(CarModel, family_id=F.id) == 2
+
+
+def test_a_model_needs_an_existing_family(st):
+    with pytest.raises(sqlite3.IntegrityError):
+        st.put(M.model_copy(update={"family_id": "family_citroen-none"}))
+
+
+def test_a_family_needs_an_existing_brand(st):
+    with pytest.raises(sqlite3.IntegrityError):
+        st.put(F.model_copy(update={"brand_id": "brand_none"}))
+
+
+def test_families_are_searchable_sortable_and_countable(st):
+    st.put(F, Family(id="family_citroen-c4", brand_id=B.id, name="C4", model_count=1, registrations=900),
+           Family(id="family_citroen-c5", brand_id=B.id, name="C5", model_count=1))
+    assert [f.id for f in st.find(Family, sort="-registrations")] == ["family_citroen-c4", "family_citroen-c3", "family_citroen-c5"]
+    assert [f.id for f in st.find(Family, q="c-3")] == ["family_citroen-c3"]
+    assert [f.id for f in st.find(Family, registrations__gte=600)] == ["family_citroen-c4"]
+    assert st.count(Family, brand_id=B.id) == 3 and st.ids(Family) == ["family_citroen-c3", "family_citroen-c4", "family_citroen-c5"]
+
+
+def test_families_survive_a_backup(st, tmp_path):
+    with_family(st)
+    st.backup(tmp_path / "f.db")
+    with Store(tmp_path / "f.db", ro=True) as r:
+        assert r.get(Family, F.id) == F and r.get(CarModel, M.id).family_id == F.id
+
+
+def test_has_reports_whether_a_type_has_its_table(st):
+    assert all(st.has(c) for c in (Brand, CarModel, Family, Generation, Engine, Variant, Source))
+    st.c.execute("PRAGMA foreign_keys=OFF")
+    st.c.execute("DROP TABLE families")
+    assert st.has(Family) is False and st.has(Brand) is True

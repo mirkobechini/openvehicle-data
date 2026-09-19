@@ -8,11 +8,12 @@ import pytest
 from pydantic import ValidationError
 
 from core.enums import Fuel
-from core.models import Brand, CarModel, Engine, Generation, Variant
+from core.models import Brand, CarModel, Engine, Family, Generation, Variant
 from core.provenance import Source, Status
 from core.storage import Store
 from pipeline.importers import eea
 from pipeline.importers.corrections import Corrections, Exclusion, Merge
+from pipeline.importers.families import FamilyRules
 from pipeline.sources import EEA
 from pipeline.validation import validate
 
@@ -40,7 +41,7 @@ def loaded(st):
 
 def test_load_stats(loaded):
     _, s = loaded
-    assert s == {"rows": 17, "skipped": 0, "excluded": 0, "conflicts": 0, "brands": 6, "models": 10, "engines": 8, "variants": 14, "dropped": {}}
+    assert s == {"rows": 17, "skipped": 0, "excluded": 0, "conflicts": 0, "brands": 6, "families": 9, "models": 10, "engines": 8, "variants": 14, "dropped": {}}
 
 
 def test_load_is_valid(loaded):
@@ -399,3 +400,82 @@ def test_custom_merge_uses_the_canonical_brand_and_the_cleaned_name(st):
     assert (m.id, m.name, m.registrations) == ("model_volkswagen-golf", "GOLF", 12)
     assert "GOLF GTI" in m.aliases and "VW GOLF GTI" in m.aliases
 
+
+
+def test_every_model_has_a_family_of_its_own_brand(loaded):
+    st, _ = loaded
+    for m in st.find(CarModel):
+        f = st.get(Family, m.family_id)
+        assert f is not None and f.brand_id == m.brand_id
+
+
+def test_a_brand_without_rules_has_one_family_per_model(loaded):
+    st, _ = loaded
+    f = st.get(Family, "family_fiat-panda")
+    assert (f.name, f.brand_id, f.model_count, f.registrations) == ("PANDA", "brand_fiat", 1, 77180)
+    assert st.get(CarModel, "model_fiat-panda").family_id == "family_fiat-panda"
+    assert (len(st.find(Family)), len(st.find(CarModel))) == (9, 10)
+
+
+def test_family_totals_match_their_models(loaded):
+    st, _ = loaded
+    for f in st.find(Family):
+        ms = st.find(CarModel, family_id=f.id)
+        assert f.model_count == len(ms) and f.registrations == sum(m.registrations for m in ms)
+    assert sum(f.registrations for f in st.find(Family)) == sum(m.registrations for m in st.find(CarModel))
+
+
+def test_family_ids_use_the_canonical_brand_and_model_name(st):
+    eea.load([row(Mk="VW", Cn="VW GOLF", n=2), row(Mk="VOLKSWAGEN", Cn="GOLF", Ve="B2", n=10), row(Cn="FIAT PANDA")], st, 2025, TODAY)
+    assert sorted(f.id for f in st.find(Family)) == ["family_fiat-panda", "family_volkswagen-golf"]
+    f = st.get(Family, "family_volkswagen-golf")
+    assert (f.name, f.model_count, f.registrations) == ("GOLF", 1, 12)
+
+
+def test_families_are_stored_before_their_models_and_reload_from_disk(tmp_path):
+    db = tmp_path / "f.db"
+    with Store(db) as s:
+        eea.load(ROWS, s, 2025, TODAY)
+    with Store(db, ro=True) as r:
+        assert len(r.find(Family)) == 9 and all(m.family_id for m in r.find(CarModel))
+
+
+def test_rules_group_models_into_families(loaded):
+    st, _ = loaded
+    x1 = st.get(Family, "family_bmw-x1")
+    assert (x1.name, x1.brand_id, x1.model_count, x1.registrations) == ("X1", "brand_bmw", 2, 548 + 400 + 174)
+    assert {m.id for m in st.find(CarModel, family_id="family_bmw-x1")} == {"model_bmw-x1-xdrive20d", "model_bmw-x1-sdrive20d"}
+    assert st.get(Family, "family_bmw-x2").registrations == 1087
+    glc = st.get(Family, "family_mercedes-benz-glc")
+    assert (glc.name, glc.model_count, glc.registrations) == ("GLC", 1, 461)
+
+
+def test_the_family_totals_add_up_with_rules(loaded):
+    st, _ = loaded
+    assert sum(f.model_count for f in st.find(Family)) == len(st.find(CarModel))
+    assert sum(f.registrations for f in st.find(Family)) == sum(m.registrations for m in st.find(CarModel))
+    assert validate(st) == []
+
+
+def test_models_of_related_but_different_cars_stay_in_separate_families(st):
+    eea.load([row(Mk="TOYOTA", Cn="YARIS", n=5), row(Mk="TOYOTA", Cn="YARIS CROSS", Ve="B2", n=9)], st, 2025, TODAY)
+    assert sorted(f.name for f in st.find(Family)) == ["YARIS", "YARIS CROSS"]
+
+
+def test_custom_rules_replace_the_shipped_ones(st):
+    rows = [row(Mk="BMW", Cn="X1 SDRIVE18D", n=3), row(Mk="BMW", Cn="X1 XDRIVE20D", Ve="B2", n=4)]
+    eea.load(rows, st, 2025, TODAY, None, FamilyRules())
+    assert sorted(f.name for f in st.find(Family)) == ["X1 SDRIVE18D", "X1 XDRIVE20D"]
+
+
+def test_the_family_uses_the_canonical_brand_for_its_rules(st):
+    eea.load([row(Mk="MERCEDES", Cn="MERCEDES GLC 220 D", n=2), row(Mk="MERCEDES-BENZ", Cn="GLC 300 E", Ve="B2", n=8)], st, 2025, TODAY)
+    f = st.find(Family)[0]
+    assert (f.id, f.name, f.model_count, f.registrations) == ("family_mercedes-benz-glc", "GLC", 2, 10)
+
+
+def test_a_family_can_hold_a_model_named_like_it(st):
+    rows = [row(Mk="PORSCHE", Cn="MACAN", n=4), row(Mk="PORSCHE", Cn="MACAN 4S", Ve="B2", n=6)]
+    eea.load(rows, st, 2025, TODAY)
+    f = st.find(Family)[0]
+    assert (f.id, f.model_count, f.registrations) == ("family_porsche-macan", 2, 10)

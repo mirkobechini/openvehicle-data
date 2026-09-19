@@ -8,7 +8,7 @@ from pydantic import Field
 from pydantic_core import to_jsonable_python
 
 from core.enums import Fuel
-from core.models import Brand, CarModel, Variant
+from core.models import Brand, CarModel, Family, Variant
 from core.storage import Store
 from service import queries as qs
 
@@ -20,7 +20,9 @@ INSTR = (
     "Models and variants are listed most registered first: entries with only a few registrations "
     "can be data-entry errors. Lists return count (items in this page), total, has_more and "
     "next_offset: when has_more is true, call again with offset set to next_offset. Do not count "
-    "the items yourself; use count and total."
+    "the items yourself; use count and total. Some brands list one model per engine or trim "
+    "(BMW, Mercedes-Benz, Audi, Volkswagen ID.): for those start with list_families, where a family "
+    "groups models that differ only by engine, drive or trim, for example GLC or ID.4."
 )
 RO = ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False)
 Lim = Annotated[int, Field(ge=1, le=100, description="Page size")]
@@ -69,8 +71,22 @@ def build_mcp(p):
             return _out(qs.page(st, Brand, (limit, offset), q))
 
     @m.tool(annotations=RO)
+    def list_families(
+        brand_id: Annotated[str | None, Field(description="Brand id, e.g. brand_mercedes-benz")] = None,
+        q: Qs = None,
+        sort: Sort = "registrations",
+        min_registrations: MinReg = None,
+        limit: Lim = 25,
+        offset: Off = 0,
+    ) -> qs.Page[Family]:
+        """List model families (models that differ only by engine, drive or trim, like GLC or ID.4), most registered first."""
+        with Store(p, ro=True) as st:
+            return _run(qs.families_page, st, (limit, offset), q, brand_id, sort, min_registrations)
+
+    @m.tool(annotations=RO)
     def list_models(
         brand_id: Annotated[str | None, Field(description="Brand id, e.g. brand_fiat")] = None,
+        family_id: Annotated[str | None, Field(description="Family id, e.g. family_mercedes-benz-glc")] = None,
         q: Qs = None,
         sort: Sort = "registrations",
         min_registrations: MinReg = None,
@@ -79,11 +95,12 @@ def build_mcp(p):
     ) -> qs.Page[CarModel]:
         """List car models, optionally for one brand and/or filtered by text, most registered first."""
         with Store(p, ro=True) as st:
-            return _run(qs.models_page, st, (limit, offset), q, brand_id, sort, min_registrations)
+            return _run(qs.models_page, st, (limit, offset), q, brand_id, sort, min_registrations, family_id)
 
     @m.tool(annotations=RO)
     def list_variants(
         brand_id: Annotated[str | None, Field(description="Brand id, e.g. brand_tesla: all variants of the brand")] = None,
+        family_id: Annotated[str | None, Field(description="Family id, e.g. family_bmw-x1: all variants of the family")] = None,
         model_id: Annotated[str | None, Field(description="Model id, e.g. model_fiat-panda")] = None,
         generation_id: str | None = None,
         engine_id: str | None = None,
@@ -96,7 +113,7 @@ def build_mcp(p):
     ) -> qs.Page[Variant]:
         """List variants (type-approval versions) filtered by brand, model, generation, engine, fuel or text, most registered first."""
         with Store(p, ro=True) as st:
-            return _run(qs.variants_page, st, (limit, offset), q, model_id, generation_id, engine_id, fuel, sort, min_registrations, brand_id)
+            return _run(qs.variants_page, st, (limit, offset), q, model_id, generation_id, engine_id, fuel, sort, min_registrations, brand_id, family_id)
 
     @m.tool(annotations=RO)
     def get_variant(variant_id: Annotated[str, Field(description="Variant id, e.g. var_fiat-panda-312-pyd1b-s5g")]) -> qs.VariantDetail:

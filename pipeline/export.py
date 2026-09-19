@@ -6,7 +6,7 @@ import shutil
 from datetime import date
 from pathlib import Path
 
-from core.models import Brand, CarModel, Engine, Generation, Variant
+from core.models import Brand, CarModel, Engine, Family, Generation, Variant
 from core.provenance import Source
 from core.storage import Store
 from pipeline.validation import ensure
@@ -16,6 +16,7 @@ DB = "openvehicle-data.db"
 LICENSE = "CC-BY-4.0"
 TABLES = {
     "brands": Brand,
+    "families": Family,
     "models": CarModel,
     "generations": Generation,
     "engines": Engine,
@@ -30,7 +31,7 @@ PC = ["entity_id", "field", "status", "last_verified", "source_id", "value", "ur
 
 
 def _rows(st):
-    d = {n: [o.model_dump(mode="json") for o in st.find(c)] for n, c in TABLES.items()}
+    d = {n: [o.model_dump(mode="json") for o in st.find(c)] if st.has(c) else [] for n, c in TABLES.items()}
     d["provenance"] = [p.model_dump(mode="json") for p in st.all_prov()]
     return d
 

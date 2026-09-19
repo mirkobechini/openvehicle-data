@@ -6,6 +6,7 @@ from core.enums import Category, Fuel
 
 BrandId = Annotated[str, Field(pattern=r"^brand_[a-z0-9]+(-[a-z0-9]+)*$")]
 ModelId = Annotated[str, Field(pattern=r"^model_[a-z0-9]+(-[a-z0-9]+)*$")]
+FamId = Annotated[str, Field(pattern=r"^family_[a-z0-9]+(-[a-z0-9]+)*$")]
 GenId = Annotated[str, Field(pattern=r"^gen_[a-z0-9]+(-[a-z0-9]+)*$")]
 EngId = Annotated[str, Field(pattern=r"^eng_[a-z0-9]+(-[a-z0-9]+)*$")]
 VarId = Annotated[str, Field(pattern=r"^var_[a-z0-9]+(-[a-z0-9]+)*$")]
@@ -41,11 +42,19 @@ class Brand(Named):
     id: BrandId
 
 
+class Family(Named):
+    id: FamId
+    brand_id: BrandId
+    model_count: int = Field(ge=1)
+    registrations: int | None = Field(default=None, ge=0)
+
+
 class CarModel(Named):
     id: ModelId
     brand_id: BrandId
     category: Category = Category.M1
     registrations: int | None = Field(default=None, ge=0)
+    family_id: FamId | None = None
 
 
 class Generation(Named, Period):

@@ -8,10 +8,11 @@ from pydantic import ValidationError
 
 from core.enums import Fuel
 from core.ids import make_id, slug
-from core.models import Brand, CarModel, Engine, Generation, Variant
+from core.models import Brand, CarModel, Engine, Family, Generation, Variant
 from core.provenance import Evidence, FieldProvenance
 from core.storage import Store
 from pipeline.importers.corrections import load_corrections, norm
+from pipeline.importers.families import family_of, load_family_rules
 from pipeline.sources import EEA
 
 URL = "https://discodata.eea.europa.eu/sql"
@@ -97,9 +98,10 @@ def _pv(o, fs, today, out):
             out.append(FieldProvenance(entity_id=o.id, field=f, evidence=[ev], last_verified=today))
 
 
-def load(rows, st, year, today=None, corr=None):
+def load(rows, st, year, today=None, corr=None, fam=None):
     today = today or date.today()
     corr = corr or load_corrections()
+    fam = fam or load_family_rules()
     bmap = {norm(k): v for k, v in corr.brands.items()}
     ex = {(norm(x.brand), slug(x.model)) for x in corr.exclude_models}
     mmap = {(norm(x.brand), slug(x.model)): x.into for x in corr.merge_models}
@@ -150,15 +152,22 @@ def load(rows, st, year, today=None, corr=None):
     for i, s in bn.items():
         nm = sorted(c for c, _ in s)[0]
         bs.append(Brand(id=i, name=nm, aliases=sorted({x for p in s for x in p} - {nm})))
-    cs = []
+    bname = {b.id: b.name for b in bs}
+    cs, fms = [], {}
     for i, s in mn.items():
         nm = sorted(t[0] for t in s)[0]
-        cs.append(CarModel(id=i, brand_id=ms[i], name=nm, aliases=sorted({x for p in s for x in p} - {nm}), registrations=mreg[i]))
+        fn = family_of(fam, bname[ms[i]], nm)
+        fid = make_id("family", bname[ms[i]], fn)
+        cs.append(CarModel(id=i, brand_id=ms[i], name=nm, aliases=sorted({x for p in s for x in p} - {nm}), registrations=mreg[i], family_id=fid))
+        f = fms.setdefault(fid, {"brand": ms[i], "name": fn, "n": 0, "reg": 0})
+        f["n"] += 1
+        f["reg"] += mreg[i]
+    fl = [Family(id=i, brand_id=f["brand"], name=f["name"], model_count=f["n"], registrations=f["reg"]) for i, f in fms.items()]
     gl = [Generation(id=i, model_id=m, name="observed", year_from=year, year_to=year) for i, m in gs.items()]
-    st.put(EEA, *bs, *cs, *gl, *es.values(), *vs.values())
+    st.put(EEA, *bs, *fl, *cs, *gl, *es.values(), *vs.values())
     st.put_prov(*pv)
     return {
-        "rows": len(rows), "skipped": skip, "excluded": excl, "conflicts": conf, "brands": len(bs), "models": len(cs),
+        "rows": len(rows), "skipped": skip, "excluded": excl, "conflicts": conf, "brands": len(bs), "families": len(fl), "models": len(cs),
         "engines": len(es), "variants": len(vs), "dropped": dict(drops),
     }
 

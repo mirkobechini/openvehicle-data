@@ -2,12 +2,13 @@ import json
 import sqlite3
 from pathlib import Path
 
-from core.models import Brand, CarModel, Engine, Generation, Variant
+from core.models import Brand, CarModel, Engine, Family, Generation, Variant
 from core.provenance import FieldProvenance, Source
 
 TB = {
     Brand: "brands",
     CarModel: "models",
+    Family: "families",
     Generation: "generations",
     Engine: "engines",
     Variant: "variants",
@@ -20,7 +21,11 @@ CREATE TABLE IF NOT EXISTS brands (
 CREATE TABLE IF NOT EXISTS models (
     id TEXT PRIMARY KEY, brand_id TEXT NOT NULL REFERENCES brands(id),
     name TEXT NOT NULL, aliases TEXT NOT NULL, category TEXT NOT NULL,
-    registrations INTEGER);
+    registrations INTEGER, family_id TEXT REFERENCES families(id));
+CREATE TABLE IF NOT EXISTS families (
+    id TEXT PRIMARY KEY, brand_id TEXT NOT NULL REFERENCES brands(id),
+    name TEXT NOT NULL, aliases TEXT NOT NULL,
+    model_count INTEGER NOT NULL, registrations INTEGER);
 CREATE TABLE IF NOT EXISTS generations (
     id TEXT PRIMARY KEY, model_id TEXT NOT NULL REFERENCES models(id),
     name TEXT NOT NULL, aliases TEXT NOT NULL,
@@ -43,6 +48,8 @@ CREATE TABLE IF NOT EXISTS provenance (
     last_verified TEXT NOT NULL, evidence TEXT NOT NULL,
     PRIMARY KEY (entity_id, field));
 CREATE INDEX IF NOT EXISTS ix_models_brand ON models(brand_id);
+CREATE INDEX IF NOT EXISTS ix_models_family ON models(family_id);
+CREATE INDEX IF NOT EXISTS ix_families_brand ON families(brand_id);
 CREATE INDEX IF NOT EXISTS ix_gens_model ON generations(model_id);
 CREATE INDEX IF NOT EXISTS ix_vars_gen ON variants(generation_id);
 """
@@ -125,6 +132,9 @@ class Store:
             sql += " LIMIT ? OFFSET ?"
             ps += [limit, offset]
         return [self._m(cls, r) for r in self.c.execute(sql, ps)]
+
+    def has(self, cls):
+        return self.c.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (TB[cls],)).fetchone() is not None
 
     def ids(self, cls):
         return [r[0] for r in self.c.execute(f"SELECT id FROM {TB[cls]} ORDER BY id")]

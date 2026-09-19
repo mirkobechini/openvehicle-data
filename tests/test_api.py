@@ -54,7 +54,7 @@ def test_health(cl):
 
 def test_meta(cl):
     j = cl.get(f"{B}/meta").json()
-    assert j["counts"] == {"Brand": 6, "CarModel": 10, "Generation": 10, "Engine": 8, "Variant": 14, "Source": 1}
+    assert j["counts"] == {"Brand": 6, "Family": 9, "CarModel": 10, "Generation": 10, "Engine": 8, "Variant": 14, "Source": 1}
     assert j["license"] == "CC-BY-4.0" and "CC BY 4.0" in j["attribution"] and j["version"]
     assert j["sources"][0]["id"] == "eea-co2"
 
@@ -387,3 +387,86 @@ def test_search_with_results_has_no_suggestions(cl):
 
 def test_search_can_suggest_a_model_alias(cl):
     assert "PANDA" in cl.get(f"{B}/search", params={"q": "pandaa"}).json()["did_you_mean"]
+
+
+FAMS = [
+    "family_fiat-panda", "family_dacia-sandero", "family_tesla-model-3", "family_tesla-model-y", "family_bmw-x1",
+    "family_bmw-x2", "family_mercedes-benz-glc", "family_toyota-land-cruiser", "family_toyota-mirai",
+]
+
+
+def test_families_list(cl):
+    r = cl.get(f"{B}/families")
+    j = r.json()
+    assert (r.status_code, j["total"], j["count"]) == (200, 9, 9) and ids(r) == sorted(FAMS)
+    assert {"id", "brand_id", "name", "aliases", "model_count", "registrations"} <= set(j["items"][0])
+
+
+def test_families_sorted_by_registrations(cl):
+    r = cl.get(f"{B}/families", params={"sort": "registrations"})
+    assert ids(r) == FAMS
+    assert r.json()["items"][0]["registrations"] == 77180
+
+
+def test_families_filters(cl):
+    assert ids(cl.get(f"{B}/families", params={"brand_id": "brand_bmw", "sort": "registrations"})) == ["family_bmw-x1", "family_bmw-x2"]
+    assert ids(cl.get(f"{B}/families", params={"min_registrations": 1000, "sort": "registrations"})) == FAMS[:6]
+    assert ids(cl.get(f"{B}/families", params={"q": "x1"})) == ["family_bmw-x1"]
+    assert cl.get(f"{B}/families", params={"brand_id": "brand_bmw", "min_registrations": 1100}).json()["total"] == 1
+
+
+def test_families_paging_metadata(cl):
+    j = cl.get(f"{B}/families", params={"limit": 4}).json()
+    assert (j["total"], j["count"], j["has_more"], j["next_offset"]) == (9, 4, True, 4)
+
+
+def test_family_detail_and_typos(cl):
+    j = cl.get(f"{B}/families/family_bmw-x1").json()
+    assert (j["name"], j["brand_id"], j["model_count"], j["registrations"]) == ("X1", "brand_bmw", 2, 548 + 400 + 174)
+    r = cl.get(f"{B}/families/family_bmw-x11")
+    assert r.status_code == 404 and "Did you mean: " in r.json()["detail"] and "family_bmw-x1" in r.json()["detail"]
+    r = cl.get(f"{B}/families", params={"brand_id": "brand_bmww"})
+    assert r.status_code == 404 and "brand_bmw" in r.json()["detail"]
+
+
+def test_models_of_a_family(cl):
+    r = cl.get(f"{B}/models", params={"family_id": "family_bmw-x1"})
+    assert sorted(ids(r)) == ["model_bmw-x1-sdrive20d", "model_bmw-x1-xdrive20d"] and r.json()["total"] == 2
+    assert all(i["family_id"] == "family_bmw-x1" for i in r.json()["items"])
+    assert cl.get(f"{B}/models", params={"family_id": "family_bmw-x1", "brand_id": "brand_fiat"}).json()["total"] == 0
+    assert cl.get(f"{B}/models", params={"family_id": "family_bmw-x1", "q": "sdrive"}).json()["total"] == 1
+
+
+def test_variants_of_a_family(cl):
+    def n(**p):
+        return cl.get(f"{B}/variants", params=p).json()["total"]
+    assert n(family_id="family_bmw-x1") == 2 and n(family_id="family_bmw-x2") == 1
+    assert n(family_id="family_bmw-x1", brand_id="brand_bmw") == 2 and n(family_id="family_bmw-x1", brand_id="brand_fiat") == 0
+    assert n(family_id="family_bmw-x1", fuel="hybrid") == 2 and n(family_id="family_bmw-x1", fuel="electric") == 0
+    assert n(family_id="family_bmw-x1", model_id="model_bmw-x1-sdrive20d") == 1
+    assert n(family_id="family_bmw-x1", model_id="model_bmw-x2-xdrive20d") == 0
+
+
+def test_unknown_family_filters_are_404_with_suggestions(cl):
+    for path in ("models", "variants"):
+        r = cl.get(f"{B}/{path}", params={"family_id": "family_bmw-x11"})
+        assert r.status_code == 404 and "Did you mean: " in r.json()["detail"] and "family_bmw-x1" in r.json()["detail"]
+
+
+def test_search_finds_families(cl):
+    j = cl.get(f"{B}/search", params={"q": "x1"}).json()
+    assert [f["id"] for f in j["families"]] == ["family_bmw-x1"] and j["did_you_mean"] == []
+    assert cl.get(f"{B}/search", params={"q": "glc"}).json()["families"][0]["id"] == "family_mercedes-benz-glc"
+    assert cl.get(f"{B}/search", params={"q": "zzzzzz"}).json()["families"] == []
+
+
+def test_search_suggests_family_names(cl):
+    j = cl.get(f"{B}/search", params={"q": "glcc"}).json()
+    assert (j["brands"], j["families"], j["models"]) == ([], [], []) and "GLC" in j["did_you_mean"]
+
+
+def test_families_are_in_the_openapi(cl):
+    paths = cl.get("/openapi.json").json()["paths"]
+    assert {f"{B}/families", f"{B}/families/{{i}}"} <= set(paths)
+    for p in ("models", "variants"):
+        assert "family_id" in {x["name"] for x in paths[f"{B}/{p}"]["get"]["parameters"]}

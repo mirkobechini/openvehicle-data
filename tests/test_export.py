@@ -1,6 +1,7 @@
 import csv
 import hashlib
 import json
+import sqlite3
 from datetime import date
 from pathlib import Path
 
@@ -197,3 +198,57 @@ def test_deterministic_outputs(v1, tmp_path):
     f1, f2 = dict(m1["files"]), dict(m2["files"])
     f1.pop(DB), f2.pop(DB)
     assert f1 == f2
+
+
+def test_families_are_exported(v1):
+    m, out = v1
+    assert m["counts"]["families"] == 9 and "families.csv" in m["files"]
+    rs = read_csv(out / "families.csv")
+    assert len(rs) == 9 and list(rs[0])[0] == "id"
+    assert set(rs[0]) == {"id", "name", "aliases", "brand_id", "model_count", "registrations"}
+    panda = next(r for r in rs if r["id"] == "family_fiat-panda")
+    assert (panda["name"], panda["model_count"], panda["registrations"]) == ("PANDA", "1", "77180")
+    d = json.loads((out / "dataset.json").read_text(encoding="utf-8"))
+    assert len(d["families"]) == 9 and d["families"][0]["id"] == sorted(x["id"] for x in d["families"])[0]
+
+
+def test_model_family_id_is_in_the_models_csv_and_json(v1):
+    _, out = v1
+    r = next(x for x in read_csv(out / "models.csv") if x["id"] == "model_fiat-panda")
+    assert r["family_id"] == "family_fiat-panda"
+    d = json.loads((out / "dataset.json").read_text(encoding="utf-8"))
+    assert {x["family_id"] for x in d["models"]} <= {x["id"] for x in d["families"]}
+
+
+def test_changelog_lists_family_changes(v1, tmp_path):
+    _, d1 = v1
+    b = [dict(r) for r in ROWS if r["Cn"] != "SANDERO"]
+    b.append(row(Mk="ALFA ROMEO", Cn="GIULIA"))
+    with store(b) as st:
+        export(st, tmp_path / "out2", "0.2.0", TODAY, prev=d1)
+    ch = json.loads((tmp_path / "out2" / "changelog.json").read_text(encoding="utf-8"))["changes"]
+    assert ch["families"]["added"] == ["family_alfa-romeo-giulia"] and ch["families"]["removed"] == ["family_dacia-sandero"]
+    md = (tmp_path / "out2" / "CHANGELOG.md").read_text(encoding="utf-8")
+    assert "- families: +1 -1 ~0" in md
+
+
+def strip_families(db):
+    c = sqlite3.connect(db)
+    c.execute("PRAGMA foreign_keys=OFF")
+    c.execute("UPDATE models SET family_id = NULL")
+    c.execute("DROP TABLE families")
+    c.commit()
+    c.close()
+
+
+def test_comparing_with_an_older_release_that_has_no_families(v1, tmp_path):
+    _, d1 = v1
+    strip_families(d1 / DB)
+    with store() as st:
+        m = export(st, tmp_path / "out2", "0.2.0", TODAY, prev=d1)
+    assert m["previous"] == "0.1.0" and m["counts"]["families"] == 9
+    ch = json.loads((tmp_path / "out2" / "changelog.json").read_text(encoding="utf-8"))["changes"]
+    assert len(ch["families"]["added"]) == 9 and ch["families"]["removed"] == [] and ch["families"]["changed"] == []
+    assert len(ch["models"]["changed"]) == 10 and ch["models"]["added"] == [] and ch["models"]["removed"] == []
+    assert ch["variants"] == {"added": [], "removed": [], "changed": []}
+    assert "- families: +9 -0 ~0" in (tmp_path / "out2" / "CHANGELOG.md").read_text(encoding="utf-8")
