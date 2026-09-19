@@ -4,6 +4,7 @@ from datetime import date
 from importlib.metadata import version
 from pathlib import Path
 
+import jsonschema
 import pytest
 from fastapi.testclient import TestClient
 from mcp.server.mcpserver.exceptions import ToolError
@@ -222,3 +223,127 @@ def test_popularity_options_are_described(m):
         props = ts[n].input_schema["properties"]
         assert "most registered first" in props["sort"]["description"]
         assert "skip rare or mistyped" in props["min_registrations"]["description"]
+
+
+CALLS = {
+    "list_brands": {"limit": 2},
+    "list_models": {"brand_id": "brand_fiat", "limit": 2},
+    "list_variants": {"model_id": "model_fiat-panda", "limit": 2},
+    "get_variant": {"variant_id": PANDA},
+    "search_catalog": {"q": "fiat"},
+    "dataset_info": {},
+}
+
+
+def test_every_tool_output_matches_its_declared_schema(m):
+    schemas = {t.name: t.output_schema for t in asyncio.run(m.list_tools())}
+    assert set(schemas) == set(CALLS)
+    for name, args in CALLS.items():
+        jsonschema.validate(call(m, name, **args), schemas[name])
+
+
+@pytest.mark.parametrize("name", list(CALLS))
+def test_endpoint_output_matches_the_schema_a_client_sees(http, name):
+    schemas = {t["name"]: t["outputSchema"] for t in rpc(http, "tools/list").json()["result"]["tools"]}
+    res = rpc(http, "tools/call", {"name": name, "arguments": CALLS[name]}).json()["result"]
+    assert res["isError"] is False
+    jsonschema.validate(res["structuredContent"], schemas[name])
+
+
+def test_variant_provenance_status_is_declared(m):
+    schema = next(t.output_schema for t in asyncio.run(m.list_tools()) if t.name == "get_variant")
+    entry = schema["$defs"]["ProvenanceOut"]
+    assert {"entity_id", "field", "evidence", "last_verified", "status"} <= set(entry["properties"])
+    assert "status" in entry["required"]
+
+
+def test_variant_provenance_with_a_confirmed_and_a_conflicting_status(tmp_path):
+    from datetime import date as d
+
+    from core.provenance import Evidence, FieldProvenance, Source
+    p = tmp_path / "c.db"
+    with Store(p) as st:
+        eea.load(ROWS, st, 2025, d(2026, 9, 19))
+        st.put(Source(id="rdw", name="RDW", license="CC0-1.0", license_url="https://x.org/l", license_checked=d(2026, 9, 19)))
+        for f, vals in (("mass_kg", (1045, 1045)), ("co2_wltp_g_km", (113, 120))):
+            ev = [Evidence(source_id=s, value=v, retrieved=d(2026, 9, 19)) for s, v in zip(("eea-co2", "rdw"), vals)]
+            st.put_prov(FieldProvenance(entity_id=PANDA, field=f, evidence=ev, last_verified=d(2026, 9, 19)))
+    mm = build_mcp(p)
+    schema = next(t.output_schema for t in asyncio.run(mm.list_tools()) if t.name == "get_variant")
+    out = call(mm, "get_variant", variant_id=PANDA)
+    jsonschema.validate(out, schema)
+    assert {x["field"]: x["status"] for x in out["provenance"] if x["entity_id"] == PANDA} == {"mass_kg": "confirmed", "co2_wltp_g_km": "conflict"}
+
+
+def test_mcp_lists_have_paging_metadata(m):
+    j = call(m, "list_models", limit=4)
+    assert (j["total"], j["count"], j["has_more"], j["next_offset"]) == (10, 4, True, 4)
+    j = call(m, "list_models", limit=4, offset=8)
+    assert (j["count"], j["has_more"], j["next_offset"]) == (2, False, None)
+    assert call(m, "list_variants", model_id="model_fiat-panda", fuel="electric")["count"] == 0
+
+
+def test_mcp_paging_with_next_offset_visits_every_variant_once(m):
+    seen, off = [], 0
+    while off is not None:
+        j = call(m, "list_variants", limit=5, offset=off)
+        seen += [i["id"] for i in j["items"]]
+        off = j["next_offset"]
+    assert len(seen) == len(set(seen)) == 14
+
+
+def test_mcp_paging_is_explained(m):
+    assert "next_offset" in INSTR and "Do not count" in INSTR
+    ts = {t.name: t for t in asyncio.run(m.list_tools())}
+    assert "next_offset" in ts["list_models"].input_schema["properties"]["offset"]["description"]
+    assert {"count", "has_more", "next_offset"} <= set(ts["list_variants"].output_schema["properties"])
+
+
+def test_mcp_variants_by_brand(m):
+    j = call(m, "list_variants", brand_id="brand_tesla", fuel="electric", sort="registrations")
+    assert j["total"] == 3 and j["items"][0]["id"] == "var_tesla-model-3-003-h6mr-bfb1s5t1w"
+    assert call(m, "list_variants", brand_id="brand_fiat", model_id="model_tesla-model-3")["total"] == 0
+    assert call(m, "list_variants", brand_id="brand_fiat", fuel="electric")["total"] == 0
+
+
+def test_mcp_variants_brand_filter_is_described(m):
+    props = next(t.input_schema["properties"] for t in asyncio.run(m.list_tools()) if t.name == "list_variants")
+    assert "brand_id" in props and "all variants of the brand" in props["brand_id"]["description"]
+
+
+@pytest.mark.parametrize("name,a,cls,bad,good", [
+    ("list_models", {"brand_id": "brand_teslaa"}, "Brand", "brand_teslaa", "brand_tesla"),
+    ("list_variants", {"brand_id": "brand_bmww"}, "Brand", "brand_bmww", "brand_bmw"),
+    ("list_variants", {"model_id": "model_fiat-pandaa"}, "CarModel", "model_fiat-pandaa", "model_fiat-panda"),
+    ("list_variants", {"generation_id": "gen_fiat-panda-observedd"}, "Generation", "gen_fiat-panda-observedd", "gen_fiat-panda-observed"),
+    ("list_variants", {"engine_id": "eng_hybrid-999-522"}, "Engine", "eng_hybrid-999-522", "eng_hybrid-999-52"),
+    ("get_variant", {"variant_id": "var_fiat-panda-312-pyd1b-s5"}, "Variant", "var_fiat-panda-312-pyd1b-s5", "var_fiat-panda-312-pyd1b-s5g"),
+])
+def test_mcp_unknown_ids_are_errors_with_suggestions(m, name, a, cls, bad, good):
+    with pytest.raises(ToolError) as e:
+        call(m, name, **a)
+    assert f"{cls} {bad} not found. Did you mean: " in str(e.value) and good in str(e.value)
+
+
+def test_mcp_unknown_id_without_a_close_match(m):
+    with pytest.raises(ToolError, match=r"Brand zzzzzz not found$"):
+        call(m, "list_models", brand_id="zzzzzz")
+
+
+def test_mcp_search_suggests_close_names(m):
+    j = call(m, "search_catalog", q="teslaa")
+    assert (j["brands"], j["models"]) == ([], []) and "TESLA" in j["did_you_mean"]
+    assert call(m, "search_catalog", q="tesla")["did_you_mean"] == []
+    assert call(m, "search_catalog", q="zzzzzz")["did_you_mean"] == []
+
+
+def test_endpoint_reports_the_suggestion_as_a_tool_error(http):
+    j = rpc(http, "tools/call", {"name": "list_models", "arguments": {"brand_id": "brand_teslaa"}}).json()["result"]
+    assert j["isError"] is True and "Did you mean: brand_tesla" in j["content"][0]["text"]
+
+
+def test_endpoint_search_suggestions_match_the_declared_schema(http):
+    schemas = {t["name"]: t["outputSchema"] for t in rpc(http, "tools/list").json()["result"]["tools"]}
+    res = rpc(http, "tools/call", {"name": "search_catalog", "arguments": {"q": "teslaa"}}).json()["result"]
+    assert "did_you_mean" in schemas["search_catalog"]["properties"]
+    jsonschema.validate(res["structuredContent"], schemas["search_catalog"])

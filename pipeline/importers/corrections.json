@@ -19,5 +19,19 @@
       "model": "AVENGER",
       "reason": "Jeep model (47,085 registrations under JEEP) with 1 under FIAT in the EEA 2025 data: wrong make in the source"
     }
+  ],
+  "merge_models": [
+    {
+      "brand": "TOYOTA",
+      "model": "YARIS GR",
+      "into": "GR YARIS",
+      "reason": "Same car (Toyota GR Yaris) written with the words in a different order in the EEA 2025 data: 7 registrations as YARIS GR, 83 as GR YARIS"
+    },
+    {
+      "brand": "FIAT",
+      "model": "500 ABARTH",
+      "into": "ABARTH 500",
+      "reason": "Same car (Abarth 500) written with the words in a different order in the EEA 2025 data: 1 registration as 500 ABARTH, 85 as ABARTH 500"
+    }
   ]
 }
