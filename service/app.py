@@ -7,6 +7,7 @@ from typing import Annotated
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from mcp.server.transport_security import TransportSecuritySettings
+from starlette.routing import Route
 
 from core.enums import Fuel
 from core.models import Brand, CarModel, Engine, Generation, Variant
@@ -136,5 +137,5 @@ def create_app(db=None):
         with rd() as st:
             return qs.search(st, q)
 
-    app.mount("/", mcp_app)
+    app.router.routes.append(Route("/mcp", endpoint=mcp_app))
     return app
