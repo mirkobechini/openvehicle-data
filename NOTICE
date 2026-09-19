@@ -6,7 +6,10 @@ Data sources (each field in the dataset records its own source and license):
 - Wikidata (https://www.wikidata.org) - structured data released under CC0 1.0.
 - European Environment Agency (EEA), "Monitoring of CO2 emissions from passenger
   cars - Regulation (EU) 2019/631" - reused under CC BY 4.0 (EEA legal notice).
-  Source: European Environment Agency. Dataset-level terms pending confirmation.
+  Source: European Environment Agency (https://www.eea.europa.eu/data-and-maps/data/co2-cars-emission-22).
+  Data reported by EU Member States. License confirmed on the dataset metadata
+  factsheet (CC BY 4.0, no limitations on public access) on 2026-09-19.
+  Records are aggregated and filtered by this project (category M1, Italy).
 - RDW Open Data (https://opendata.rdw.nl) - released under CC0.
 
 This project is not affiliated with, endorsed by or sponsored by any vehicle
