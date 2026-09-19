@@ -54,7 +54,7 @@ def call(m, name, **a):
 def test_tools_are_read_only(m):
     ts = asyncio.run(m.list_tools())
     assert sorted(t.name for t in ts) == sorted(
-        ["list_brands", "list_models", "list_variants", "get_variant", "search_catalog", "dataset_info"]
+        ["list_brands", "list_families", "list_models", "list_variants", "get_variant", "search_catalog", "dataset_info"]
     )
     for t in ts:
         a = t.annotations
@@ -156,7 +156,7 @@ def test_endpoint_initialize(http):
 def test_endpoint_lists_read_only_tools(http):
     r = rpc(http, "tools/list")
     ts = r.json()["result"]["tools"]
-    assert len(ts) == 6 and all(t["annotations"]["readOnlyHint"] for t in ts)
+    assert len(ts) == 7 and all(t["annotations"]["readOnlyHint"] for t in ts)
     assert "mcp-session-id" not in r.headers
 
 
@@ -227,6 +227,7 @@ def test_popularity_options_are_described(m):
 
 CALLS = {
     "list_brands": {"limit": 2},
+    "list_families": {"brand_id": "brand_bmw", "limit": 2},
     "list_models": {"brand_id": "brand_fiat", "limit": 2},
     "list_variants": {"model_id": "model_fiat-panda", "limit": 2},
     "get_variant": {"variant_id": PANDA},
@@ -347,3 +348,53 @@ def test_endpoint_search_suggestions_match_the_declared_schema(http):
     res = rpc(http, "tools/call", {"name": "search_catalog", "arguments": {"q": "teslaa"}}).json()["result"]
     assert "did_you_mean" in schemas["search_catalog"]["properties"]
     jsonschema.validate(res["structuredContent"], schemas["search_catalog"])
+
+
+def test_mcp_list_families_defaults_to_most_registered_first(m):
+    j = call(m, "list_families")
+    assert j["total"] == 9 and j["items"][0]["id"] == "family_fiat-panda" and j["items"][0]["registrations"] == 77180
+    assert [i["id"] for i in call(m, "list_families", sort="id")["items"]][0] == "family_bmw-x1"
+
+
+def test_mcp_list_families_filters_and_paging(m):
+    j = call(m, "list_families", brand_id="brand_bmw")
+    assert [i["id"] for i in j["items"]] == ["family_bmw-x1", "family_bmw-x2"]
+    assert call(m, "list_families", min_registrations=1000)["total"] == 6
+    assert [i["id"] for i in call(m, "list_families", q="x2")["items"]] == ["family_bmw-x2"]
+    j = call(m, "list_families", limit=4)
+    assert (j["count"], j["has_more"], j["next_offset"]) == (4, True, 4)
+
+
+def test_mcp_models_and_variants_of_a_family(m):
+    j = call(m, "list_models", family_id="family_bmw-x1")
+    assert j["total"] == 2 and {i["family_id"] for i in j["items"]} == {"family_bmw-x1"}
+    assert call(m, "list_models", family_id="family_bmw-x1", brand_id="brand_fiat")["total"] == 0
+    assert call(m, "list_variants", family_id="family_bmw-x1")["total"] == 2
+    assert call(m, "list_variants", family_id="family_bmw-x1", fuel="electric")["total"] == 0
+
+
+@pytest.mark.parametrize("name", ["list_families", "list_models", "list_variants"])
+def test_mcp_unknown_family_and_brand_suggest_close_ids(m, name):
+    a = {"brand_id": "brand_bmww"} if name == "list_families" else {"family_id": "family_bmw-x11"}
+    with pytest.raises(ToolError) as e:
+        call(m, name, **a)
+    assert "Did you mean: " in str(e.value) and "bmw" in str(e.value)
+
+
+def test_mcp_search_returns_families_and_suggests_names(m):
+    j = call(m, "search_catalog", q="x1")
+    assert [f["id"] for f in j["families"]] == ["family_bmw-x1"]
+    j = call(m, "search_catalog", q="glcc")
+    assert j["families"] == [] and "GLC" in j["did_you_mean"]
+
+
+def test_mcp_family_tool_is_described_and_used_in_the_instructions(m):
+    assert "list_families" in INSTR and "GLC" in INSTR and "ID.4" in INSTR
+    ts = {t.name: t for t in asyncio.run(m.list_tools())}
+    assert "engine, drive or trim" in ts["list_families"].description
+    assert "family_id" in ts["list_models"].input_schema["properties"] and "family_id" in ts["list_variants"].input_schema["properties"]
+    assert "families" in ts["search_catalog"].output_schema["properties"]
+
+
+def test_mcp_dataset_info_counts_families(m):
+    assert call(m, "dataset_info")["counts"]["Family"] == 9

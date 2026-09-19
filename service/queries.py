@@ -4,7 +4,7 @@ from typing import Generic, TypeVar
 
 from pydantic import BaseModel
 
-from core.models import Base, Brand, CarModel, Engine, Generation, Variant
+from core.models import Base, Brand, CarModel, Engine, Family, Generation, Variant
 from core.provenance import Evidence, Source, Status
 
 T = TypeVar("T")
@@ -36,6 +36,7 @@ class VariantDetail(Variant):
 
 class Found(BaseModel):
     brands: list[Brand]
+    families: list[Family]
     models: list[CarModel]
     did_you_mean: list[str]
 
@@ -91,9 +92,16 @@ def need(st, cls, i):
         raise _missing(cls, i, st.ids(cls))
 
 
-def models_page(st, lo, q=None, brand_id=None, sort="id", min_reg=None):
+def models_page(st, lo, q=None, brand_id=None, sort="id", min_reg=None, family_id=None):
     need(st, Brand, brand_id)
-    return page(st, CarModel, lo, q, sort, min_reg, **({"brand_id": brand_id} if brand_id else {}))
+    need(st, Family, family_id)
+    w = {k: v for k, v in (("brand_id", brand_id), ("family_id", family_id)) if v}
+    return page(st, CarModel, lo, q, sort, min_reg, **w)
+
+
+def families_page(st, lo, q=None, brand_id=None, sort="id", min_reg=None):
+    need(st, Brand, brand_id)
+    return page(st, Family, lo, q, sort, min_reg, **({"brand_id": brand_id} if brand_id else {}))
 
 
 def generations_page(st, lo, model_id=None):
@@ -106,10 +114,13 @@ def _ix(cur, ids):
     return ids if cur is None else cur & ids
 
 
-def variants_page(st, lo, q=None, model_id=None, generation_id=None, engine_id=None, fuel=None, sort="id", min_reg=None, brand_id=None):
-    for c, i in ((Brand, brand_id), (CarModel, model_id), (Generation, generation_id), (Engine, engine_id)):
+def variants_page(st, lo, q=None, model_id=None, generation_id=None, engine_id=None, fuel=None, sort="id", min_reg=None, brand_id=None, family_id=None):
+    for c, i in ((Brand, brand_id), (Family, family_id), (CarModel, model_id), (Generation, generation_id), (Engine, engine_id)):
         need(st, c, i)
     w, g, e = {}, None, None
+    if family_id:
+        ms = [x.id for x in st.find(CarModel, family_id=family_id)]
+        g = _ix(g, (x.id for x in st.find(Generation, model_id=ms)))
     if brand_id:
         ms = [x.id for x in st.find(CarModel, brand_id=brand_id)]
         g = _ix(g, (x.id for x in st.find(Generation, model_id=ms)))
@@ -139,14 +150,15 @@ def _suggest(st, q):
     bs = st.find(Brand)
     names = {b.name for b in bs} | {a for b in bs for a in b.aliases}
     names |= {n for m in st.find(CarModel) for n in (m.name, *m.aliases)}
+    names |= {f.name for f in st.find(Family)}
     return _near(q, names, 5, 0.7)
 
 
 def search(st, q):
-    bs, ms = st.find(Brand, q=q, limit=10), st.find(CarModel, q=q, limit=10)
-    return Found(brands=bs, models=ms, did_you_mean=[] if bs or ms else _suggest(st, q))
+    bs, fs, ms = st.find(Brand, q=q, limit=10), st.find(Family, q=q, limit=10), st.find(CarModel, q=q, limit=10)
+    return Found(brands=bs, families=fs, models=ms, did_you_mean=[] if bs or fs or ms else _suggest(st, q))
 
 
 def meta(st, version):
-    cs = {c.__name__: st.count(c) for c in (Brand, CarModel, Generation, Engine, Variant, Source)}
+    cs = {c.__name__: st.count(c) for c in (Brand, Family, CarModel, Generation, Engine, Variant, Source)}
     return Meta(version=version, license="CC-BY-4.0", attribution=ATTR, counts=cs, sources=st.find(Source))
