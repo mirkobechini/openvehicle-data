@@ -12,6 +12,7 @@ from core.models import Brand, CarModel, Engine, Generation, Variant
 from core.provenance import Source, Status
 from core.storage import Store
 from pipeline.importers import eea
+from pipeline.importers.corrections import Corrections, Exclusion
 from pipeline.sources import EEA
 from pipeline.validation import validate
 
@@ -39,7 +40,7 @@ def loaded(st):
 
 def test_load_stats(loaded):
     _, s = loaded
-    assert s == {"rows": 17, "skipped": 0, "conflicts": 0, "brands": 6, "models": 10, "engines": 8, "variants": 14, "dropped": {}}
+    assert s == {"rows": 17, "skipped": 0, "excluded": 0, "conflicts": 0, "brands": 6, "models": 10, "engines": 8, "variants": 14, "dropped": {}}
 
 
 def test_load_is_valid(loaded):
@@ -293,6 +294,57 @@ def test_registrations_add_up_across_spellings(st):
 
 
 def test_registrations_can_sort_and_filter_imported_models(st):
-    eea.load([row(Cn="PANDA", n=100), row(Cn="GOLF", n=1), row(Cn="TIPO", n=30)], st, 2025, TODAY)
-    assert [m.name for m in st.find(CarModel, sort="-registrations")] == ["PANDA", "TIPO", "GOLF"]
+    eea.load([row(Cn="PANDA", n=100), row(Cn="UNO", n=1), row(Cn="TIPO", n=30)], st, 2025, TODAY)
+    assert [m.name for m in st.find(CarModel, sort="-registrations")] == ["PANDA", "TIPO", "UNO"]
     assert [m.name for m in st.find(CarModel, registrations__gte=10, sort="-registrations")] == ["PANDA", "TIPO"]
+
+
+R = "a long enough reason for the entry"
+
+
+def test_brand_spellings_merge_into_the_canonical_brand(st):
+    rs = [row(Mk="VW", Cn="GOLF", n=2), row(Mk="VOLKSWAGEN", Cn="GOLF", n=10), row(Mk="VOLKSWAGEN, VW", Cn="GOLF", Ve="B2", n=1)]
+    s = eea.load(rs, st, 2025, TODAY)
+    assert (s["brands"], s["models"], s["variants"]) == (1, 1, 2)
+    b = st.find(Brand)[0]
+    assert (b.id, b.name, b.aliases) == ("brand_volkswagen", "VOLKSWAGEN", ["VOLKSWAGEN, VW", "VW"])
+    assert st.find(CarModel)[0].registrations == 13
+
+
+def test_canonical_brand_name_is_not_the_alphabetical_first(st):
+    eea.load([row(Mk="SSANGJONG", Cn="TORRES")], st, 2025, TODAY)
+    b = st.find(Brand)[0]
+    assert (b.id, b.name, b.aliases) == ("brand_ssangyong", "SSANGYONG", ["SSANGJONG"])
+
+
+def test_brand_prefix_is_stripped_with_either_spelling(st):
+    rs = [row(Mk="VW", Cn="VW POLO"), row(Mk="VW", Cn="VOLKSWAGEN ID.3"), row(Mk="VOLKSWAGEN", Cn="VOLKSWAGEN UP")]
+    eea.load(rs, st, 2025, TODAY)
+    assert sorted(m.name for m in st.find(CarModel)) == ["ID.3", "POLO", "UP"]
+    assert {m.brand_id for m in st.find(CarModel)} == {"brand_volkswagen"}
+
+
+def test_reviewed_exclusions_are_applied(st):
+    rs = [row(Cn="GOLF"), row(Cn="Golf", Ve="B2"), row(Mk="Fiat", Cn="AVENGER"), row(Cn="PANDA"), row(Mk="JEEP", Cn="AVENGER", n=50)]
+    s = eea.load(rs, st, 2025, TODAY)
+    assert (s["excluded"], s["skipped"], s["variants"]) == (3, 0, 2)
+    assert sorted((m.brand_id, m.name) for m in st.find(CarModel)) == [("brand_fiat", "PANDA"), ("brand_jeep", "AVENGER")]
+    assert st.find(Variant, generation_id="gen_fiat-golf-observed") == []
+
+
+def test_an_excluded_model_does_not_create_its_brand(st):
+    s = eea.load([row(Cn="GOLF")], st, 2025, TODAY)
+    assert (s["excluded"], s["brands"], s["models"], s["variants"]) == (1, 0, 0, 0)
+    assert st.find(Brand) == []
+
+
+def test_exclusions_use_the_canonical_brand(st):
+    c = Corrections(brands={"VW": "VOLKSWAGEN"}, exclude_models=[Exclusion(brand="VOLKSWAGEN", model="POLO", reason=R)])
+    s = eea.load([row(Mk="VW", Cn="POLO"), row(Mk="VW", Cn="VW POLO", Ve="B2"), row(Mk="VW", Cn="GOLF")], st, 2025, TODAY, c)
+    assert (s["excluded"], s["models"]) == (2, 1)
+    assert st.find(CarModel)[0].name == "GOLF"
+
+
+def test_custom_corrections_replace_the_shipped_ones(st):
+    s = eea.load([row(Cn="GOLF"), row(Mk="VW", Cn="POLO")], st, 2025, TODAY, Corrections())
+    assert s["excluded"] == 0 and sorted(b.name for b in st.find(Brand)) == ["FIAT", "VW"]
