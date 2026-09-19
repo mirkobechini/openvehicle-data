@@ -2,7 +2,7 @@ import pytest
 from pydantic import ValidationError
 
 from core.enums import Category, Fuel
-from core.models import Brand, CarModel, Engine, Generation, Variant
+from core.models import Brand, CarModel, Engine, Family, Generation, Variant
 
 
 def gen(**k):
@@ -99,3 +99,31 @@ def test_registrations_invalid(v):
         var(registrations=v)
     with pytest.raises(ValidationError):
         CarModel(id="model_a", brand_id="brand_a", name="A", registrations=v)
+
+
+def fam(**k):
+    return Family(**{"id": "family_mercedes-benz-glc", "brand_id": "brand_mercedes-benz", "name": "GLC", "model_count": 11, "registrations": 13713, **k})
+
+
+def test_family():
+    f = fam(aliases=[" glc ", "", "GLC"])
+    assert (f.id, f.brand_id, f.name, f.model_count, f.registrations) == ("family_mercedes-benz-glc", "brand_mercedes-benz", "GLC", 11, 13713)
+    assert f.aliases == ["glc", "GLC"]
+    assert fam(registrations=None).registrations is None and fam(registrations=0).registrations == 0
+
+
+@pytest.mark.parametrize("k", [
+    {"id": "model_mercedes-benz-glc"}, {"id": "family_"}, {"id": "Family_glc"}, {"brand_id": "brand_"},
+    {"model_count": 0}, {"model_count": -1}, {"model_count": 1.5}, {"registrations": -1}, {"name": "  "}, {"extra": 1},
+])
+def test_family_invalid(k):
+    with pytest.raises(ValidationError):
+        fam(**k)
+
+
+def test_model_family_id_is_optional_and_checked():
+    assert CarModel(id="model_a", brand_id="brand_a", name="A").family_id is None
+    assert CarModel(id="model_a", brand_id="brand_a", name="A", family_id="family_a-a").family_id == "family_a-a"
+    for bad in ("model_a", "family_", "FAMILY_a", 5):
+        with pytest.raises(ValidationError):
+            CarModel(id="model_a", brand_id="brand_a", name="A", family_id=bad)
