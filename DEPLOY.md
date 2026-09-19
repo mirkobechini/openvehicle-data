@@ -23,6 +23,9 @@ Then point the Dockerfile at it: set the defaults of `DATA_URL`
 and `DATA_SHA256` (the `openvehicle-data.db` entry in `dist/manifest.json`), and
 merge that change to `dev`.
 
+Release `data-v0.1.0` is already published and the Dockerfile already points at
+it, so this step is only needed for a new data version.
+
 ## 2. Release to `main`
 
 Render deploys from `main` (see `render.yaml`). Follow the release flow in
