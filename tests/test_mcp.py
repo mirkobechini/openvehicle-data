@@ -170,7 +170,7 @@ def test_endpoint_reports_tool_error(http):
 
 
 def test_endpoint_accepts_public_host(http):
-    assert rpc(http, "tools/list", Host="openvehicle-mcp.mirkobechini.com").status_code == 200
+    assert rpc(http, "tools/list", Host="openvehicle.mirkobechini.com").status_code == 200
 
 
 def test_endpoint_rejects_other_methods(http):
