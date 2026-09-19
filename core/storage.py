@@ -133,6 +133,9 @@ class Store:
             ps += [limit, offset]
         return [self._m(cls, r) for r in self.c.execute(sql, ps)]
 
+    def has(self, cls):
+        return self.c.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (TB[cls],)).fetchone() is not None
+
     def ids(self, cls):
         return [r[0] for r in self.c.execute(f"SELECT id FROM {TB[cls]} ORDER BY id")]
 
