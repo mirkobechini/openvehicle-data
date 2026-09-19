@@ -1,3 +1,4 @@
+import difflib
 from datetime import date
 from typing import Generic, TypeVar
 
@@ -36,6 +37,7 @@ class VariantDetail(Variant):
 class Found(BaseModel):
     brands: list[Brand]
     models: list[CarModel]
+    did_you_mean: list[str]
 
 
 class Meta(BaseModel):
@@ -67,11 +69,36 @@ def page(st, cls, lo, q=None, sort="id", min_reg=None, **w):
     }
 
 
+def _near(x, cands, n=3, cutoff=0.75):
+    low = {c.lower(): c for c in cands}
+    return [low[k] for k in difflib.get_close_matches(x.lower(), list(low), n=n, cutoff=cutoff)]
+
+
+def _missing(cls, i, cands):
+    near = _near(i, cands)
+    return LookupError(f"{cls.__name__} {i} not found" + (f". Did you mean: {', '.join(near)}?" if near else ""))
+
+
 def one(st, cls, i):
     o = st.get(cls, i)
     if o is None:
-        raise LookupError(f"{cls.__name__} {i} not found")
+        raise _missing(cls, i, st.ids(cls))
     return o
+
+
+def need(st, cls, i):
+    if i and st.get(cls, i) is None:
+        raise _missing(cls, i, st.ids(cls))
+
+
+def models_page(st, lo, q=None, brand_id=None, sort="id", min_reg=None):
+    need(st, Brand, brand_id)
+    return page(st, CarModel, lo, q, sort, min_reg, **({"brand_id": brand_id} if brand_id else {}))
+
+
+def generations_page(st, lo, model_id=None):
+    need(st, CarModel, model_id)
+    return page(st, Generation, lo, **({"model_id": model_id} if model_id else {}))
 
 
 def _ix(cur, ids):
@@ -80,6 +107,8 @@ def _ix(cur, ids):
 
 
 def variants_page(st, lo, q=None, model_id=None, generation_id=None, engine_id=None, fuel=None, sort="id", min_reg=None, brand_id=None):
+    for c, i in ((Brand, brand_id), (CarModel, model_id), (Generation, generation_id), (Engine, engine_id)):
+        need(st, c, i)
     w, g, e = {}, None, None
     if brand_id:
         ms = [x.id for x in st.find(CarModel, brand_id=brand_id)]
@@ -106,8 +135,16 @@ def variant_detail(st, i):
     return VariantDetail(**v.model_dump(), engine=e, provenance=ps)
 
 
+def _suggest(st, q):
+    bs = st.find(Brand)
+    names = {b.name for b in bs} | {a for b in bs for a in b.aliases}
+    names |= {n for m in st.find(CarModel) for n in (m.name, *m.aliases)}
+    return _near(q, names, 5, 0.7)
+
+
 def search(st, q):
-    return Found(brands=st.find(Brand, q=q, limit=10), models=st.find(CarModel, q=q, limit=10))
+    bs, ms = st.find(Brand, q=q, limit=10), st.find(CarModel, q=q, limit=10)
+    return Found(brands=bs, models=ms, did_you_mean=[] if bs or ms else _suggest(st, q))
 
 
 def meta(st, version):
