@@ -17,6 +17,9 @@ dev = ["pytest", "coverage"]
 [tool.setuptools]
 packages = ["core", "pipeline", "pipeline.importers", "service"]
 
+[tool.setuptools.package-data]
+"pipeline.importers" = ["*.json"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
