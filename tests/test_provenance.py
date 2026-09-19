@@ -79,3 +79,12 @@ def test_status_serialised():
 def test_extra_forbidden():
     with pytest.raises(ValidationError):
         FieldProvenance(entity_id="e", field="f", evidence=[ev()], last_verified=D, x=1)
+
+
+def test_round_trip_ignores_derived_status():
+    p = fp(ev(), ev("rdw", 52))
+    d = p.model_dump(mode="json")
+    assert d["status"] == "conflict"
+    assert FieldProvenance.model_validate(d) == p
+    assert FieldProvenance.model_validate({**d, "status": "confirmed"}).status is Status.CONFLICT
+    assert FieldProvenance.model_validate(p) == p
