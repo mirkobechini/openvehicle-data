@@ -280,7 +280,7 @@ def test_mcp_lists_have_paging_metadata(m):
     assert (j["total"], j["count"], j["has_more"], j["next_offset"]) == (10, 4, True, 4)
     j = call(m, "list_models", limit=4, offset=8)
     assert (j["count"], j["has_more"], j["next_offset"]) == (2, False, None)
-    assert call(m, "list_variants", model_id="model_none")["count"] == 0
+    assert call(m, "list_variants", model_id="model_fiat-panda", fuel="electric")["count"] == 0
 
 
 def test_mcp_paging_with_next_offset_visits_every_variant_once(m):
@@ -303,9 +303,47 @@ def test_mcp_variants_by_brand(m):
     j = call(m, "list_variants", brand_id="brand_tesla", fuel="electric", sort="registrations")
     assert j["total"] == 3 and j["items"][0]["id"] == "var_tesla-model-3-003-h6mr-bfb1s5t1w"
     assert call(m, "list_variants", brand_id="brand_fiat", model_id="model_tesla-model-3")["total"] == 0
-    assert call(m, "list_variants", brand_id="brand_none")["total"] == 0
+    assert call(m, "list_variants", brand_id="brand_fiat", fuel="electric")["total"] == 0
 
 
 def test_mcp_variants_brand_filter_is_described(m):
     props = next(t.input_schema["properties"] for t in asyncio.run(m.list_tools()) if t.name == "list_variants")
     assert "brand_id" in props and "all variants of the brand" in props["brand_id"]["description"]
+
+
+@pytest.mark.parametrize("name,a,cls,bad,good", [
+    ("list_models", {"brand_id": "brand_teslaa"}, "Brand", "brand_teslaa", "brand_tesla"),
+    ("list_variants", {"brand_id": "brand_bmww"}, "Brand", "brand_bmww", "brand_bmw"),
+    ("list_variants", {"model_id": "model_fiat-pandaa"}, "CarModel", "model_fiat-pandaa", "model_fiat-panda"),
+    ("list_variants", {"generation_id": "gen_fiat-panda-observedd"}, "Generation", "gen_fiat-panda-observedd", "gen_fiat-panda-observed"),
+    ("list_variants", {"engine_id": "eng_hybrid-999-522"}, "Engine", "eng_hybrid-999-522", "eng_hybrid-999-52"),
+    ("get_variant", {"variant_id": "var_fiat-panda-312-pyd1b-s5"}, "Variant", "var_fiat-panda-312-pyd1b-s5", "var_fiat-panda-312-pyd1b-s5g"),
+])
+def test_mcp_unknown_ids_are_errors_with_suggestions(m, name, a, cls, bad, good):
+    with pytest.raises(ToolError) as e:
+        call(m, name, **a)
+    assert f"{cls} {bad} not found. Did you mean: " in str(e.value) and good in str(e.value)
+
+
+def test_mcp_unknown_id_without_a_close_match(m):
+    with pytest.raises(ToolError, match=r"Brand zzzzzz not found$"):
+        call(m, "list_models", brand_id="zzzzzz")
+
+
+def test_mcp_search_suggests_close_names(m):
+    j = call(m, "search_catalog", q="teslaa")
+    assert (j["brands"], j["models"]) == ([], []) and "TESLA" in j["did_you_mean"]
+    assert call(m, "search_catalog", q="tesla")["did_you_mean"] == []
+    assert call(m, "search_catalog", q="zzzzzz")["did_you_mean"] == []
+
+
+def test_endpoint_reports_the_suggestion_as_a_tool_error(http):
+    j = rpc(http, "tools/call", {"name": "list_models", "arguments": {"brand_id": "brand_teslaa"}}).json()["result"]
+    assert j["isError"] is True and "Did you mean: brand_tesla" in j["content"][0]["text"]
+
+
+def test_endpoint_search_suggestions_match_the_declared_schema(http):
+    schemas = {t["name"]: t["outputSchema"] for t in rpc(http, "tools/list").json()["result"]["tools"]}
+    res = rpc(http, "tools/call", {"name": "search_catalog", "arguments": {"q": "teslaa"}}).json()["result"]
+    assert "did_you_mean" in schemas["search_catalog"]["properties"]
+    jsonschema.validate(res["structuredContent"], schemas["search_catalog"])
