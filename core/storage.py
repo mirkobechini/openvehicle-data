@@ -126,6 +126,9 @@ class Store:
             ps += [limit, offset]
         return [self._m(cls, r) for r in self.c.execute(sql, ps)]
 
+    def ids(self, cls):
+        return [r[0] for r in self.c.execute(f"SELECT id FROM {TB[cls]} ORDER BY id")]
+
     def count(self, cls, *, q=None, **w):
         wh, ps = self._w(cls, q, w)
         return self.c.execute(f"SELECT COUNT(*) FROM {TB[cls]}{wh}", ps).fetchone()[0]
