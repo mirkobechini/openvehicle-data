@@ -227,3 +227,10 @@ def test_popularity_bad_parameters(cl, path, p):
 def test_registrations_are_documented(cl):
     j = cl.get("/openapi.json").json()["paths"][f"{B}/models"]["get"]["parameters"]
     assert {"sort", "min_registrations"} <= {x["name"] for x in j}
+
+
+def test_openapi_declares_provenance_status(cl):
+    entry = cl.get("/openapi.json").json()["components"]["schemas"]["ProvenanceOut"]
+    assert "status" in entry["properties"] and "status" in entry["required"]
+    j = cl.get(f"{B}/variants/{PANDA}").json()
+    assert {p["status"] for p in j["provenance"]} == {"single_source"}
