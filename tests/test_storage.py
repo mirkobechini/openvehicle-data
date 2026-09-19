@@ -264,3 +264,15 @@ def test_unknown_minimum_column(st):
         st.find(CarModel, nope__gte=1)
     with pytest.raises(ValueError, match="unknown columns"):
         st.count(CarModel, nope__gte=1)
+
+
+def test_ids_are_sorted_and_per_type(st):
+    three(st)
+    assert st.ids(CarModel) == ["model_citroen-c3", "model_citroen-c4", "model_citroen-c5"]
+    assert st.ids(Brand) == [B.id]
+    assert st.ids(Variant) == [V.id] and st.ids(Engine) == [E.id] and st.ids(Source) == [S.id]
+
+
+def test_ids_of_an_empty_table():
+    with Store() as s:
+        assert s.ids(Brand) == []
