@@ -31,7 +31,7 @@ PC = ["entity_id", "field", "status", "last_verified", "source_id", "value", "ur
 
 
 def _rows(st):
-    d = {n: [o.model_dump(mode="json") for o in st.find(c)] for n, c in TABLES.items()}
+    d = {n: [o.model_dump(mode="json") for o in st.find(c)] if st.has(c) else [] for n, c in TABLES.items()}
     d["provenance"] = [p.model_dump(mode="json") for p in st.all_prov()]
     return d
 
