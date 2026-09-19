@@ -187,3 +187,23 @@ def test_backup(st, tmp_path):
     with Store(f, ro=True) as r:
         assert r.find(Variant) == [V]
         assert r.get(Brand, B.id) == B
+
+
+def test_registrations_round_trip(st):
+    m = M.model_copy(update={"registrations": 120})
+    v = V.model_copy(update={"registrations": 7})
+    st.put(m, v)
+    assert st.get(CarModel, M.id).registrations == 120
+    assert st.get(Variant, V.id).registrations == 7
+
+
+def test_registrations_default_is_null(st):
+    assert st.get(CarModel, M.id).registrations is None
+    assert st.get(Variant, V.id).registrations is None
+
+
+def test_unknown_columns_are_ignored_when_reading(st):
+    st.c.execute("ALTER TABLE brands ADD COLUMN note TEXT")
+    st.c.execute("UPDATE brands SET note = 'x'")
+    assert st.get(Brand, B.id) == B
+    assert st.find(Brand) == [B]
