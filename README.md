@@ -7,11 +7,11 @@ beyond.
 
 ## Status
 
-Early development. No dataset release has been published yet. Version 0.1
-targets passenger cars (EU category M1) sold in Italy, built only from sources
-with clear open licenses. Implemented so far: the EEA CO2 monitoring data
-importer (about 12,700 variants for Italy, 2025 provisional). Wikidata
-enrichment and an RDW cross-check are planned.
+Early development. Pre-release datasets are published on the Releases page
+(`data-v*` tags). The data targets passenger cars (EU category M1) sold in Italy,
+built only from sources with clear open licenses. Implemented so far: the EEA CO2
+monitoring data importer (about 12,600 variants for Italy, 2025 provisional).
+Wikidata enrichment and an RDW cross-check are planned.
 
 Known limits of v0.1: no trims or equipment, no wheelbase or track width
 (empty in the Italian EEA data), names as reported by the EEA (upper case, a few
