@@ -79,6 +79,15 @@ def _x(v):
     return "x" if v is None else v
 
 
+def _strip(mk, cn):
+    k = slug(mk).replace("-", "")
+    ws = cn.split()
+    for i in range(1, min(len(ws), 4)):
+        if slug(" ".join(ws[:i])).replace("-", "") == k:
+            return " ".join(ws[i:])
+    return cn
+
+
 def _pv(o, fs, today, out):
     for f in fs:
         v = getattr(o, f)
@@ -91,13 +100,14 @@ def load(rows, st, year, today=None):
     today = today or date.today()
     gr, bn, mn, skip = defaultdict(list), defaultdict(set), defaultdict(set), 0
     for r in rows:
-        mk, cn = (r["Mk"] or "").strip(), (r["Cn"] or "").strip()
-        if not (slug(mk) and slug(cn)):
+        mk, raw = (r["Mk"] or "").strip(), (r["Cn"] or "").strip()
+        if not (slug(mk) and slug(raw)):
             skip += 1
             continue
+        cn = _strip(mk, raw)
         b, m = make_id("brand", mk), make_id("model", mk, cn)
         bn[b].add(mk)
-        mn[m].add(cn)
+        mn[m].add((cn, raw))
         gr[(b, m, make_id("var", mk, cn, r["T"], r["Va"], r["Ve"]))].append(r)
     ms, gs, es, vs, pv, drops, conf = {}, {}, {}, {}, [], Counter(), 0
     for (b, m, vid), rs in sorted(gr.items()):
@@ -124,7 +134,10 @@ def load(rows, st, year, today=None):
         )
         _pv(vs[vid], VF.values(), today, pv)
     bs = [Brand(id=i, name=sorted(s)[0], aliases=sorted(s)[1:]) for i, s in bn.items()]
-    cs = [CarModel(id=i, brand_id=ms[i], name=sorted(s)[0], aliases=sorted(s)[1:]) for i, s in mn.items()]
+    cs = []
+    for i, s in mn.items():
+        nm = sorted(c for c, _ in s)[0]
+        cs.append(CarModel(id=i, brand_id=ms[i], name=nm, aliases=sorted({x for p in s for x in p} - {nm})))
     gl = [Generation(id=i, model_id=m, name="observed", year_from=year, year_to=year) for i, m in gs.items()]
     st.put(EEA, *bs, *cs, *gl, *es.values(), *vs.values())
     st.put_prov(*pv)
