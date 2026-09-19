@@ -12,7 +12,7 @@ license = "Apache-2.0"
 dependencies = ["pydantic>=2", "httpx", "fastapi", "uvicorn", "mcp>=2"]
 
 [project.optional-dependencies]
-dev = ["pytest", "coverage"]
+dev = ["pytest", "coverage", "jsonschema"]
 
 [tool.setuptools]
 packages = ["core", "pipeline", "pipeline.importers", "service"]
