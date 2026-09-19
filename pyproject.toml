@@ -15,7 +15,7 @@ dependencies = ["pydantic>=2", "httpx"]
 dev = ["pytest", "coverage"]
 
 [tool.setuptools]
-packages = ["core", "pipeline", "service"]
+packages = ["core", "pipeline", "pipeline.importers", "service"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
