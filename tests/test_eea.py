@@ -8,7 +8,7 @@ import pytest
 from pydantic import ValidationError
 
 from core.enums import Fuel
-from core.models import Brand, CarModel, Engine, Generation, Variant
+from core.models import Brand, CarModel, Engine, Family, Generation, Variant
 from core.provenance import Source, Status
 from core.storage import Store
 from pipeline.importers import eea
@@ -40,7 +40,7 @@ def loaded(st):
 
 def test_load_stats(loaded):
     _, s = loaded
-    assert s == {"rows": 17, "skipped": 0, "excluded": 0, "conflicts": 0, "brands": 6, "models": 10, "engines": 8, "variants": 14, "dropped": {}}
+    assert s == {"rows": 17, "skipped": 0, "excluded": 0, "conflicts": 0, "brands": 6, "families": 10, "models": 10, "engines": 8, "variants": 14, "dropped": {}}
 
 
 def test_load_is_valid(loaded):
@@ -399,3 +399,41 @@ def test_custom_merge_uses_the_canonical_brand_and_the_cleaned_name(st):
     assert (m.id, m.name, m.registrations) == ("model_volkswagen-golf", "GOLF", 12)
     assert "GOLF GTI" in m.aliases and "VW GOLF GTI" in m.aliases
 
+
+
+def test_every_model_has_a_family_of_its_own_brand(loaded):
+    st, _ = loaded
+    for m in st.find(CarModel):
+        f = st.get(Family, m.family_id)
+        assert f is not None and f.brand_id == m.brand_id
+
+
+def test_without_rules_a_family_is_its_model(loaded):
+    st, _ = loaded
+    f = st.get(Family, "family_fiat-panda")
+    assert (f.name, f.brand_id, f.model_count, f.registrations) == ("PANDA", "brand_fiat", 1, 77180)
+    assert st.get(CarModel, "model_fiat-panda").family_id == "family_fiat-panda"
+    assert len(st.find(Family)) == len(st.find(CarModel)) == 10
+
+
+def test_family_totals_match_their_models(loaded):
+    st, _ = loaded
+    for f in st.find(Family):
+        ms = st.find(CarModel, family_id=f.id)
+        assert f.model_count == len(ms) and f.registrations == sum(m.registrations for m in ms)
+    assert sum(f.registrations for f in st.find(Family)) == sum(m.registrations for m in st.find(CarModel))
+
+
+def test_family_ids_use_the_canonical_brand_and_model_name(st):
+    eea.load([row(Mk="VW", Cn="VW GOLF", n=2), row(Mk="VOLKSWAGEN", Cn="GOLF", Ve="B2", n=10), row(Cn="FIAT PANDA")], st, 2025, TODAY)
+    assert sorted(f.id for f in st.find(Family)) == ["family_fiat-panda", "family_volkswagen-golf"]
+    f = st.get(Family, "family_volkswagen-golf")
+    assert (f.name, f.model_count, f.registrations) == ("GOLF", 1, 12)
+
+
+def test_families_are_stored_before_their_models_and_reload_from_disk(tmp_path):
+    db = tmp_path / "f.db"
+    with Store(db) as s:
+        eea.load(ROWS, s, 2025, TODAY)
+    with Store(db, ro=True) as r:
+        assert len(r.find(Family)) == 10 and all(m.family_id for m in r.find(CarModel))
