@@ -109,7 +109,7 @@ def load(rows, st, year, today=None):
         bn[b].add(mk)
         mn[m].add((cn, raw))
         gr[(b, m, make_id("var", mk, cn, r["T"], r["Va"], r["Ve"]))].append(r)
-    ms, gs, es, vs, pv, drops, conf = {}, {}, {}, {}, [], Counter(), 0
+    ms, gs, es, vs, pv, drops, conf, mreg = {}, {}, {}, {}, [], Counter(), 0, Counter()
     for (b, m, vid), rs in sorted(gr.items()):
         ek = Counter()
         for r in rs:
@@ -118,6 +118,8 @@ def load(rows, st, year, today=None):
         keep = [r for r in rs if (r["Ft"], r["Fm"], r["ec"], r["ep"]) == win]
         conf += len(rs) - len(keep)
         r = _best(keep)
+        reg = sum(x["n"] for x in keep)
+        mreg[m] += reg
         ft, fm, ec, ep = win
         ms[m] = b
         gid = m.replace("model_", "gen_", 1) + "-observed"
@@ -130,14 +132,14 @@ def load(rows, st, year, today=None):
         vs[vid] = _mk(
             Variant, drops, id=vid, generation_id=gid, engine_id=eid,
             name=" ".join(str(p).strip() for p in (r["T"], r["Va"], r["Ve"]) if p and str(p).strip()) or "unknown",
-            year_from=year, year_to=year, **{f: r[c] for c, f in VF.items()},
+            year_from=year, year_to=year, registrations=reg, **{f: r[c] for c, f in VF.items()},
         )
         _pv(vs[vid], VF.values(), today, pv)
     bs = [Brand(id=i, name=sorted(s)[0], aliases=sorted(s)[1:]) for i, s in bn.items()]
     cs = []
     for i, s in mn.items():
         nm = sorted(c for c, _ in s)[0]
-        cs.append(CarModel(id=i, brand_id=ms[i], name=nm, aliases=sorted({x for p in s for x in p} - {nm})))
+        cs.append(CarModel(id=i, brand_id=ms[i], name=nm, aliases=sorted({x for p in s for x in p} - {nm}), registrations=mreg[i]))
     gl = [Generation(id=i, model_id=m, name="observed", year_from=year, year_to=year) for i, m in gs.items()]
     st.put(EEA, *bs, *cs, *gl, *es.values(), *vs.values())
     st.put_prov(*pv)
