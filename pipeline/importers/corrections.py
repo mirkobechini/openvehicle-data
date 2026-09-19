@@ -9,6 +9,10 @@ from core.models import Base
 PATH = Path(__file__).with_name("corrections.json")
 
 
+def norm(s):
+    return slug(s).replace("-", "")
+
+
 class Exclusion(Base):
     brand: str = Field(min_length=1)
     model: str = Field(min_length=1)
@@ -21,17 +25,17 @@ class Corrections(Base):
 
     @model_validator(mode="after")
     def _check(self):
-        keys = {slug(k) for k in self.brands}
+        keys = {norm(k) for k in self.brands}
         if len(keys) != len(self.brands):
             raise ValueError("duplicate brand spelling")
         for k, v in self.brands.items():
-            if not slug(k) or not slug(v):
+            if not norm(k) or not norm(v):
                 raise ValueError(f"empty brand name in {k!r}")
-            if slug(k) == slug(v):
+            if norm(k) == norm(v):
                 raise ValueError(f"{k!r} maps to itself")
-            if slug(v) in keys:
+            if norm(v) in keys:
                 raise ValueError(f"{k!r} maps to {v!r}, which is itself corrected")
-        pairs = [(slug(x.brand), slug(x.model)) for x in self.exclude_models]
+        pairs = [(norm(x.brand), slug(x.model)) for x in self.exclude_models]
         if len(set(pairs)) != len(pairs):
             raise ValueError("duplicate exclusion")
         return self
