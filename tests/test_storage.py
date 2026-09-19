@@ -110,3 +110,19 @@ def test_close():
     s.close()
     with pytest.raises(sqlite3.ProgrammingError):
         s.find(Brand)
+
+
+def test_all_prov(st):
+    def fp(e, f, v):
+        return FieldProvenance(entity_id=e, field=f, last_verified=D, evidence=[Evidence(source_id="eea-co2", value=v, retrieved=D)])
+    assert st.all_prov() == []
+    st.put_prov(fp(V.id, "mass_kg", 1050), fp(E.id, "power_kw", 60), fp(E.id, "displacement_cc", 1199))
+    assert [(p.entity_id, p.field) for p in st.all_prov()] == [(E.id, "displacement_cc"), (E.id, "power_kw"), (V.id, "mass_kg")]
+
+
+def test_backup(st, tmp_path):
+    f = tmp_path / "b.db"
+    st.backup(f)
+    with Store(f, ro=True) as r:
+        assert r.find(Variant) == [V]
+        assert r.get(Brand, B.id) == B
