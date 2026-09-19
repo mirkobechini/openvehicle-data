@@ -1,6 +1,6 @@
 # Architecture Decision Record
 
-**Progetto:** open-vehicle-db
+**Progetto:** openvehicle-data
 **Data:** 2026-09-18
 **Autore:**
 
@@ -17,7 +17,7 @@ Non esiste un catalogo aperto e affidabile di marchi e modelli con specifiche te
 - Frontend: nessuno (solo API, server MCP e dataset)
 - Backend: Python 3.12+, FastAPI, Pydantic, SDK MCP ufficiale Python; httpx e pandas per l'import, Playwright solo per siti brand che richiedono JavaScript
 - Database: SQLite (master, sola lettura in produzione) + export Parquet/JSON
-- Deploy: API e server MCP su Render (un solo servizio), sottodomini Cloudflare `open-vehicle-api.mirkobechini.com` e `open-vehicle-mcp.mirkobechini.com` (nomi provvisori); dataset su GitHub Releases; refresh pianificato con GitHub Actions
+- Deploy: API e server MCP su Render (un solo servizio), sottodomini Cloudflare `openvehicle-api.mirkobechini.com` e `openvehicle-mcp.mirkobechini.com` (nomi provvisori); dataset su GitHub Releases; refresh pianificato con GitHub Actions
 - Repository: git dedicato (`main` + `dev`, come da AGENT_FLOW.md), separato dal repository padre AI_developed
 - Test: pytest + coverage (100% obbligatorio)
 
@@ -49,7 +49,7 @@ Struttura del repository: `core/` (modelli Pydantic e storage, condivisi), `pipe
 - **Playwright solo dove serve**: fallback per siti dinamici, perché pesante e fragile.
 - **Licenza dati CC BY 4.0** (alternativa: ODbL): la CC BY richiede solo l'attribuzione, quindi è compatibile con le fonti in ingresso (cardata.wiki è CC BY 4.0, Wikidata è CC0), massimizza l'adozione anche da parte di aziende e non ostacola un futuro livello a pagamento. L'ODbL impone la condivisione delle modifiche allo stesso modo (share-alike): proteggerebbe da chi rivende il dataset senza contribuire, ma scoraggia l'uso commerciale e complica le fonti miste. Da riconfermare dopo la verifica della licenza EEA.
 - **Licenza codice Apache-2.0** (alternativa: MIT): come MIT è permissiva, ma aggiunge una concessione esplicita di brevetti e la protezione per i contributori, utile per un progetto aperto ai contributi e con un possibile uso commerciale futuro. File separati per dati (`LICENSE-DATA`) e codice (`LICENSE`).
-- **Sottodomini di primo livello** (`open-vehicle-api.mirkobechini.com`): il certificato gratuito di Cloudflare copre solo `*.mirkobechini.com`, non i sottodomini di secondo livello (es. `mcp.api.mirkobechini.com`).
+- **Sottodomini di primo livello** (`openvehicle-api.mirkobechini.com`): il certificato gratuito di Cloudflare copre solo `*.mirkobechini.com`, non i sottodomini di secondo livello (es. `mcp.api.mirkobechini.com`).
 - **Python come stack**: import e pulizia dati, API e MCP condividono gli stessi modelli Pydantic in un unico linguaggio; alternativa TypeScript scartata perché l'ecosistema di elaborazione dati (pandas, Parquet) è più maturo in Python.
 - **Server MCP remoto senza login**: pubblico e di sola lettura; abusi gestiti con rate limit Cloudflare. Chiavi API rimandate al livello a pagamento.
 - **Contributi degli utenti (fase successiva)**: solo tramite pull request sui file dati, con controlli automatici, fonte obbligatoria e revisione del maintainer; "confermato" solo con seconda fonte. Non in v1, ma i campi di provenienza lo prevedono già.
