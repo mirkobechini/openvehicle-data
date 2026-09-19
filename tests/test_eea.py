@@ -12,7 +12,7 @@ from core.models import Brand, CarModel, Engine, Generation, Variant
 from core.provenance import Source, Status
 from core.storage import Store
 from pipeline.importers import eea
-from pipeline.importers.corrections import Corrections, Exclusion
+from pipeline.importers.corrections import Corrections, Exclusion, Merge
 from pipeline.sources import EEA
 from pipeline.validation import validate
 
@@ -259,8 +259,8 @@ def test_prefixed_names_stay_searchable(st):
 
 
 def test_different_names_are_not_merged(st):
-    eea.load([row(Cn="PUNTO"), row(Cn="GRANDE PUNTO"), row(Cn="500 ABARTH"), row(Cn="ABARTH 500")], st, 2025, TODAY)
-    assert sorted(m.name for m in st.find(CarModel)) == ["500 ABARTH", "ABARTH 500", "GRANDE PUNTO", "PUNTO"]
+    eea.load([row(Cn="PUNTO"), row(Cn="GRANDE PUNTO"), row(Cn="PANDA CROSS"), row(Cn="CROSS PANDA")], st, 2025, TODAY)
+    assert sorted(m.name for m in st.find(CarModel)) == ["CROSS PANDA", "GRANDE PUNTO", "PANDA CROSS", "PUNTO"]
 
 
 def test_registration_counts_from_fixture(loaded):
@@ -348,3 +348,54 @@ def test_exclusions_use_the_canonical_brand(st):
 def test_custom_corrections_replace_the_shipped_ones(st):
     s = eea.load([row(Cn="GOLF"), row(Mk="VW", Cn="POLO")], st, 2025, TODAY, Corrections())
     assert s["excluded"] == 0 and sorted(b.name for b in st.find(Brand)) == ["FIAT", "VW"]
+
+
+def test_reviewed_merges_join_the_two_spellings_of_a_model(st):
+    rs = [
+        row(Mk="TOYOTA", Cn="GR YARIS", Ve="B1", n=83),
+        row(Mk="TOYOTA", Cn="YARIS GR", Ve="B2", n=7),
+        row(Mk="TOYOTA", Cn="TOYOTA YARIS GR", Ve="B3", n=2),
+    ]
+    s = eea.load(rs, st, 2025, TODAY)
+    assert (s["models"], s["variants"]) == (1, 3)
+    m = st.find(CarModel)[0]
+    assert (m.id, m.name, m.registrations) == ("model_toyota-gr-yaris", "GR YARIS", 92)
+    assert m.aliases == ["TOYOTA YARIS GR", "YARIS GR"]
+    assert {v.generation_id for v in st.find(Variant)} == {"gen_toyota-gr-yaris-observed"}
+
+
+def test_reviewed_merge_of_the_fiat_abarth_500(st):
+    eea.load([row(Cn="ABARTH 500", Ve="B1", n=85), row(Cn="500 ABARTH", Ve="B2", n=1)], st, 2025, TODAY)
+    m = st.find(CarModel)[0]
+    assert (m.name, m.aliases, m.registrations) == ("ABARTH 500", ["500 ABARTH"], 86)
+
+
+def test_a_merged_model_alone_gets_the_canonical_name(st):
+    eea.load([row(Mk="TOYOTA", Cn="YARIS GR", n=7)], st, 2025, TODAY)
+    m = st.find(CarModel)[0]
+    assert (m.id, m.name, m.aliases) == ("model_toyota-gr-yaris", "GR YARIS", ["YARIS GR"])
+
+
+def test_merged_spellings_of_the_same_version_become_one_variant(st):
+    eea.load([row(Mk="TOYOTA", Cn="GR YARIS", n=3), row(Mk="TOYOTA", Cn="YARIS GR", n=4)], st, 2025, TODAY)
+    v = st.find(Variant)
+    assert len(v) == 1 and v[0].registrations == 7
+
+
+def test_merges_only_apply_to_their_own_brand(st):
+    eea.load([row(Mk="FIAT", Cn="YARIS GR"), row(Mk="TOYOTA", Cn="YARIS GR")], st, 2025, TODAY)
+    assert sorted((m.brand_id, m.name) for m in st.find(CarModel)) == [("brand_fiat", "YARIS GR"), ("brand_toyota", "GR YARIS")]
+
+
+def test_no_merge_without_the_correction(st):
+    eea.load([row(Mk="TOYOTA", Cn="GR YARIS"), row(Mk="TOYOTA", Cn="YARIS GR")], st, 2025, TODAY, Corrections())
+    assert sorted(m.name for m in st.find(CarModel)) == ["GR YARIS", "YARIS GR"]
+
+
+def test_custom_merge_uses_the_canonical_brand_and_the_cleaned_name(st):
+    c = Corrections(brands={"VW": "VOLKSWAGEN"}, merge_models=[Merge(brand="VOLKSWAGEN", model="GOLF GTI", into="GOLF", reason=R)])
+    eea.load([row(Mk="VW", Cn="VW GOLF GTI", n=2), row(Mk="VOLKSWAGEN", Cn="GOLF", Ve="B2", n=10)], st, 2025, TODAY, c)
+    m = st.find(CarModel)[0]
+    assert (m.id, m.name, m.registrations) == ("model_volkswagen-golf", "GOLF", 12)
+    assert "GOLF GTI" in m.aliases and "VW GOLF GTI" in m.aliases
+

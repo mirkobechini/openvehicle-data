@@ -53,3 +53,39 @@ def test_invalid_corrections(d):
 def test_same_model_of_different_brands_is_allowed():
     c = Corrections.model_validate({"exclude_models": [{"brand": "FIAT", "model": "GOLF", "reason": R}, {"brand": "SEAT", "model": "GOLF", "reason": R}]})
     assert len(c.exclude_models) == 2
+
+
+def merge(**k):
+    return {"brand": "TOYOTA", "model": "YARIS GR", "into": "GR YARIS", "reason": R, **k}
+
+
+def test_merges_are_loaded_and_default_to_none():
+    assert Corrections().merge_models == []
+    c = Corrections.model_validate({"merge_models": [merge()]})
+    assert (c.merge_models[0].model, c.merge_models[0].into) == ("YARIS GR", "GR YARIS")
+
+
+@pytest.mark.parametrize("d", [
+    {"merge_models": [merge(into="Yaris-GR")]},
+    {"merge_models": [merge(into="!!!")]},
+    {"merge_models": [merge(reason="short")]},
+    {"merge_models": [merge(brand="")]},
+    {"merge_models": [merge(extra="x")]},
+    {"merge_models": [merge(), merge(brand="Toyota", model="yaris gr", into="OTHER")]},
+    {"merge_models": [merge(), merge(model="GR YARIS", into="GR SPORT")]},
+    {"merge_models": [merge()], "exclude_models": [{"brand": "TOYOTA", "model": "YARIS GR", "reason": R}]},
+])
+def test_invalid_merges(d):
+    with pytest.raises(ValidationError):
+        Corrections.model_validate(d)
+
+
+def test_the_same_model_name_of_different_brands_can_be_merged_separately():
+    c = Corrections.model_validate({"merge_models": [merge(), merge(brand="SUBARU", model="YARIS GR")]})
+    assert len(c.merge_models) == 2
+
+
+def test_shipped_merges_have_reasons():
+    ms = load_corrections().merge_models
+    assert {(x.brand, x.model, x.into) for x in ms} >= {("TOYOTA", "YARIS GR", "GR YARIS"), ("FIAT", "500 ABARTH", "ABARTH 500")}
+    assert all(len(x.reason) >= 10 for x in ms)

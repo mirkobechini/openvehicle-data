@@ -102,6 +102,7 @@ def load(rows, st, year, today=None, corr=None):
     corr = corr or load_corrections()
     bmap = {norm(k): v for k, v in corr.brands.items()}
     ex = {(norm(x.brand), slug(x.model)) for x in corr.exclude_models}
+    mmap = {(norm(x.brand), slug(x.model)): x.into for x in corr.merge_models}
     gr, bn, mn, skip, excl = defaultdict(list), defaultdict(set), defaultdict(set), 0, 0
     for r in rows:
         mk0, raw = (r["Mk"] or "").strip(), (r["Cn"] or "").strip()
@@ -113,9 +114,11 @@ def load(rows, st, year, today=None, corr=None):
         if (norm(mk), slug(cn)) in ex:
             excl += 1
             continue
+        cn0 = cn
+        cn = mmap.get((norm(mk), slug(cn)), cn)
         b, m = make_id("brand", mk), make_id("model", mk, cn)
         bn[b].add((mk, mk0))
-        mn[m].add((cn, raw))
+        mn[m].add((cn, raw, cn0))
         gr[(b, m, make_id("var", mk, cn, r["T"], r["Va"], r["Ve"]))].append(r)
     ms, gs, es, vs, pv, drops, conf, mreg = {}, {}, {}, {}, [], Counter(), 0, Counter()
     for (b, m, vid), rs in sorted(gr.items()):
@@ -149,7 +152,7 @@ def load(rows, st, year, today=None, corr=None):
         bs.append(Brand(id=i, name=nm, aliases=sorted({x for p in s for x in p} - {nm})))
     cs = []
     for i, s in mn.items():
-        nm = sorted(c for c, _ in s)[0]
+        nm = sorted(t[0] for t in s)[0]
         cs.append(CarModel(id=i, brand_id=ms[i], name=nm, aliases=sorted({x for p in s for x in p} - {nm}), registrations=mreg[i]))
     gl = [Generation(id=i, model_id=m, name="observed", year_from=year, year_to=year) for i, m in gs.items()]
     st.put(EEA, *bs, *cs, *gl, *es.values(), *vs.values())
