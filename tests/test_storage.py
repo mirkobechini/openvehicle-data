@@ -120,6 +120,67 @@ def test_all_prov(st):
     assert [(p.entity_id, p.field) for p in st.all_prov()] == [(E.id, "displacement_cc"), (E.id, "power_kw"), (V.id, "mass_kg")]
 
 
+def three(st):
+    st.put(
+        CarModel(id="model_citroen-c4", brand_id=B.id, name="C4", aliases=["C-Quatre"]),
+        CarModel(id="model_citroen-c5", brand_id=B.id, name="C5 100%_x"),
+    )
+
+
+def test_pagination(st):
+    three(st)
+    assert [m.id for m in st.find(CarModel, limit=2)] == ["model_citroen-c3", "model_citroen-c4"]
+    assert [m.id for m in st.find(CarModel, limit=2, offset=2)] == ["model_citroen-c5"]
+    assert st.find(CarModel, limit=2, offset=5) == []
+    assert st.count(CarModel) == 3
+
+
+def test_count_with_filters(st):
+    three(st)
+    assert st.count(CarModel, brand_id=B.id) == 3
+    assert st.count(CarModel, brand_id="brand_none") == 0
+    assert st.count(Brand, q="citro") == 1
+
+
+def test_search_name_and_alias(st):
+    three(st)
+    assert [m.id for m in st.find(CarModel, q="c4")] == ["model_citroen-c4"]
+    assert [m.id for m in st.find(CarModel, q="quatre")] == ["model_citroen-c4"]
+    assert st.find(Brand, q="CITROEN")[0].id == B.id
+    assert st.find(Brand, q="Citroën SA")[0].id == B.id
+    assert st.find(CarModel, q="zzz") == []
+
+
+def test_search_escapes_wildcards(st):
+    three(st)
+    assert [m.id for m in st.find(CarModel, q="100%_x")] == ["model_citroen-c5"]
+    assert st.find(CarModel, q="%") == [st.get(CarModel, "model_citroen-c5")]
+    assert st.find(CarModel, q="_") == [st.get(CarModel, "model_citroen-c5")]
+    assert st.find(CarModel, q="c_") == []
+
+
+def test_search_combined_with_filters_and_paging(st):
+    three(st)
+    assert [m.id for m in st.find(CarModel, q="c", brand_id=B.id, limit=1, offset=1)] == ["model_citroen-c4"]
+
+
+def test_in_filter(st):
+    three(st)
+    ids = ["model_citroen-c3", "model_citroen-c5", "model_none"]
+    assert [m.id for m in st.find(CarModel, id=ids)] == ["model_citroen-c3", "model_citroen-c5"]
+    assert [m.id for m in st.find(CarModel, id=("model_citroen-c4",))] == ["model_citroen-c4"]
+    assert st.find(CarModel, id=[]) == []
+    assert st.count(CarModel, id=set(ids)) == 2
+
+
+@pytest.mark.parametrize("cls", [Engine, Source])
+def test_search_needs_name_and_aliases(st, cls):
+    with pytest.raises(ValueError):
+        st.find(cls, q="x")
+    with pytest.raises(ValueError):
+        st.count(cls, q="x")
+
+
 def test_backup(st, tmp_path):
     f = tmp_path / "b.db"
     st.backup(f)
