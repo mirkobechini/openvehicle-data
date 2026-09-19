@@ -92,12 +92,15 @@ class Store:
         return None if r is None else self._m(cls, r)
 
     def _w(self, cls, q, w):
-        bad = set(w) - set(cls.model_fields)
+        bad = {k.removesuffix("__gte") for k in w} - set(cls.model_fields)
         if bad:
             raise ValueError(f"unknown columns: {sorted(bad)}")
         cs, ps = [], []
         for k, v in w.items():
-            if isinstance(v, (list, tuple, set)):
+            if k.endswith("__gte"):
+                cs.append(f"{k[:-5]}>=?")
+                ps.append(v)
+            elif isinstance(v, (list, tuple, set)):
                 v = list(v)
                 cs.append(f"{k} IN ({','.join('?' * len(v))})")
                 ps += v
@@ -112,9 +115,12 @@ class Store:
             ps += [f"%{e}%"] * 2
         return (" WHERE " + " AND ".join(cs) if cs else ""), ps
 
-    def find(self, cls, *, q=None, limit=None, offset=0, **w):
+    def find(self, cls, *, q=None, limit=None, offset=0, sort="id", **w):
         wh, ps = self._w(cls, q, w)
-        sql = f"SELECT * FROM {TB[cls]}{wh} ORDER BY id"
+        col = sort.lstrip("-")
+        if col not in cls.model_fields:
+            raise ValueError(f"unknown sort column: {col}")
+        sql = f"SELECT * FROM {TB[cls]}{wh} ORDER BY {col}{' DESC' if sort.startswith('-') else ''}, id"
         if limit is not None:
             sql += " LIMIT ? OFFSET ?"
             ps += [limit, offset]
