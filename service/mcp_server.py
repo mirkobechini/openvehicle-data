@@ -4,7 +4,8 @@ from typing import Annotated
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import ToolAnnotations
-from pydantic import BaseModel, Field
+from pydantic import Field
+from pydantic_core import to_jsonable_python
 
 from core.enums import Fuel
 from core.models import Brand, CarModel, Variant
@@ -36,7 +37,7 @@ def _scrub(x, k=None):
 
 
 def _out(o):
-    return _scrub(o.model_dump(mode="json") if isinstance(o, BaseModel) else o)
+    return _scrub(to_jsonable_python(o))
 
 
 def build_mcp(p):
