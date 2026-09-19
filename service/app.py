@@ -10,7 +10,7 @@ from mcp.server.transport_security import TransportSecuritySettings
 from starlette.routing import Route
 
 from core.enums import Fuel
-from core.models import Brand, CarModel, Engine, Generation, Variant
+from core.models import Brand, CarModel, Engine, Family, Generation, Variant
 from core.provenance import Source
 from core.storage import Store
 from service import queries as qs
@@ -87,10 +87,20 @@ def create_app(db=None):
         with rd() as st:
             return _get(qs.one, st, Brand, i)
 
-    @app.get("/api/v1/models", response_model=Page[CarModel])
-    def models(pg: Pg, q: Q = None, brand_id: str | None = None, sort: Sort = "id", min_registrations: MinReg = None):
+    @app.get("/api/v1/families", response_model=Page[Family])
+    def families(pg: Pg, q: Q = None, brand_id: str | None = None, sort: Sort = "id", min_registrations: MinReg = None):
         with rd() as st:
-            return _get(qs.models_page, st, pg, q, brand_id, sort, min_registrations)
+            return _get(qs.families_page, st, pg, q, brand_id, sort, min_registrations)
+
+    @app.get("/api/v1/families/{i}", response_model=Family)
+    def family(i: str):
+        with rd() as st:
+            return _get(qs.one, st, Family, i)
+
+    @app.get("/api/v1/models", response_model=Page[CarModel])
+    def models(pg: Pg, q: Q = None, brand_id: str | None = None, family_id: str | None = None, sort: Sort = "id", min_registrations: MinReg = None):
+        with rd() as st:
+            return _get(qs.models_page, st, pg, q, brand_id, sort, min_registrations, family_id)
 
     @app.get("/api/v1/models/{i}", response_model=CarModel)
     def model(i: str):
@@ -117,6 +127,7 @@ def create_app(db=None):
         pg: Pg,
         q: Q = None,
         brand_id: str | None = None,
+        family_id: str | None = None,
         model_id: str | None = None,
         generation_id: str | None = None,
         engine_id: str | None = None,
@@ -125,7 +136,7 @@ def create_app(db=None):
         min_registrations: MinReg = None,
     ):
         with rd() as st:
-            return _get(qs.variants_page, st, pg, q, model_id, generation_id, engine_id, fuel, sort, min_registrations, brand_id)
+            return _get(qs.variants_page, st, pg, q, model_id, generation_id, engine_id, fuel, sort, min_registrations, brand_id, family_id)
 
     @app.get("/api/v1/variants/{i}", response_model=VariantDetail)
     def variant(i: str):
