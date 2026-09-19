@@ -6,5 +6,3 @@ services:
     branch: main
     autoDeployTrigger: checksPass
     healthCheckPath: /api/v1/health
-    domains:
-      - openvehicle.mirkobechini.com

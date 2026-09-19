@@ -8,7 +8,7 @@ from a GitHub Release and checked against a SHA-256.
 GitHub Release (data)  -->  Dockerfile (ADD --checksum)  -->  Render service
                                                               /api/v1/...  REST
                                                               /mcp         MCP
-Cloudflare DNS: openvehicle.<domain> --> the service (REST and MCP on the same name)
+Optional: your own domain (Cloudflare DNS) --> the same service
 ```
 
 ## 1. Publish the first data release
@@ -38,36 +38,38 @@ Render deploys from `main` (see `render.yaml`). Follow the release flow in
 3. Wait for the first build. The service is healthy when
    `https://<service>.onrender.com/api/v1/health` returns `{"status":"ok"}`.
 
-The Blueprint also declares one custom domain, `openvehicle.mirkobechini.com`,
-used for both the REST API and the MCP server. Change it in `render.yaml` if you
-use another name. Render asks for a payment method above 2 custom domains, so a
-single name keeps the free plan free.
+The Blueprint declares no custom domain: the service is reachable at its own
+address, `https://<service>.onrender.com`, for both the REST API and the MCP server.
 
-## 4. DNS on Cloudflare
+## 4. Check that everything works
 
-1. SSL/TLS > Overview: set the encryption mode to **Full**.
-2. DNS: add one CNAME record, `openvehicle`, pointing to `<service>.onrender.com`,
-   with proxy status **DNS only**.
-3. In Render (Settings > Custom Domains) wait until the domain is verified and its
-   certificate issued.
-4. Optionally switch the record to **Proxied**. Then add a rate-limiting rule
-   (Security > WAF > Rate limiting rules), for example 60 requests per minute per
-   IP on the hostname, since the API has no authentication.
-
-## 5. Check that everything works
+Replace `<service>` with the name in the service address shown by Render.
 
 ```bash
-curl https://openvehicle.<domain>/api/v1/meta
-curl -X POST https://openvehicle.<domain>/mcp \
-  -H 'Content-Type: application/json' -H 'Accept: application/json, text/event-stream' \
-  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+curl https://<service>.onrender.com/api/v1/meta
+curl -X POST https://<service>.onrender.com/mcp   -H 'Content-Type: application/json' -H 'Accept: application/json, text/event-stream'   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 ```
 
 Connect an MCP client, for example Claude Code:
 
 ```bash
-claude mcp add --transport http openvehicle https://openvehicle.<domain>/mcp
+claude mcp add --transport http openvehicle https://<service>.onrender.com/mcp
 ```
+
+## 5. Optional: your own domain on Cloudflare
+
+Render's free workspaces allow 2 custom domains; a third needs a payment method
+on the account (or removing one you no longer use). Once a slot is free:
+
+1. Add `domains: [openvehicle.<domain>]` to the service in `render.yaml`, or add
+   the domain in the Render dashboard (Settings > Custom Domains).
+2. Cloudflare, SSL/TLS > Overview: set the encryption mode to **Full**.
+3. DNS: add one CNAME record, `openvehicle`, pointing to `<service>.onrender.com`,
+   with proxy status **DNS only**.
+4. In Render wait until the domain is verified and its certificate issued.
+5. Optionally switch the record to **Proxied**. Then add a rate-limiting rule
+   (Security > WAF > Rate limiting rules), for example 60 requests per minute per
+   IP on the hostname, since the API has no authentication.
 
 ## Updating the data
 
@@ -82,6 +84,9 @@ gh release create data-v0.2.0 dist2/* --title "Data 0.2.0" --notes-file dist2/CH
 
 ## Things to know
 
+- **No rate limiting on the plain address:** without your own domain behind
+  Cloudflare, nothing limits requests to the API. Fine for an early release; add
+  the domain and the rule from step 5 before promoting it.
 - **Free plan:** the service sleeps after 15 minutes without requests and takes
   about a minute to wake up. Clients that time out earlier will fail on the first
   call, and MCP clients use POST, which is the case most likely to hit this. For
