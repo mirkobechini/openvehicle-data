@@ -2,7 +2,7 @@ from datetime import date
 
 import pytest
 
-from core.models import Brand, CarModel, Engine, Generation, Variant
+from core.models import Brand, CarModel, Engine, Family, Generation, Variant
 from core.provenance import Evidence, FieldProvenance, Source
 from core.storage import Store
 from pipeline.validation import BuildError, Severity, ensure, report, validate
@@ -29,7 +29,8 @@ def build(ek=None, vk=None, srcs=(SRC,), prov=True):
     )
     st.put(
         Brand(id="brand_citroen", name="Citroën"),
-        CarModel(id="model_c3", brand_id="brand_citroen", name="C3"),
+        Family(id="family_citroen-c3", brand_id="brand_citroen", name="C3", model_count=1),
+        CarModel(id="model_c3", brand_id="brand_citroen", name="C3", family_id="family_citroen-c3"),
         Generation(id="gen_c3", model_id="model_c3", name="III", year_from=2016, year_to=2021),
         e, v, *srcs,
     )
@@ -92,9 +93,11 @@ def test_brand_alias_clash():
 
 def test_model_duplicate_only_within_brand():
     st = build()
-    st.put(Brand(id="brand_ds", name="DS"), CarModel(id="model_ds-c3", brand_id="brand_ds", name="C3"))
+    st.put(Brand(id="brand_ds", name="DS"), Family(id="family_ds-c3", brand_id="brand_ds", name="C3", model_count=1))
+    st.put(CarModel(id="model_ds-c3", brand_id="brand_ds", name="C3", family_id="family_ds-c3"))
     assert validate(st) == []
-    st.put(CarModel(id="model_c3-b", brand_id="brand_citroen", name="c3"))
+    st.put(Family(id="family_c3-b", brand_id="brand_citroen", name="c3", model_count=1))
+    st.put(CarModel(id="model_c3-b", brand_id="brand_citroen", name="c3", family_id="family_c3-b"))
     assert rules(st) == ["model_duplicate", "model_duplicate"]
 
 
@@ -114,7 +117,8 @@ def test_variant_years(y):
 def test_variant_years_open_generation():
     st = Store()
     st.put(
-        Brand(id="brand_a", name="A"), CarModel(id="model_a", brand_id="brand_a", name="A"),
+        Brand(id="brand_a", name="A"), Family(id="family_a-a", brand_id="brand_a", name="A", model_count=1),
+        CarModel(id="model_a", brand_id="brand_a", name="A", family_id="family_a-a"),
         Generation(id="gen_a", model_id="model_a", name="I", year_from=2020),
         Engine(id="eng_e", fuel="electric"),
         Variant(id="var_a", generation_id="gen_a", engine_id="eng_e", name="v", year_from=2021),
@@ -175,3 +179,54 @@ def test_report():
     assert out.splitlines()[-1] == "4 errors, 1 warnings"
     assert out.startswith("ERROR missing_provenance")
     assert "WARNING implausible_value var_c3-a: mass_kg=100" in out
+
+
+def with_model_family(st, **k):
+    st.put(Family(id="family_citroen-x", brand_id="brand_citroen", name="X", model_count=k.pop("model_count", 2), registrations=k.pop("registrations", 30)))
+    st.put(CarModel(id="model_x-1", brand_id="brand_citroen", name="X 1", registrations=10, family_id="family_citroen-x"))
+    st.put(CarModel(id="model_x-2", brand_id="brand_citroen", name="X 2", registrations=20, family_id="family_citroen-x"))
+
+
+def test_a_family_with_several_models_is_clean():
+    st = build()
+    with_model_family(st)
+    assert validate(st) == []
+
+
+def test_model_without_a_family_is_a_warning():
+    st = build()
+    st.put(CarModel(id="model_orphan", brand_id="brand_citroen", name="ORPHAN"))
+    vs = validate(st)
+    assert [(v.rule, v.severity, v.entity_id) for v in vs] == [("family_missing", Severity.WARNING, "model_orphan")]
+    assert ensure(st) == vs
+
+
+def test_family_of_another_brand_is_an_error():
+    st = build()
+    st.put(Brand(id="brand_ds", name="DS"), Family(id="family_ds-y", brand_id="brand_ds", name="Y", model_count=1))
+    st.put(CarModel(id="model_y", brand_id="brand_citroen", name="Y", family_id="family_ds-y"))
+    assert rules(st) == ["family_brand"]
+    with pytest.raises(BuildError):
+        ensure(st)
+
+
+@pytest.mark.parametrize("k", [{"model_count": 3}, {"model_count": 1}, {"registrations": 31}, {"registrations": 0}])
+def test_family_totals_must_match_its_models(k):
+    st = build()
+    with_model_family(st, **k)
+    vs = validate(st)
+    assert [(v.rule, v.entity_id) for v in vs] == [("family_totals", "family_citroen-x")]
+    assert "do not match" in vs[0].message
+
+
+def test_a_family_without_models_is_an_error():
+    st = build()
+    st.put(Family(id="family_citroen-empty", brand_id="brand_citroen", name="EMPTY", model_count=1))
+    assert [(v.rule, v.entity_id) for v in validate(st)] == [("family_totals", "family_citroen-empty")]
+
+
+def test_family_registrations_can_be_unknown_when_no_model_has_any():
+    st = build()
+    st.put(Family(id="family_citroen-u", brand_id="brand_citroen", name="U", model_count=1))
+    st.put(CarModel(id="model_u", brand_id="brand_citroen", name="U", family_id="family_citroen-u"))
+    assert validate(st) == []
