@@ -19,7 +19,8 @@ CREATE TABLE IF NOT EXISTS brands (
     id TEXT PRIMARY KEY, name TEXT NOT NULL, aliases TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS models (
     id TEXT PRIMARY KEY, brand_id TEXT NOT NULL REFERENCES brands(id),
-    name TEXT NOT NULL, aliases TEXT NOT NULL, category TEXT NOT NULL);
+    name TEXT NOT NULL, aliases TEXT NOT NULL, category TEXT NOT NULL,
+    registrations INTEGER);
 CREATE TABLE IF NOT EXISTS generations (
     id TEXT PRIMARY KEY, model_id TEXT NOT NULL REFERENCES models(id),
     name TEXT NOT NULL, aliases TEXT NOT NULL,
@@ -33,7 +34,7 @@ CREATE TABLE IF NOT EXISTS variants (
     name TEXT NOT NULL, aliases TEXT NOT NULL,
     year_from INTEGER NOT NULL, year_to INTEGER,
     mass_kg REAL, wheelbase_mm INTEGER, track_width_mm INTEGER,
-    co2_wltp_g_km REAL);
+    co2_wltp_g_km REAL, registrations INTEGER);
 CREATE TABLE IF NOT EXISTS sources (
     id TEXT PRIMARY KEY, name TEXT NOT NULL, license TEXT NOT NULL,
     license_url TEXT NOT NULL, license_checked TEXT);
@@ -68,7 +69,7 @@ class Store:
         self.close()
 
     def _m(self, cls, r):
-        d = dict(r)
+        d = {k: v for k, v in dict(r).items() if k in cls.model_fields}
         if "aliases" in d:
             d["aliases"] = json.loads(d["aliases"])
         return cls(**d)
@@ -91,12 +92,15 @@ class Store:
         return None if r is None else self._m(cls, r)
 
     def _w(self, cls, q, w):
-        bad = set(w) - set(cls.model_fields)
+        bad = {k.removesuffix("__gte") for k in w} - set(cls.model_fields)
         if bad:
             raise ValueError(f"unknown columns: {sorted(bad)}")
         cs, ps = [], []
         for k, v in w.items():
-            if isinstance(v, (list, tuple, set)):
+            if k.endswith("__gte"):
+                cs.append(f"{k[:-5]}>=?")
+                ps.append(v)
+            elif isinstance(v, (list, tuple, set)):
                 v = list(v)
                 cs.append(f"{k} IN ({','.join('?' * len(v))})")
                 ps += v
@@ -111,9 +115,12 @@ class Store:
             ps += [f"%{e}%"] * 2
         return (" WHERE " + " AND ".join(cs) if cs else ""), ps
 
-    def find(self, cls, *, q=None, limit=None, offset=0, **w):
+    def find(self, cls, *, q=None, limit=None, offset=0, sort="id", **w):
         wh, ps = self._w(cls, q, w)
-        sql = f"SELECT * FROM {TB[cls]}{wh} ORDER BY id"
+        col = sort.lstrip("-")
+        if col not in cls.model_fields:
+            raise ValueError(f"unknown sort column: {col}")
+        sql = f"SELECT * FROM {TB[cls]}{wh} ORDER BY {col}{' DESC' if sort.startswith('-') else ''}, id"
         if limit is not None:
             sql += " LIMIT ? OFFSET ?"
             ps += [limit, offset]

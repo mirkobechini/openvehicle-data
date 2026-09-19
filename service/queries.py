@@ -34,12 +34,17 @@ class Meta(BaseModel):
     sources: list[Source]
 
 
-def page(st, cls, lo, q=None, **w):
+SORTS = {"id": "id", "registrations": "-registrations"}
+
+
+def page(st, cls, lo, q=None, sort="id", min_reg=None, **w):
+    if min_reg is not None:
+        w["registrations__gte"] = min_reg
     return {
         "total": st.count(cls, q=q, **w),
         "limit": lo[0],
         "offset": lo[1],
-        "items": st.find(cls, q=q, limit=lo[0], offset=lo[1], **w),
+        "items": st.find(cls, q=q, limit=lo[0], offset=lo[1], sort=SORTS[sort], **w),
     }
 
 
@@ -55,7 +60,7 @@ def _ix(cur, ids):
     return ids if cur is None else cur & ids
 
 
-def variants_page(st, lo, q=None, model_id=None, generation_id=None, engine_id=None, fuel=None):
+def variants_page(st, lo, q=None, model_id=None, generation_id=None, engine_id=None, fuel=None, sort="id", min_reg=None):
     w, g, e = {}, None, None
     if model_id:
         g = _ix(g, (x.id for x in st.find(Generation, model_id=model_id)))
@@ -69,7 +74,7 @@ def variants_page(st, lo, q=None, model_id=None, generation_id=None, engine_id=N
         w["generation_id"] = sorted(g)
     if e is not None:
         w["engine_id"] = sorted(e)
-    return page(st, Variant, lo, q, **w)
+    return page(st, Variant, lo, q, sort, min_reg, **w)
 
 
 def variant_detail(st, i):

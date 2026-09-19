@@ -260,3 +260,39 @@ def test_prefixed_names_stay_searchable(st):
 def test_different_names_are_not_merged(st):
     eea.load([row(Cn="PUNTO"), row(Cn="GRANDE PUNTO"), row(Cn="500 ABARTH"), row(Cn="ABARTH 500")], st, 2025, TODAY)
     assert sorted(m.name for m in st.find(CarModel)) == ["500 ABARTH", "ABARTH 500", "GRANDE PUNTO", "PUNTO"]
+
+
+def test_registration_counts_from_fixture(loaded):
+    st, _ = loaded
+    assert st.get(Variant, "var_fiat-panda-312-pyd1b-s5g").registrations == 20519 + 10763
+    assert st.get(Variant, "var_fiat-panda-312-pyd1b-c5g").registrations == 15748
+    assert st.get(CarModel, "model_fiat-panda").registrations == 15748 + 31282 + 21229 + 8921
+    assert st.get(CarModel, "model_tesla-model-3").registrations == 3206 + 1574
+    assert st.get(CarModel, "model_toyota-mirai").registrations == 1
+
+
+def test_model_registrations_are_the_sum_of_its_variants(loaded):
+    st, _ = loaded
+    for m in st.find(CarModel):
+        vs = st.find(Variant, generation_id=f"gen_{m.id[len('model_'):]}-observed")
+        assert m.registrations == sum(v.registrations for v in vs) > 0
+
+
+def test_registrations_ignore_dropped_conflicting_rows(st):
+    rs = [row(Ft="petrol", Fm="H", ec=1995, ep=110, n=5), row(Ft="diesel", Fm="H", ec=1995, ep=110, n=2)]
+    eea.load(rs, st, 2025, TODAY)
+    assert st.find(Variant)[0].registrations == 5
+    assert st.find(CarModel)[0].registrations == 5
+
+
+def test_registrations_add_up_across_spellings(st):
+    rs = [row(Cn="PANDA", Ve="B1", n=5), row(Cn="FIAT PANDA", Ve="B2", n=1), row(Cn="FIAT PANDA", Ve="B1", n=2)]
+    eea.load(rs, st, 2025, TODAY)
+    assert {v.id: v.registrations for v in st.find(Variant)} == {"var_fiat-panda-312-a-b1": 7, "var_fiat-panda-312-a-b2": 1}
+    assert st.find(CarModel)[0].registrations == 8
+
+
+def test_registrations_can_sort_and_filter_imported_models(st):
+    eea.load([row(Cn="PANDA", n=100), row(Cn="GOLF", n=1), row(Cn="TIPO", n=30)], st, 2025, TODAY)
+    assert [m.name for m in st.find(CarModel, sort="-registrations")] == ["PANDA", "TIPO", "GOLF"]
+    assert [m.name for m in st.find(CarModel, registrations__gte=10, sort="-registrations")] == ["PANDA", "TIPO"]

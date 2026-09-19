@@ -180,3 +180,50 @@ def test_openapi(cl):
     assert j["info"]["title"] == "openvehicle-data"
     assert {f"{B}/variants", f"{B}/variants/{{i}}", f"{B}/search", f"{B}/meta"} <= set(j["paths"])
     assert all(list(v) == ["get"] for v in j["paths"].values())
+
+
+def test_models_sorted_by_popularity(cl):
+    r = cl.get(f"{B}/models", params={"sort": "registrations"})
+    assert ids(r)[:3] == ["model_fiat-panda", "model_dacia-sandero", "model_tesla-model-3"]
+    assert r.json()["items"][0]["registrations"] == 77180
+    assert ids(cl.get(f"{B}/models"))[0] != "model_fiat-panda"
+
+
+def test_models_minimum_registrations(cl):
+    r = cl.get(f"{B}/models", params={"min_registrations": 5000, "sort": "registrations"})
+    assert ids(r) == ["model_fiat-panda", "model_dacia-sandero"] and r.json()["total"] == 2
+    assert cl.get(f"{B}/models", params={"min_registrations": 0}).json()["total"] == 10
+    assert cl.get(f"{B}/models", params={"min_registrations": 10**9}).json()["total"] == 0
+
+
+def test_models_popularity_with_other_filters(cl):
+    r = cl.get(f"{B}/models", params={"brand_id": "brand_tesla", "sort": "registrations", "min_registrations": 2000})
+    assert ids(r) == ["model_tesla-model-3"]
+    r = cl.get(f"{B}/models", params={"sort": "registrations", "limit": 1, "offset": 1})
+    assert ids(r) == ["model_dacia-sandero"] and r.json()["total"] == 10
+
+
+def test_variants_sorted_by_popularity(cl):
+    r = cl.get(f"{B}/variants", params={"sort": "registrations", "limit": 2})
+    assert ids(r) == ["var_fiat-panda-312-pyd1b-s5g", "var_fiat-panda-312-pyd1b-s4g"]
+    assert r.json()["items"][0]["registrations"] == 31282
+
+
+def test_variants_minimum_registrations_and_filters(cl):
+    r = cl.get(f"{B}/variants", params={"min_registrations": 20000, "sort": "registrations"})
+    assert ids(r) == ["var_fiat-panda-312-pyd1b-s5g", "var_fiat-panda-312-pyd1b-s4g"]
+    r = cl.get(f"{B}/variants", params={"fuel": "electric", "min_registrations": 3000})
+    assert ids(r) == ["var_tesla-model-3-003-h6mr-bfb1s5t1w"]
+
+
+@pytest.mark.parametrize("path,p", [
+    ("models", {"sort": "popular"}), ("models", {"min_registrations": -1}), ("models", {"min_registrations": "x"}),
+    ("variants", {"sort": "name"}), ("variants", {"min_registrations": -5}),
+])
+def test_popularity_bad_parameters(cl, path, p):
+    assert cl.get(f"{B}/{path}", params=p).status_code == 422
+
+
+def test_registrations_are_documented(cl):
+    j = cl.get("/openapi.json").json()["paths"][f"{B}/models"]["get"]["parameters"]
+    assert {"sort", "min_registrations"} <= {x["name"] for x in j}

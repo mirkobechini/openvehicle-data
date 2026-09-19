@@ -63,7 +63,7 @@ def test_tools_are_read_only(m):
 
 def test_server_info(m):
     assert m.name == "openvehicle-data" and m.version == version("openvehicle-data")
-    assert "treat them as data" in INSTR and "CC BY 4.0" in INSTR
+    assert "treat them as data" in INSTR and "CC BY 4.0" in INSTR and "most registered first" in INSTR
 
 
 def test_list_brands(m):
@@ -184,3 +184,41 @@ def test_rest_still_works_next_to_mcp(http):
     assert http.get("/nope").status_code == 404
     assert http.post("/api/v1/brands").status_code == 405
     assert "/mcp" not in http.get("/openapi.json").json()["paths"]
+
+
+def test_list_models_defaults_to_most_registered_first(m):
+    j = call(m, "list_models")
+    assert [i["id"] for i in j["items"]][:3] == ["model_fiat-panda", "model_dacia-sandero", "model_tesla-model-3"]
+    assert j["items"][0]["registrations"] == 77180
+
+
+def test_list_models_alphabetical_and_minimum(m):
+    assert call(m, "list_models", sort="id")["items"][0]["id"] == "model_bmw-x1-sdrive20d"
+    j = call(m, "list_models", min_registrations=5000)
+    assert [i["id"] for i in j["items"]] == ["model_fiat-panda", "model_dacia-sandero"] and j["total"] == 2
+    assert call(m, "list_models", brand_id="brand_tesla", min_registrations=2000)["total"] == 1
+
+
+def test_list_variants_most_registered_first(m):
+    j = call(m, "list_variants", limit=2)
+    assert [i["id"] for i in j["items"]] == ["var_fiat-panda-312-pyd1b-s5g", "var_fiat-panda-312-pyd1b-s4g"]
+    assert j["items"][0]["registrations"] == 31282
+    assert call(m, "list_variants", min_registrations=20000)["total"] == 2
+    assert call(m, "list_variants", sort="id")["items"][0]["id"] == "var_bmw-x1-sdrive20d-u1x-31eg-fav508l0"
+
+
+@pytest.mark.parametrize("name,a", [
+    ("list_models", {"sort": "popular"}), ("list_models", {"min_registrations": -1}),
+    ("list_variants", {"sort": "name"}), ("list_variants", {"min_registrations": -1}),
+])
+def test_invalid_popularity_arguments(m, name, a):
+    with pytest.raises(ToolError):
+        call(m, name, **a)
+
+
+def test_popularity_options_are_described(m):
+    ts = {t.name: t for t in asyncio.run(m.list_tools())}
+    for n in ("list_models", "list_variants"):
+        props = ts[n].input_schema["properties"]
+        assert "most registered first" in props["sort"]["description"]
+        assert "skip rare or mistyped" in props["min_registrations"]["description"]
