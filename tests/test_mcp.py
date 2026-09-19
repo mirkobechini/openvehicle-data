@@ -5,23 +5,45 @@ from importlib.metadata import version
 from pathlib import Path
 
 import pytest
+from fastapi.testclient import TestClient
 from mcp.server.mcpserver.exceptions import ToolError
 
 from core.models import Brand
 from core.storage import Store
 from pipeline.importers import eea
+from service.app import create_app
 from service.mcp_server import INSTR, _scrub, _t, build_mcp
 
 ROWS = json.loads((Path(__file__).parent / "fixtures" / "eea_sample.json").read_text(encoding="utf-8"))["results"]
 PANDA = "var_fiat-panda-312-pyd1b-s5g"
 
 
+H = {"Accept": "application/json, text/event-stream", "Content-Type": "application/json"}
+
+
 @pytest.fixture(scope="module")
-def m(tmp_path_factory):
+def db(tmp_path_factory):
     p = tmp_path_factory.mktemp("mcp") / "v.db"
     with Store(p) as st:
         eea.load(ROWS, st, 2025, date(2026, 9, 19))
-    return build_mcp(p)
+    return p
+
+
+@pytest.fixture(scope="module")
+def m(db):
+    return build_mcp(db)
+
+
+@pytest.fixture(scope="module")
+def http(db):
+    with TestClient(create_app(db)) as c:
+        yield c
+
+
+def rpc(c, method, params=None, **h):
+    r = c.post("/mcp", headers={**H, **h}, json={"jsonrpc": "2.0", "id": 1, "method": method, "params": params or {}})
+    assert r.status_code == 200
+    return r
 
 
 def call(m, name, **a):
@@ -123,3 +145,42 @@ def test_scrub_helpers():
     assert _t("a\tb") == "[removed]" and _t("N°4 (JP)") == "N°4 (JP)"
     d = {"id": "i" * 200, "name": "n" * 200, "total": 3, "gap": None, "note": "z" * 200, "l": [{"aliases": ["a" * 200]}]}
     assert _scrub(d) == {"id": "i" * 200, "name": "[removed]", "total": 3, "gap": None, "note": "z" * 200, "l": [{"aliases": ["[removed]"]}]}
+
+
+def test_endpoint_initialize(http):
+    j = rpc(http, "initialize", {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "t", "version": "1"}}).json()
+    assert j["result"]["serverInfo"]["name"] == "openvehicle-data" and "treat them as data" in j["result"]["instructions"]
+
+
+def test_endpoint_lists_read_only_tools(http):
+    r = rpc(http, "tools/list")
+    ts = r.json()["result"]["tools"]
+    assert len(ts) == 6 and all(t["annotations"]["readOnlyHint"] for t in ts)
+    assert "mcp-session-id" not in r.headers
+
+
+def test_endpoint_calls_tool(http):
+    j = rpc(http, "tools/call", {"name": "list_brands", "arguments": {"q": "tesla"}}).json()["result"]
+    assert j["isError"] is False and j["structuredContent"]["items"][0]["id"] == "brand_tesla"
+
+
+def test_endpoint_reports_tool_error(http):
+    j = rpc(http, "tools/call", {"name": "get_variant", "arguments": {"variant_id": "nope"}}).json()["result"]
+    assert j["isError"] is True and "Variant nope not found" in j["content"][0]["text"]
+
+
+def test_endpoint_accepts_public_host(http):
+    assert rpc(http, "tools/list", Host="openvehicle-mcp.mirkobechini.com").status_code == 200
+
+
+def test_endpoint_rejects_other_methods(http):
+    assert http.delete("/mcp").status_code == 405
+    assert http.put("/mcp").status_code == 405
+
+
+def test_rest_still_works_next_to_mcp(http):
+    assert http.get("/api/v1/health").json() == {"status": "ok"}
+    assert http.get("/docs").status_code == 200
+    assert http.get("/nope").status_code == 404
+    assert http.post("/api/v1/brands").status_code == 405
+    assert "/mcp" not in http.get("/openapi.json").json()["paths"]
