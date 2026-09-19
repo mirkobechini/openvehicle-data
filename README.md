@@ -43,6 +43,9 @@ previous release (`--prev <folder>`).
   verification status (single source vs. confirmed by two independent sources).
 - Cars only in v0.1 (category M1). Vans, trucks and motorcycles are out of scope for now.
 - No personal data, no plate or VIN lookups, no prices.
+- Known mistakes in the source data (a wrong make, brand spelled several ways) are
+  fixed through a small reviewed file, `pipeline/importers/corrections.json`, where
+  every entry has a written reason. Proposals are welcome as pull requests.
 - Models and variants carry `registrations` (cars registered in the source data), so
   clients can sort by popularity and skip one-off or mistyped entries.
 

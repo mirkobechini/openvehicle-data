@@ -1,0 +1,23 @@
+{
+  "brands": {
+    "VW": "VOLKSWAGEN",
+    "VOLKSWAGEN, VW": "VOLKSWAGEN",
+    "SSANGJONG": "SSANGYONG",
+    "SOCIETE DES AUTOMOBILES ALPINE(SAA)": "ALPINE",
+    "CATERHAM CARS LTD.": "CATERHAM",
+    "MERCEDES": "MERCEDES-BENZ",
+    "DS AUTOMOBILES": "DS"
+  },
+  "exclude_models": [
+    {
+      "brand": "FIAT",
+      "model": "GOLF",
+      "reason": "Volkswagen model with 1 registration under FIAT in the EEA 2025 data: wrong make in the source"
+    },
+    {
+      "brand": "FIAT",
+      "model": "AVENGER",
+      "reason": "Jeep model (47,085 registrations under JEEP) with 1 under FIAT in the EEA 2025 data: wrong make in the source"
+    }
+  ]
+}
