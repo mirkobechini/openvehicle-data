@@ -14,6 +14,9 @@ class Page(BaseModel, Generic[T]):
     total: int
     limit: int
     offset: int
+    count: int
+    has_more: bool
+    next_offset: int | None
     items: list[T]
 
 
@@ -49,11 +52,18 @@ SORTS = {"id": "id", "registrations": "-registrations"}
 def page(st, cls, lo, q=None, sort="id", min_reg=None, **w):
     if min_reg is not None:
         w["registrations__gte"] = min_reg
+    total = st.count(cls, q=q, **w)
+    items = st.find(cls, q=q, limit=lo[0], offset=lo[1], sort=SORTS[sort], **w)
+    end = lo[1] + len(items)
+    more = end < total
     return {
-        "total": st.count(cls, q=q, **w),
+        "total": total,
         "limit": lo[0],
         "offset": lo[1],
-        "items": st.find(cls, q=q, limit=lo[0], offset=lo[1], sort=SORTS[sort], **w),
+        "count": len(items),
+        "has_more": more,
+        "next_offset": end if more else None,
+        "items": items,
     }
 
 
