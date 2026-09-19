@@ -234,3 +234,44 @@ def test_openapi_declares_provenance_status(cl):
     assert "status" in entry["properties"] and "status" in entry["required"]
     j = cl.get(f"{B}/variants/{PANDA}").json()
     assert {p["status"] for p in j["provenance"]} == {"single_source"}
+
+
+def test_page_metadata_middle_and_last_page(cl):
+    j = cl.get(f"{B}/brands", params={"limit": 4}).json()
+    assert (j["total"], j["count"], j["has_more"], j["next_offset"]) == (6, 4, True, 4)
+    j = cl.get(f"{B}/brands", params={"limit": 4, "offset": 4}).json()
+    assert (j["total"], j["count"], j["has_more"], j["next_offset"]) == (6, 2, False, None)
+
+
+def test_page_metadata_complete_and_empty_lists(cl):
+    j = cl.get(f"{B}/brands").json()
+    assert (j["count"], j["has_more"], j["next_offset"]) == (6, False, None)
+    j = cl.get(f"{B}/brands", params={"q": "zzzz"}).json()
+    assert (j["total"], j["count"], j["has_more"], j["next_offset"]) == (0, 0, False, None)
+
+
+def test_page_metadata_past_the_end(cl):
+    j = cl.get(f"{B}/brands", params={"offset": 50}).json()
+    assert (j["total"], j["count"], j["has_more"], j["next_offset"], j["items"]) == (6, 0, False, None, [])
+
+
+def test_page_metadata_exact_multiple_of_the_limit(cl):
+    j = cl.get(f"{B}/brands", params={"limit": 3, "offset": 3}).json()
+    assert (j["count"], j["has_more"], j["next_offset"]) == (3, False, None)
+
+
+def test_paging_through_everything_with_next_offset(cl):
+    seen, off = [], 0
+    while off is not None:
+        j = cl.get(f"{B}/variants", params={"limit": 4, "offset": off}).json()
+        assert j["count"] == len(j["items"])
+        seen += [i["id"] for i in j["items"]]
+        off = j["next_offset"]
+    assert len(seen) == 14 and len(set(seen)) == 14
+
+
+@pytest.mark.parametrize("path", ["brands", "models", "generations", "engines", "variants"])
+def test_every_paged_list_has_the_metadata(cl, path):
+    j = cl.get(f"{B}/{path}", params={"limit": 1}).json()
+    assert {"total", "limit", "offset", "count", "has_more", "next_offset", "items"} <= set(j)
+    assert j["count"] == 1 and j["has_more"] is True and j["next_offset"] == 1
