@@ -275,3 +275,39 @@ def test_every_paged_list_has_the_metadata(cl, path):
     j = cl.get(f"{B}/{path}", params={"limit": 1}).json()
     assert {"total", "limit", "offset", "count", "has_more", "next_offset", "items"} <= set(j)
     assert j["count"] == 1 and j["has_more"] is True and j["next_offset"] == 1
+
+
+def test_variants_by_brand(cl):
+    r = cl.get(f"{B}/variants", params={"brand_id": "brand_tesla"})
+    assert r.json()["total"] == 3 and all("tesla" in i for i in ids(r))
+    assert cl.get(f"{B}/variants", params={"brand_id": "brand_fiat"}).json()["total"] == 4
+    assert cl.get(f"{B}/variants", params={"brand_id": "brand_bmw"}).json()["total"] == 3
+
+
+def test_variants_by_brand_combined_with_other_filters(cl):
+    def n(**p):
+        return cl.get(f"{B}/variants", params=p).json()["total"]
+    assert n(brand_id="brand_tesla", fuel="electric") == 3
+    assert n(brand_id="brand_fiat", fuel="electric") == 0
+    assert n(brand_id="brand_tesla", model_id="model_tesla-model-3") == 2
+    assert n(brand_id="brand_fiat", model_id="model_tesla-model-3") == 0
+    assert n(brand_id="brand_tesla", generation_id="gen_tesla-model-y-observed") == 1
+    assert n(brand_id="brand_tesla", engine_id="eng_electric-x-208") == 2
+    assert n(brand_id="brand_tesla", min_registrations=1500) == 2
+    assert n(brand_id="brand_tesla", min_registrations=2000) == 1
+    assert n(brand_id="brand_fiat", q="s5g") == 1
+
+
+def test_variants_by_brand_sorted_and_paged(cl):
+    r = cl.get(f"{B}/variants", params={"brand_id": "brand_tesla", "sort": "registrations", "limit": 1})
+    assert ids(r) == ["var_tesla-model-3-003-h6mr-bfb1s5t1w"]
+    assert (r.json()["total"], r.json()["has_more"], r.json()["next_offset"]) == (3, True, 1)
+
+
+def test_variants_by_unknown_brand_is_empty(cl):
+    assert cl.get(f"{B}/variants", params={"brand_id": "brand_none"}).json()["total"] == 0
+
+
+def test_variants_brand_filter_is_documented(cl):
+    j = cl.get("/openapi.json").json()["paths"][f"{B}/variants"]["get"]["parameters"]
+    assert "brand_id" in {x["name"] for x in j}
