@@ -23,7 +23,7 @@ Then point the Dockerfile at it: set the defaults of `DATA_URL`
 and `DATA_SHA256` (the `openvehicle-data.db` entry in `dist/manifest.json`), and
 merge that change to `dev`.
 
-The releases up to `data-v0.3.0` are already published and the Dockerfile points
+The releases up to `data-v0.4.0` are already published and the Dockerfile points
 at the latest one, so this step is only needed for a new data version.
 
 ## 2. Release to `main`
