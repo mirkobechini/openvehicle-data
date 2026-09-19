@@ -11,6 +11,7 @@ from core.ids import make_id, slug
 from core.models import Brand, CarModel, Engine, Generation, Variant
 from core.provenance import Evidence, FieldProvenance
 from core.storage import Store
+from pipeline.importers.corrections import load_corrections, norm
 from pipeline.sources import EEA
 
 URL = "https://discodata.eea.europa.eu/sql"
@@ -96,17 +97,24 @@ def _pv(o, fs, today, out):
             out.append(FieldProvenance(entity_id=o.id, field=f, evidence=[ev], last_verified=today))
 
 
-def load(rows, st, year, today=None):
+def load(rows, st, year, today=None, corr=None):
     today = today or date.today()
-    gr, bn, mn, skip = defaultdict(list), defaultdict(set), defaultdict(set), 0
+    corr = corr or load_corrections()
+    bmap = {norm(k): v for k, v in corr.brands.items()}
+    ex = {(norm(x.brand), slug(x.model)) for x in corr.exclude_models}
+    gr, bn, mn, skip, excl = defaultdict(list), defaultdict(set), defaultdict(set), 0, 0
     for r in rows:
-        mk, raw = (r["Mk"] or "").strip(), (r["Cn"] or "").strip()
-        if not (slug(mk) and slug(raw)):
+        mk0, raw = (r["Mk"] or "").strip(), (r["Cn"] or "").strip()
+        if not (slug(mk0) and slug(raw)):
             skip += 1
             continue
-        cn = _strip(mk, raw)
+        mk = bmap.get(norm(mk0), mk0)
+        cn = _strip(mk, _strip(mk0, raw) if mk != mk0 else raw)
+        if (norm(mk), slug(cn)) in ex:
+            excl += 1
+            continue
         b, m = make_id("brand", mk), make_id("model", mk, cn)
-        bn[b].add(mk)
+        bn[b].add((mk, mk0))
         mn[m].add((cn, raw))
         gr[(b, m, make_id("var", mk, cn, r["T"], r["Va"], r["Ve"]))].append(r)
     ms, gs, es, vs, pv, drops, conf, mreg = {}, {}, {}, {}, [], Counter(), 0, Counter()
@@ -135,7 +143,10 @@ def load(rows, st, year, today=None):
             year_from=year, year_to=year, registrations=reg, **{f: r[c] for c, f in VF.items()},
         )
         _pv(vs[vid], VF.values(), today, pv)
-    bs = [Brand(id=i, name=sorted(s)[0], aliases=sorted(s)[1:]) for i, s in bn.items()]
+    bs = []
+    for i, s in bn.items():
+        nm = sorted(c for c, _ in s)[0]
+        bs.append(Brand(id=i, name=nm, aliases=sorted({x for p in s for x in p} - {nm})))
     cs = []
     for i, s in mn.items():
         nm = sorted(c for c, _ in s)[0]
@@ -144,7 +155,7 @@ def load(rows, st, year, today=None):
     st.put(EEA, *bs, *cs, *gl, *es.values(), *vs.values())
     st.put_prov(*pv)
     return {
-        "rows": len(rows), "skipped": skip, "conflicts": conf, "brands": len(bs), "models": len(cs),
+        "rows": len(rows), "skipped": skip, "excluded": excl, "conflicts": conf, "brands": len(bs), "models": len(cs),
         "engines": len(es), "variants": len(vs), "dropped": dict(drops),
     }
 
