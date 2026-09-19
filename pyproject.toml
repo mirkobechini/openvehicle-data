@@ -9,7 +9,7 @@ description = "Open, verified vehicle brand/model/spec data: dataset, REST API a
 readme = "README.md"
 requires-python = ">=3.12"
 license = "Apache-2.0"
-dependencies = ["pydantic>=2", "httpx", "fastapi", "uvicorn"]
+dependencies = ["pydantic>=2", "httpx", "fastapi", "uvicorn", "mcp>=2"]
 
 [project.optional-dependencies]
 dev = ["pytest", "coverage"]
