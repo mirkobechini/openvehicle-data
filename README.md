@@ -40,13 +40,19 @@ previous release (`--prev <folder>`).
 
 ## Principles
 
-- Every field records its source, license, `last_verified` date and
-  verification status (single source vs. confirmed by two independent sources).
+- Every technical specification field (mass, CO2, engine size and power, wheelbase,
+  track width) records its source, license, `last_verified` date and verification
+  status (single source vs. confirmed by two independent sources). Fuel, years,
+  names and registration counts come from the same EEA data but carry no source
+  record of their own.
 - Cars only in v0.1 (category M1). Vans, trucks and motorcycles are out of scope for now.
 - No personal data, no plate or VIN lookups, no prices.
 - Known mistakes in the source data (a wrong make, brand spelled several ways) are
   fixed through a small reviewed file, `pipeline/importers/corrections.json`, where
   every entry has a written reason. Proposals are welcome as pull requests.
+- Models are grouped into families (Mercedes `GLC`, BMW `X1`, Volkswagen `ID.4`) by
+  reviewed rules per brand, `pipeline/importers/families.json`; a brand without rules
+  keeps one family per model.
 - Models and variants carry `registrations` (cars registered in the source data), so
   clients can sort by popularity and skip one-off or mistyped entries.
 
