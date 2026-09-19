@@ -45,6 +45,7 @@ class CarModel(Named):
     id: ModelId
     brand_id: BrandId
     category: Category = Category.M1
+    registrations: int | None = Field(default=None, ge=0)
 
 
 class Generation(Named, Period):
@@ -67,3 +68,4 @@ class Variant(Named, Period):
     wheelbase_mm: int | None = Field(default=None, ge=500, le=5000)
     track_width_mm: int | None = Field(default=None, ge=500, le=3000)
     co2_wltp_g_km: float | None = Field(default=None, ge=0, le=1000)
+    registrations: int | None = Field(default=None, ge=0)
