@@ -55,6 +55,11 @@ previous release (`--prev <folder>`).
 - Code: Apache-2.0 (`LICENSE`)
 - Data: CC BY 4.0 (`LICENSE-DATA`); sources and attributions in `NOTICE`
 
+## Privacy
+
+The public API and MCP server use no accounts, cookies or analytics. See
+[PRIVACY.md](PRIVACY.md).
+
 ## Disclaimer
 
 The data is provided "as is", without warranty of any kind. Verify it before any
