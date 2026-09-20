@@ -78,3 +78,4 @@ class Variant(Named, Period):
     track_width_mm: int | None = Field(default=None, ge=500, le=3000)
     co2_wltp_g_km: float | None = Field(default=None, ge=0, le=1000)
     registrations: int | None = Field(default=None, ge=0)
+    type_approval: str | None = Field(default=None, pattern=r"^e\d{1,3}\*[^*\s]+\*[^*\s]+$")
