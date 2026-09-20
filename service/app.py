@@ -157,4 +157,5 @@ def create_app(db=None):
             return qs.search(st, q)
 
     app.router.routes.append(Route("/mcp", endpoint=mcp_app))
+    app.add_middleware(Headers)
     return app
