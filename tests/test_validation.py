@@ -9,6 +9,7 @@ from pipeline.validation import BuildError, Severity, ensure, report, validate
 
 D = date(2026, 9, 19)
 SRC = Source(id="eea-co2", name="EEA", license="CC-BY-4.0", license_url="https://x.org/l", license_checked=D)
+WDS = Source(id="wikidata", name="Wikidata", license="CC0-1.0", license_url="https://x.org/l", license_checked=D)
 RDW = Source(id="rdw", name="RDW", license="CC0-1.0", license_url="https://x.org/l", license_checked=D)
 
 
@@ -245,3 +246,25 @@ def test_type_approval_without_a_source_is_an_error():
     vs = validate(build(vk={"type_approval": "e3*2007/46*0064"}, prov=False))
     assert ("missing_provenance", "var_c3-a") in {(v.rule, v.entity_id) for v in vs}
     assert any("type_approval has no source" in v.message for v in vs)
+
+
+def test_wikidata_id_with_a_source_is_valid():
+    st = build(srcs=(SRC, WDS))
+    st.put(Brand(id="brand_citroen", name="Citroën", wikidata_id="Q6746"))
+    st.put_prov(pv("brand_citroen", "wikidata_id", ev("Q6746", "wikidata")))
+    assert validate(st) == []
+
+
+def test_wikidata_id_without_a_source_is_an_error():
+    st = build()
+    st.put(Brand(id="brand_citroen", name="Citroën", wikidata_id="Q6746"))
+    vs = validate(st)
+    assert [(v.rule, v.entity_id) for v in vs] == [("missing_provenance", "brand_citroen")]
+    assert "wikidata_id has no source" in vs[0].message
+
+
+def test_wikidata_id_must_match_its_evidence():
+    st = build(srcs=(SRC, WDS))
+    st.put(Brand(id="brand_citroen", name="Citroën", wikidata_id="Q6746"))
+    st.put_prov(pv("brand_citroen", "wikidata_id", ev("Q1", "wikidata")))
+    assert [v.rule for v in validate(st)] == ["value_unsupported"]
