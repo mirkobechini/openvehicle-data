@@ -1,7 +1,8 @@
 openvehicle-data
 Copyright (c) 2026 Mirko Bechini
 
-Data sources (each field in the dataset records its own source and license):
+Data sources (each technical specification field in the dataset records its own
+source and license):
 
 - Wikidata (https://www.wikidata.org) - structured data released under CC0 1.0.
 - European Environment Agency (EEA) and Directorate-General for Climate Action
