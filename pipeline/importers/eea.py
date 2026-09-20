@@ -12,6 +12,7 @@ from core.models import Brand, CarModel, Engine, Family, Generation, Variant
 from core.provenance import Evidence, FieldProvenance
 from core.storage import Store
 from pipeline.importers.corrections import load_corrections, norm
+from pipeline.importers.eea_datasets import COMBINED
 from pipeline.importers.families import family_of, load_family_rules
 from pipeline.sources import EEA
 
@@ -32,26 +33,36 @@ FT = {
 }
 
 
-def query(table, ms="IT"):
+def query(table, ms="IT", year=None, status=None):
     if not re.fullmatch(r"[A-Za-z0-9_]+", table) or not re.fullmatch(r"[A-Z]{2}", ms):
         raise ValueError("bad table or country")
+    extra = ""
+    if year is not None or status is not None:
+        if not (type(year) is int and status in ("F", "P")):
+            raise ValueError("bad year or status")
+        extra = f" AND [Year]={year} AND Status='{status}'"
     return (
         "SELECT Mk, Cn, T, Va, Ve, Ft, Fm, [Ec (cm3)] AS ec, [Ep (KW)] AS ep, [M (kg)] AS m, "
         "[W (mm)] AS w, [At1 (mm)] AS at1, [Ewltp (g/km)] AS co2, COUNT(*) AS n "
-        f"FROM [CO2Emission].[latest].[{table}] WHERE MS='{ms}' AND Ct='M1' AND Cr='M1' "
+        f"FROM [CO2Emission].[latest].[{table}] WHERE MS='{ms}' AND Ct='M1' AND Cr='M1'{extra} "
         "GROUP BY Mk, Cn, T, Va, Ve, Ft, Fm, [Ec (cm3)], [Ep (KW)], [M (kg)], [W (mm)], "
         "[At1 (mm)], [Ewltp (g/km)]"
     )
 
 
-def fetch(table, ms="IT", client=None):
+def fetch(table, ms="IT", client=None, year=None, status=None):
     with client or httpx.Client(timeout=300) as c:
-        r = c.get(URL, params={"query": query(table, ms)}, headers={"Accept": "application/json", "User-Agent": UA})
+        r = c.get(URL, params={"query": query(table, ms, year, status)}, headers={"Accept": "application/json", "User-Agent": UA})
     r.raise_for_status()
     d = r.json()
     if "errors" in d:
         raise RuntimeError(d["errors"])
     return d["results"]
+
+
+def fetch_dataset(d, ms="IT", client=None):
+    comb = d.table == COMBINED
+    return fetch(d.table, ms, client, d.year if comb else None, d.status if comb else None)
 
 
 def fuel(ft, fm):
