@@ -99,13 +99,16 @@ class Store:
         return None if r is None else self._m(cls, r)
 
     def _w(self, cls, q, w):
-        bad = {k.removesuffix("__gte") for k in w} - set(cls.model_fields)
+        bad = {k.removesuffix("__gte").removesuffix("__lte") for k in w} - set(cls.model_fields)
         if bad:
             raise ValueError(f"unknown columns: {sorted(bad)}")
         cs, ps = [], []
         for k, v in w.items():
             if k.endswith("__gte"):
                 cs.append(f"{k[:-5]}>=?")
+                ps.append(v)
+            elif k.endswith("__lte"):
+                cs.append(f"{k[:-5]}<=?")
                 ps.append(v)
             elif isinstance(v, (list, tuple, set)):
                 v = list(v)
