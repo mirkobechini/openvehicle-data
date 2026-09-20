@@ -313,3 +313,26 @@ def test_verify_skips_power_when_the_engine_has_none(tmp_path):
     with Store(tmp_path / "n.db") as s:
         eea.load([erow(ep=None)], s, 2025, TODAY)
         assert rdw.verify(s, pw(52.0), TODAY)["fields"] == 0
+
+
+def test_run_confirms_power_through_the_plates(tmp_path):
+    db = tmp_path / "r.db"
+    with Store(db) as s:
+        eea.load([erow()], s, 2025, TODAY)
+    plates = [{"merk": "FIAT", "type": "312", "variant": "A", "uitvoering": "B", "k": "AB123C"}]
+    fuel = [{"kenteken": "AB123C", "nettomaximumvermogen": "52.00"}]
+    r = rdw.run(db, 2019, rclient([rrow()], plates, fuel), TODAY)
+    assert r["matched"] == 1 and r["confirmed"] == 4
+    with Store(db, ro=True) as s:
+        v = next(x for x in s.find(Variant))
+        p = next(p for p in s.prov(v.engine_id) if p.field == "power_kw")
+        assert p.status is Status.CONFIRMED and p.evidence[1].value == 52.0
+
+
+def test_run_keeps_working_when_only_power_matches(tmp_path):
+    db = tmp_path / "r.db"
+    with Store(db) as s:
+        eea.load([erow()], s, 2025, TODAY)
+    plates = [{"merk": "FIAT", "type": "312", "variant": "A", "uitvoering": "B", "k": "AB123C"}]
+    r = rdw.run(db, 2019, rclient([], plates, [{"kenteken": "AB123C", "nettomaximumvermogen": "52.00"}]), TODAY)
+    assert r["matched"] == 1 and r["fields"] == 1
