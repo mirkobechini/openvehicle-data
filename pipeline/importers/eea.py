@@ -12,7 +12,7 @@ from core.models import Brand, CarModel, Engine, Family, Generation, Variant
 from core.provenance import Evidence, FieldProvenance
 from core.storage import Store
 from pipeline.importers.corrections import load_corrections, norm
-from pipeline.importers.eea_datasets import COMBINED
+from pipeline.importers.eea_datasets import COMBINED, DATASETS, parse_years
 from pipeline.importers.families import family_of, load_family_rules
 from pipeline.sources import EEA
 
@@ -101,15 +101,24 @@ def _strip(mk, cn):
     return cn
 
 
-def _pv(o, fs, today, out):
+def _pv(o, fs, urls, today, out):
     for f in fs:
         v = getattr(o, f)
         if v is not None:
-            ev = Evidence(source_id=EEA.id, value=v, url=PAGE, retrieved=today)
+            ev = Evidence(source_id=EEA.id, value=v, url=urls[f], retrieved=today)
             out.append(FieldProvenance(entity_id=o.id, field=f, evidence=[ev], last_verified=today))
 
 
 def load(rows, st, year, today=None, corr=None, fam=None):
+    return _load([{**r, "y": year} for r in rows], st, today, corr, fam, {year: PAGE})
+
+
+def load_years(by_year, st, today=None, corr=None, fam=None):
+    rows = [{**r, "y": y} for y in sorted(by_year) for r in by_year[y]]
+    return _load(rows, st, today, corr, fam, {y: DATASETS[y].url for y in by_year})
+
+
+def _load(rows, st, today, corr, fam, urls):
     today = today or date.today()
     corr = corr or load_corrections()
     fam = fam or load_family_rules()
@@ -133,7 +142,7 @@ def load(rows, st, year, today=None, corr=None, fam=None):
         bn[b].add((mk, mk0))
         mn[m].add((cn, raw, cn0))
         gr[(b, m, make_id("var", mk, cn, r["T"], r["Va"], r["Ve"]))].append(r)
-    ms, gs, es, vs, pv, drops, conf, mreg = {}, {}, {}, {}, [], Counter(), 0, Counter()
+    ms, gs, gy, es, eyr, vs, pv, drops, conf, mreg = {}, {}, {}, {}, {}, {}, [], Counter(), 0, Counter()
     for (b, m, vid), rs in sorted(gr.items()):
         ek = Counter()
         for r in rs:
@@ -141,24 +150,35 @@ def load(rows, st, year, today=None, corr=None, fam=None):
         win = max(sorted(ek, key=str), key=ek.get)
         keep = [r for r in rs if (r["Ft"], r["Fm"], r["ec"], r["ep"]) == win]
         conf += len(rs) - len(keep)
-        r = _best(keep)
+        ys = sorted({x["y"] for x in keep})
+        by = {y: _best([x for x in keep if x["y"] == y]) for y in ys}
+        vals, src = {}, {}
+        for y in reversed(ys):
+            for c, f in VF.items():
+                if f not in vals and by[y][c] is not None:
+                    vals[f], src[f] = by[y][c], urls[y]
+        r = by[ys[-1]]
         reg = sum(x["n"] for x in keep)
         mreg[m] += reg
         ft, fm, ec, ep = win
         ms[m] = b
         gid = m.replace("model_", "gen_", 1) + "-observed"
         gs[gid] = m
+        lo, hi = gy.get(gid, (ys[0], ys[-1]))
+        gy[gid] = (min(lo, ys[0]), max(hi, ys[-1]))
         fl = fuel(ft, fm)
         eid = make_id("eng", fl.value, _x(ec), _x(ep))
+        eyr[eid] = max(eyr.get(eid, 0), ys[-1])
         if eid not in es:
             es[eid] = _mk(Engine, drops, id=eid, fuel=fl, displacement_cc=ec, power_kw=ep)
-            _pv(es[eid], EF.values(), today, pv)
         vs[vid] = _mk(
             Variant, drops, id=vid, generation_id=gid, engine_id=eid,
             name=" ".join(str(p).strip() for p in (r["T"], r["Va"], r["Ve"]) if p and str(p).strip()) or "unknown",
-            year_from=year, year_to=year, registrations=reg, **{f: r[c] for c, f in VF.items()},
+            year_from=ys[0], year_to=ys[-1], registrations=reg, **{f: vals.get(f) for f in VF.values()},
         )
-        _pv(vs[vid], VF.values(), today, pv)
+        _pv(vs[vid], VF.values(), src, today, pv)
+    for eid, e in es.items():
+        _pv(e, EF.values(), dict.fromkeys(EF.values(), urls[eyr[eid]]), today, pv)
     bs = []
     for i, s in bn.items():
         nm = sorted(c for c, _ in s)[0]
@@ -174,29 +194,29 @@ def load(rows, st, year, today=None, corr=None, fam=None):
         f["n"] += 1
         f["reg"] += mreg[i]
     fl = [Family(id=i, brand_id=f["brand"], name=f["name"], model_count=f["n"], registrations=f["reg"]) for i, f in fms.items()]
-    gl = [Generation(id=i, model_id=m, name="observed", year_from=year, year_to=year) for i, m in gs.items()]
+    gl = [Generation(id=i, model_id=m, name="observed", year_from=gy[i][0], year_to=gy[i][1]) for i, m in gs.items()]
     st.put(EEA, *bs, *fl, *cs, *gl, *es.values(), *vs.values())
     st.put_prov(*pv)
     return {
-        "rows": len(rows), "skipped": skip, "excluded": excl, "conflicts": conf, "brands": len(bs), "families": len(fl), "models": len(cs),
-        "engines": len(es), "variants": len(vs), "dropped": dict(drops),
+        "years": sorted({r["y"] for r in rows}), "rows": len(rows), "skipped": skip, "excluded": excl, "conflicts": conf,
+        "brands": len(bs), "families": len(fl), "models": len(cs), "engines": len(es), "variants": len(vs), "dropped": dict(drops),
     }
 
 
-def run(db, table, year, ms="IT", client=None, today=None):
-    rows = fetch(table, ms, client)
+def run(db, years, ms="IT", client=None, today=None):
+    ys = parse_years(years)
+    by = {y: fetch_dataset(DATASETS[y], ms, client) for y in ys}
     with Store(db) as st:
-        return load(rows, st, year, today)
+        return load_years(by, st, today)
 
 
 def main(argv=None):
     a = argparse.ArgumentParser(prog="python -m pipeline.importers.eea")
-    a.add_argument("--table", required=True)
-    a.add_argument("--year", type=int, required=True)
+    a.add_argument("--years", required=True, help="e.g. 2025, 2019-2025 or 2021,2023")
     a.add_argument("--db", required=True)
     a.add_argument("--country", default="IT")
     n = a.parse_args(argv)
-    print(run(n.db, n.table, n.year, n.country))
+    print(run(n.db, n.years, n.country))
 
 
 if __name__ == "__main__":
