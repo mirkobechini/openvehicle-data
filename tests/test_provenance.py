@@ -88,3 +88,27 @@ def test_round_trip_ignores_derived_status():
     assert FieldProvenance.model_validate(d) == p
     assert FieldProvenance.model_validate({**d, "status": "confirmed"}).status is Status.CONFLICT
     assert FieldProvenance.model_validate(p) == p
+
+
+def fq(f, *vs):
+    return FieldProvenance(entity_id="var_x", field=f, evidence=[ev(s, v) for s, v in zip(("eea-co2", "rdw", "eea-co2", "rdw"), vs)], last_verified=D).status
+
+
+def test_wheelbase_rounding_is_tolerated():
+    assert fq("wheelbase_mm", 2305, 2300) is Status.CONFIRMED
+    assert fq("wheelbase_mm", 2300, 2310) is Status.CONFIRMED
+    assert fq("wheelbase_mm", 2300, 2311) is Status.CONFLICT
+
+
+def test_mass_tolerance_is_one_kg():
+    assert fq("mass_kg", 1045, 1046) is Status.CONFIRMED
+    assert fq("mass_kg", 1045, 1047) is Status.CONFLICT
+
+
+def test_other_fields_are_compared_exactly():
+    assert fq("displacement_cc", 999, 1000) is Status.CONFLICT
+    assert fq("power_kw", 51, 51) is Status.CONFIRMED
+
+
+def test_values_of_different_types_conflict():
+    assert fq("mass_kg", "1045", 1045) is Status.CONFLICT
