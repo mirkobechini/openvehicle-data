@@ -16,9 +16,12 @@ source and license):
   Records are aggregated, merged across years and filtered by this project
   (category M1, Italy).
 - RDW Open Data, "Gekentekende voertuigen" (https://opendata.rdw.nl) - Public
-  Domain, attribution: Team Open Data RDW; license checked on 2026-09-20. Used only
-  to verify mass, engine size and wheelbase, aggregated by type, variant and
-  version: no plate or other vehicle-level record is stored.
+  Domain, attribution: Team Open Data RDW; license checked on 2026-09-20. Also the
+  fuel table "Gekentekende voertuigen brandstof" (Public Domain, checked on
+  2026-09-20). Used only to verify mass, engine size, wheelbase and engine power,
+  aggregated by type, variant and version: no plate or other vehicle-level record
+  is stored (a plate is held in memory during the build to look up its power, then
+  discarded).
 
 This project is not affiliated with, endorsed by or sponsored by any vehicle
 manufacturer. Brand and model names are trademarks of their respective owners
