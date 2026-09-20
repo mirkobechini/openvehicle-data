@@ -125,3 +125,12 @@ Struttura del repository: `core/` (modelli Pydantic e storage, condivisi), `pipe
 - SDK client (Python, TypeScript)
 - Migrazione a Postgres se il carico lo richiede
 - Interfaccia web per esplorare il catalogo
+
+Da decidere o da fare dopo i dati 0.9.0 (2026-09-20):
+
+- **Limite di richieste e piano a pagamento di Render**: il servizio pubblico non ha autenticazione né limiti; servono un dominio dietro Cloudflare con una regola di limite (richiede uno slot di dominio personalizzato su Render, o una carta) e, per togliere lo standby dopo 15 minuti, il piano `starter`. Sono decisioni dell'utente sul costo; la procedura è in `DEPLOY.md`.
+- **CO₂ con una seconda fonte affidabile**: RDW dà la CO₂ per targa; con una targa per variante concorda esattamente nel 60% dei casi e entro 5 g/km nel 94% (la CO₂ varia tra auto della stessa variante), quindi resta `single_source` per scelta. Servirebbero molte targhe per variante o un'altra fonte.
+- **Copertura della seconda fonte**: RDW ha solo le auto immatricolate nei Paesi Bassi (47% delle nostre varianti); altri Paesi con dati aperti di omologazione la alzerebbero.
+- **ID Wikidata**: mancano 34 marchi (etichetta diversa dalla nostra o ambiguità: Renault, Suzuki, Bentley, DS, MG, Mini...), ognuno con una riga rivista in `wikidata.json`; i modelli non sono collegati perché Wikidata ha elementi doppi e misti. Da aggiungere ai controlli del refresh: verificare che gli ID non siano stati uniti o rimossi.
+- **Regole di famiglia** per i circa 40 marchi piccoli rimasti e per DR, EVO e Sportequipe (nomi come `5.0` o `EVO5` senza una regola sicura).
+- **Nomi da mostrare**: i nomi restano in maiuscolo come li scrive l'EEA; una tabella rivista di nomi da mostrare (`KA`, `C-HR`, `ID.4`) permetterebbe di correggerli senza indovinare.
