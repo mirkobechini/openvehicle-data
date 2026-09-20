@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS provenance (
     entity_id TEXT NOT NULL, field TEXT NOT NULL,
     last_verified TEXT NOT NULL, evidence TEXT NOT NULL,
     PRIMARY KEY (entity_id, field));
+CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS ix_models_brand ON models(brand_id);
 CREATE INDEX IF NOT EXISTS ix_models_family ON models(family_id);
 CREATE INDEX IF NOT EXISTS ix_families_brand ON families(brand_id);
@@ -135,6 +136,17 @@ class Store:
             sql += " LIMIT ? OFFSET ?"
             ps += [limit, offset]
         return [self._m(cls, r) for r in self.c.execute(sql, ps)]
+
+    def set_meta(self, k, v):
+        with self.c:
+            self.c.execute("INSERT INTO meta (key, value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", (k, v))
+
+    def get_meta(self, k):
+        try:
+            r = self.c.execute("SELECT value FROM meta WHERE key=?", (k,)).fetchone()
+        except sqlite3.OperationalError:
+            return None
+        return None if r is None else r[0]
 
     def has(self, cls):
         return self.c.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (TB[cls],)).fetchone() is not None
