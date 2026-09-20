@@ -330,3 +330,12 @@ def test_has_reports_whether_a_type_has_its_table(st):
     st.c.execute("PRAGMA foreign_keys=OFF")
     st.c.execute("DROP TABLE families")
     assert st.has(Family) is False and st.has(Brand) is True
+
+
+def test_maximum_filter(st):
+    regs(st)
+    assert st.count(CarModel, registrations__lte=50) == 2
+    assert st.count(CarModel, registrations__gte=50, registrations__lte=50) == 2
+    assert st.count(CarModel, registrations__lte=1) == 0
+    with pytest.raises(ValueError):
+        st.count(CarModel, nope__lte=1)

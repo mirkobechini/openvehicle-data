@@ -1,15 +1,20 @@
 openvehicle-data
 Copyright (c) 2026 Mirko Bechini
 
-Data sources (each field in the dataset records its own source and license):
+Data sources (each technical specification field in the dataset records its own
+source and license):
 
 - Wikidata (https://www.wikidata.org) - structured data released under CC0 1.0.
-- European Environment Agency (EEA), "Monitoring of CO2 emissions from passenger
-  cars - Regulation (EU) 2019/631" - reused under CC BY 4.0 (EEA legal notice).
-  Source: European Environment Agency (https://www.eea.europa.eu/data-and-maps/data/co2-cars-emission-22).
-  Data reported by EU Member States. License confirmed on the dataset metadata
-  factsheet (CC BY 4.0, no limitations on public access) on 2026-09-19.
-  Records are aggregated and filtered by this project (category M1, Italy).
+- European Environment Agency (EEA) and Directorate-General for Climate Action
+  (DG CLIMA), "Monitoring of CO2 emissions from passenger cars - Regulation (EU)
+  2019/631", data for 2019 to 2025 (2019-2024 final, 2025 provisional) - reused
+  under CC BY 4.0. Copyright holder: Directorate-General for Climate Action
+  (DG-CLIMA). Source: European Environment Agency
+  (https://www.eea.europa.eu/data-and-maps/data/co2-cars-emission-22).
+  Data reported by EU Member States. The license (CC BY 4.0, "No limitations to
+  public access") was checked on the metadata record of each year on 2026-09-20.
+  Records are aggregated, merged across years and filtered by this project
+  (category M1, Italy).
 - RDW Open Data (https://opendata.rdw.nl) - released under CC0.
 
 This project is not affiliated with, endorsed by or sponsored by any vehicle

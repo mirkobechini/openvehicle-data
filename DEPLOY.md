@@ -14,7 +14,7 @@ Optional: your own domain (Cloudflare DNS) --> the same service
 ## 1. Publish the first data release
 
 ```bash
-python -m pipeline.build --table co2cars_2025Pv31 --year 2025 --version 0.1.0 --out dist
+python -m pipeline.build --years 2019-2025 --version 0.1.0 --out dist
 gh release create data-v0.1.0 dist/* --title "Data 0.1.0" --notes-file dist/CHANGELOG.md
 ```
 
@@ -23,7 +23,7 @@ Then point the Dockerfile at it: set the defaults of `DATA_URL`
 and `DATA_SHA256` (the `openvehicle-data.db` entry in `dist/manifest.json`), and
 merge that change to `dev`.
 
-The releases up to `data-v0.5.0` are already published and the Dockerfile points
+The releases up to `data-v0.6.0` are already published and the Dockerfile points
 at the latest one, so this step is only needed for a new data version.
 
 ## 2. Release to `main`
@@ -78,7 +78,7 @@ publish a new release, update `DATA_URL` and `DATA_SHA256` in the Dockerfile and
 merge. The `checksPass` deploy trigger redeploys once CI is green.
 
 ```bash
-python -m pipeline.build --table <table> --year <year> --version 0.2.0 --prev dist --out dist2
+python -m pipeline.build --years 2019-2025 --version 0.2.0 --prev dist --out dist2
 gh release create data-v0.2.0 dist2/* --title "Data 0.2.0" --notes-file dist2/CHANGELOG.md
 ```
 

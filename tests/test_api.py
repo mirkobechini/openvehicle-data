@@ -470,3 +470,10 @@ def test_families_are_in_the_openapi(cl):
     assert {f"{B}/families", f"{B}/families/{{i}}"} <= set(paths)
     for p in ("models", "variants"):
         assert "family_id" in {x["name"] for x in paths[f"{B}/{p}"]["get"]["parameters"]}
+
+
+def test_variants_by_year(cl):
+    a = cl.get(f"{B}/variants").json()["total"]
+    assert cl.get(f"{B}/variants", params={"year": 2025}).json()["total"] == a
+    assert cl.get(f"{B}/variants", params={"year": 2019}).json()["total"] == 0
+    assert cl.get(f"{B}/variants", params={"year": 1800}).status_code == 422
