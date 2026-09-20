@@ -19,3 +19,10 @@ def test_deterministic():
 def test_empty():
     with pytest.raises(ValueError):
         make_id("brand", "!!!")
+
+
+def test_plus_sign_is_kept_as_a_word():
+    assert slug("EQA 250+") == "eqa-250-plus"
+    assert slug("MG3 HYBRID+") == "mg3-hybrid-plus"
+    assert slug("A+B") == "a-plus-b"
+    assert make_id("model", "MERCEDES-BENZ", "EQA 250+") != make_id("model", "MERCEDES-BENZ", "EQA 250")
