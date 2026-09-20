@@ -89,3 +89,11 @@ def test_shipped_merges_have_reasons():
     ms = load_corrections().merge_models
     assert {(x.brand, x.model, x.into) for x in ms} >= {("TOYOTA", "YARIS GR", "GR YARIS"), ("FIAT", "500 ABARTH", "ABARTH 500")}
     assert all(len(x.reason) >= 10 for x in ms)
+
+
+def test_shipped_older_year_corrections():
+    c = load_corrections()
+    assert c.brands["BMW I"] == "BMW" and c.brands["FORD W GMBH"] == "FORD"
+    assert c.brands["MITSUBISHI MOTORS CORPORATION"] == "MITSUBISHI"
+    assert c.brands["PAGANI S.P.A."] == "PAGANI" and c.brands["AUTOMOBILI LAMBORGHINI S.P.A."] == "LAMBORGHINI"
+    assert ("AUDI", "PANDA") in {(x.brand, x.model) for x in c.exclude_models}
