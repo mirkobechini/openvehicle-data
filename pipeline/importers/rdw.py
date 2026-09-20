@@ -134,6 +134,9 @@ def verify(st, fo, today=None):
                 _add(st, v.id, f, r.get(f), today, seen, out)
         if en[v.engine_id].displacement_cc is not None:
             _add(st, v.engine_id, "displacement_cc", r.get("displacement_cc"), today, seen, out)
+        ep = en[v.engine_id].power_kw
+        if r.get("power_kw") and ep is not None:
+            _add(st, v.engine_id, "power_kw", min(r["power_kw"], key=lambda x: abs(x - ep)), today, seen, out)
     st.put(RDW)
     st.put_prov(*out.values())
     s = Counter(p.status.value for p in out.values())
