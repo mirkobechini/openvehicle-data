@@ -51,8 +51,12 @@ def query(table, ms="IT", year=None, status=None):
 
 
 def fetch(table, ms="IT", client=None, year=None, status=None):
-    with client or httpx.Client(timeout=300) as c:
+    c = client or httpx.Client(timeout=300)
+    try:
         r = c.get(URL, params={"query": query(table, ms, year, status)}, headers={"Accept": "application/json", "User-Agent": UA})
+    finally:
+        if client is None:
+            c.close()
     r.raise_for_status()
     d = r.json()
     if "errors" in d:
