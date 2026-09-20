@@ -5,7 +5,8 @@ from pathlib import Path
 import httpx
 import pytest
 
-from core.models import Variant
+from core.models import Brand, Variant
+from core.provenance import Source
 from core.storage import Store
 from pipeline import build as bd
 from pipeline.export import DB, FILES
@@ -117,3 +118,19 @@ def test_build_can_skip_the_rdw_cross_check(tmp_path):
     h = lambda req: seen.append(req.url.host) or httpx.Response(200, json={"results": ROWS})
     r = bd.build(tmp_path / "o", "0.1.0", "2025", client=httpx.Client(transport=httpx.MockTransport(h)), today=TODAY, check=False)
     assert "rdw" not in r["import"] and RDW not in seen
+
+
+def test_build_adds_the_wikidata_ids_of_known_brands(tmp_path):
+    r = bd.build(tmp_path / "o", "0.1.0", "2025", client=client(), today=TODAY)
+    assert r["import"]["wikidata"]["brands"] >= 1
+    with Store(tmp_path / "o" / DB, ro=True) as st:
+        fiat = next(b for b in st.find(Brand) if b.name == "FIAT")
+        assert fiat.wikidata_id == "Q27597" and [p.field for p in st.prov(fiat.id)] == ["wikidata_id"]
+        assert {s.id for s in st.find(Source)} >= {"eea-co2", "wikidata"}
+
+
+def test_the_wikidata_ids_do_not_need_the_network(tmp_path):
+    seen = []
+    h = lambda req: seen.append(req.url.host) or httpx.Response(200, json={"results": ROWS})
+    r = bd.build(tmp_path / "o", "0.1.0", "2025", client=httpx.Client(transport=httpx.MockTransport(h)), today=TODAY, check=False)
+    assert r["import"]["wikidata"]["brands"] >= 1 and not any("wikidata" in x for x in seen)

@@ -5,7 +5,7 @@ from pathlib import Path
 
 from core.storage import Store
 from pipeline.export import export
-from pipeline.importers import eea, rdw
+from pipeline.importers import eea, rdw, wikidata
 from pipeline.importers.eea_datasets import parse_years
 
 
@@ -15,6 +15,7 @@ def build(out, version, years, ms="IT", prev=None, client=None, today=None, chec
         stats = eea.run(db, years, ms, client, today)
         if check:
             stats["rdw"] = rdw.run(db, min(parse_years(years)), client, today)
+        stats["wikidata"] = wikidata.run(db, today=today)
         with Store(db) as st:
             return {"import": stats, "export": export(st, out, version, today, prev)}
 

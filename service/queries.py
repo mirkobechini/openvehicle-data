@@ -4,6 +4,7 @@ from typing import Generic, TypeVar
 
 from pydantic import BaseModel
 
+from core.approval import base
 from core.models import Base, Brand, CarModel, Engine, Family, Generation, Variant
 from core.provenance import Evidence, Source, Status
 
@@ -116,7 +117,7 @@ def _ix(cur, ids):
     return ids if cur is None else cur & ids
 
 
-def variants_page(st, lo, q=None, model_id=None, generation_id=None, engine_id=None, fuel=None, sort="id", min_reg=None, brand_id=None, family_id=None, year=None):
+def variants_page(st, lo, q=None, model_id=None, generation_id=None, engine_id=None, fuel=None, sort="id", min_reg=None, brand_id=None, family_id=None, year=None, type_approval=None):
     for c, i in ((Brand, brand_id), (Family, family_id), (CarModel, model_id), (Generation, generation_id), (Engine, engine_id)):
         need(st, c, i)
     w, g, e = {}, None, None
@@ -138,6 +139,8 @@ def variants_page(st, lo, q=None, model_id=None, generation_id=None, engine_id=N
         w["generation_id"] = sorted(g)
     if e is not None:
         w["engine_id"] = sorted(e)
+    if type_approval is not None:
+        w["type_approval"] = base(type_approval)
     if year is not None:
         w["year_from__lte"] = w["year_to__gte"] = year
     return page(st, Variant, lo, q, sort, min_reg, **w)

@@ -17,7 +17,7 @@ TB = {
 
 DDL = """
 CREATE TABLE IF NOT EXISTS brands (
-    id TEXT PRIMARY KEY, name TEXT NOT NULL, aliases TEXT NOT NULL);
+    id TEXT PRIMARY KEY, name TEXT NOT NULL, aliases TEXT NOT NULL, wikidata_id TEXT);
 CREATE TABLE IF NOT EXISTS models (
     id TEXT PRIMARY KEY, brand_id TEXT NOT NULL REFERENCES brands(id),
     name TEXT NOT NULL, aliases TEXT NOT NULL, category TEXT NOT NULL,
@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS variants (
     name TEXT NOT NULL, aliases TEXT NOT NULL,
     year_from INTEGER NOT NULL, year_to INTEGER,
     mass_kg REAL, wheelbase_mm INTEGER, track_width_mm INTEGER,
-    co2_wltp_g_km REAL, registrations INTEGER);
+    co2_wltp_g_km REAL, registrations INTEGER, type_approval TEXT);
 CREATE TABLE IF NOT EXISTS sources (
     id TEXT PRIMARY KEY, name TEXT NOT NULL, license TEXT NOT NULL,
     license_url TEXT NOT NULL, license_checked TEXT);
