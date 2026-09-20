@@ -11,6 +11,6 @@ def test_base(s, b):
     assert base(s) == b
 
 
-@pytest.mark.parametrize("s", [None, "", "None", "e3", "e3*2007/46", "x3*2007/46*0064*05", "e*2007/46*0064*05", "e3**0064*05", "e3*2007/46**05", 12])
+@pytest.mark.parametrize("s", [None, "", "None", "e3", "e3*2007/46", "x3*2007/46*0064*05", "e*2007/46*0064*05", "e3**0064*05", "e3*2007/46**05", "e3*20 07*0064*05", 12])
 def test_not_an_approval_number(s):
     assert base(s) is None
