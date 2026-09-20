@@ -415,3 +415,10 @@ def test_mcp_search_text_is_capped(m):
         call(m, "list_models", q="a" * 101)
     with pytest.raises(Exception):
         call(m, "search_catalog", q="a" * 101)
+
+
+def test_endpoint_sends_security_headers(http):
+    from service.headers import H
+
+    r = rpc(http, "tools/list")
+    assert r.status_code == 200 and all(r.headers.get(k.decode()) == v.decode() for k, v in H)

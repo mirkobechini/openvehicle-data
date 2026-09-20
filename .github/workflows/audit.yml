@@ -1,21 +1,20 @@
-name: CI
+name: Dependency audit
 
 on:
-  push:
-    branches: [dev, main]
-  pull_request:
-    branches: [dev, main]
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  test:
+  audit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: "3.12"
-      - run: pip install -e ".[dev]"
-      - run: coverage run -m pytest tests/ -q && coverage report
+      - run: pip install -e . pip-audit
+      - run: pip-audit --skip-editable
