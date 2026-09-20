@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+from core.models import Variant
 from core.storage import Store
 from pipeline.importers import eea
 from service.app import create_app
@@ -500,3 +501,48 @@ def test_meta_reports_the_data_version(db, tmp_path):
         s.set_meta("generated", "2026-09-20")
     j = TestClient(create_app(p)).get(f"{B}/meta").json()
     assert (j["version"], j["generated"]) == ("0.7.0", "2026-09-20")
+
+
+@pytest.fixture(scope="module")
+def cla(db, tmp_path_factory):
+    import shutil
+
+    p = tmp_path_factory.mktemp("ta") / "v.db"
+    shutil.copy(db, p)
+    with Store(p) as s:
+        vs = s.find(Variant, sort="-registrations")
+        s.put(vs[0].model_copy(update={"type_approval": "e3*2007/46*0064"}), vs[1].model_copy(update={"type_approval": "e3*2007/46*0064"}), vs[2].model_copy(update={"type_approval": "e13*2007/46*1111"}))
+    return TestClient(create_app(p)), [v.id for v in vs[:3]]
+
+
+def test_variants_by_type_approval(cla):
+    c, ids3 = cla
+    r = c.get(f"{B}/variants", params={"type_approval": "e3*2007/46*0064"}).json()
+    assert sorted(i["id"] for i in r["items"]) == sorted(ids3[:2]) and r["total"] == 2
+    assert all(i["type_approval"] == "e3*2007/46*0064" for i in r["items"])
+
+
+def test_type_approval_filter_accepts_the_full_number_in_any_case(cla):
+    c, ids3 = cla
+    for s in ("e3*2007/46*0064*05", "E3*2007/46*0064*05", "  e3*2007/46*0064  "):
+        assert c.get(f"{B}/variants", params={"type_approval": s}).json()["total"] == 2
+    assert c.get(f"{B}/variants", params={"type_approval": "e13*2007/46*1111*00"}).json()["items"][0]["id"] == ids3[2]
+
+
+def test_type_approval_filter_combines_with_other_filters(cla):
+    c, ids3 = cla
+    assert c.get(f"{B}/variants", params={"type_approval": "e3*2007/46*0064", "min_registrations": 10**9}).json()["total"] == 0
+
+
+def test_unknown_type_approval_finds_nothing(cla):
+    assert cla[0].get(f"{B}/variants", params={"type_approval": "e3*2007/46*9999"}).json()["total"] == 0
+
+
+@pytest.mark.parametrize("s", ["312", "e3", "e3*2007/46", "x3*2007/46*0064", "e3*20 07*0064", "e3*2007/46*0064*05*9"])
+def test_malformed_type_approval_is_rejected(cla, s):
+    assert cla[0].get(f"{B}/variants", params={"type_approval": s}).status_code == 422
+
+
+def test_variant_shows_its_type_approval(cla):
+    c, ids3 = cla
+    assert c.get(f"{B}/variants/{ids3[0]}").json()["type_approval"] == "e3*2007/46*0064"
