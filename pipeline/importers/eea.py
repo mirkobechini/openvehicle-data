@@ -144,21 +144,25 @@ def _load(rows, st, today, corr, fam, urls):
         gr[(b, m, make_id("var", mk, cn, r["T"], r["Va"], r["Ve"]))].append(r)
     ms, gs, gy, es, eyr, vs, pv, drops, conf, mreg = {}, {}, {}, {}, {}, {}, [], Counter(), 0, Counter()
     for (b, m, vid), rs in sorted(gr.items()):
-        ek = Counter()
-        for r in rs:
-            ek[(r["Ft"], r["Fm"], r["ec"], r["ep"])] += r["n"]
-        win = max(sorted(ek, key=str), key=ek.get)
-        keep = [r for r in rs if (r["Ft"], r["Fm"], r["ec"], r["ep"]) == win]
-        conf += len(rs) - len(keep)
-        ys = sorted({x["y"] for x in keep})
-        by = {y: _best([x for x in keep if x["y"] == y]) for y in ys}
+        by, wins, reg = {}, {}, 0
+        for y in sorted({x["y"] for x in rs}):
+            yr = [x for x in rs if x["y"] == y]
+            ek = Counter()
+            for x in yr:
+                ek[(x["Ft"], x["Fm"], x["ec"], x["ep"])] += x["n"]
+            wins[y] = max(sorted(ek, key=str), key=ek.get)
+            kept = [x for x in yr if (x["Ft"], x["Fm"], x["ec"], x["ep"]) == wins[y]]
+            conf += len(yr) - len(kept)
+            reg += sum(x["n"] for x in kept)
+            by[y] = _best(kept)
+        ys = sorted(by)
+        win = wins[ys[-1]]
         vals, src = {}, {}
         for y in reversed(ys):
             for c, f in VF.items():
                 if f not in vals and by[y][c] is not None:
                     vals[f], src[f] = by[y][c], urls[y]
         r = by[ys[-1]]
-        reg = sum(x["n"] for x in keep)
         mreg[m] += reg
         ft, fm, ec, ep = win
         ms[m] = b
