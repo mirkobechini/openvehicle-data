@@ -5,6 +5,7 @@ from datetime import date
 
 import httpx
 
+from core.approval import base
 from core.models import Brand, CarModel, Engine, Generation, Variant
 from core.provenance import Evidence, FieldProvenance
 from core.storage import Store
@@ -18,7 +19,7 @@ UA = "openvehicle-data/0.0 (+https://github.com/mirkobechini/openvehicle-data)"
 STEP = 50000
 BATCH = 400
 KEY = ("merk", "type", "variant", "uitvoering")
-CV = {"massa_rijklaar": ("mass_kg", float), "cilinderinhoud": ("displacement_cc", int), "wielbasis": ("wheelbase_mm", lambda v: int(v) * 10)}
+CV = {"massa_rijklaar": ("mass_kg", float), "cilinderinhoud": ("displacement_cc", int), "wielbasis": ("wheelbase_mm", lambda v: int(v) * 10), "typegoedkeuringsnummer": ("type_approval", base)}
 COLS = (*KEY, *CV)
 
 
@@ -90,7 +91,7 @@ def _num(v, f):
         x = f(v)
     except (TypeError, ValueError):
         return None
-    return x if x > 0 else None
+    return x if x is not None and (isinstance(x, str) or x > 0) else None
 
 
 def fold(rows):
@@ -121,7 +122,7 @@ def verify(st, fo, today=None):
     mb = {m.id: m.brand_id for m in st.find(CarModel)}
     gb = {g.id: mb[g.model_id] for g in st.find(Generation)}
     en = {e.id: e for e in st.find(Engine)}
-    out, seen, hit, tot = {}, set(), 0, 0
+    out, seen, hit, tot, nv = {}, set(), 0, 0, {}
     for v in st.find(Variant):
         tot += 1
         p = v.name.split(" ")
@@ -134,10 +135,13 @@ def verify(st, fo, today=None):
                 _add(st, v.id, f, r.get(f), today, seen, out)
         if en[v.engine_id].displacement_cc is not None:
             _add(st, v.engine_id, "displacement_cc", r.get("displacement_cc"), today, seen, out)
+        if r.get("type_approval") and v.type_approval is None:
+            nv[v.id] = v.model_copy(update={"type_approval": r["type_approval"]})
+            out[(v.id, "type_approval")] = FieldProvenance(entity_id=v.id, field="type_approval", evidence=[Evidence(source_id=RDW.id, value=r["type_approval"], url=PAGE, retrieved=today)], last_verified=today)
         ep = en[v.engine_id].power_kw
         if r.get("power_kw") and ep is not None:
             _add(st, v.engine_id, "power_kw", min(r["power_kw"], key=lambda x: abs(x - ep)), today, seen, out)
-    st.put(RDW)
+    st.put(RDW, *nv.values())
     st.put_prov(*out.values())
     s = Counter(p.status.value for p in out.values())
     return {"variants": tot, "matched": hit, "fields": len(out), "confirmed": s["confirmed"], "conflicts": s["conflict"]}
