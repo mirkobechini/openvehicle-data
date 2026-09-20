@@ -11,6 +11,7 @@ RANGES = [
     (Engine, "power_kw", None, 1000),
 ]
 SPEC = {
+    Brand: ("wikidata_id",),
     Engine: ("displacement_cc", "power_kw"),
     Variant: ("mass_kg", "wheelbase_mm", "track_width_mm", "co2_wltp_g_km", "type_approval"),
 }
