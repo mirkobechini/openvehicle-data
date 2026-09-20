@@ -15,7 +15,8 @@ for Italy, 2019-2024 final and 2025 provisional). The build cross-checks mass,
 engine size, wheelbase and engine power with the Dutch RDW open data (about half of the variants
 are found there and get `confirmed` or `conflict`). Variants found there also carry the EU
 type-approval number (`type_approval`, filterable), as on the registration
-document. Wikidata enrichment is planned.
+document. Brands carry their Wikidata ID
+(`wikidata_id`) where a reliable match was reviewed (56 of 90).
 
 Known limits: no trims or equipment; wheelbase and track width only for vehicles
 registered in 2019-2022 (the EEA stopped reporting them from 2023); names as
