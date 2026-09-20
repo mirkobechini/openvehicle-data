@@ -12,7 +12,7 @@ Early development. Pre-release datasets are published on the Releases page
 Italy from 2019 to 2025, built only from sources with clear open licenses.
 Implemented so far: the EEA CO2 monitoring data importer (about 49,000 variants
 for Italy, 2019-2024 final and 2025 provisional). The build cross-checks mass,
-engine size and wheelbase with the Dutch RDW open data (about half of the variants
+engine size, wheelbase and engine power with the Dutch RDW open data (about half of the variants
 are found there and get `confirmed` or `conflict`); Wikidata enrichment is planned.
 
 Known limits: no trims or equipment; wheelbase and track width only for vehicles
