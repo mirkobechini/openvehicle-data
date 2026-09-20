@@ -29,11 +29,11 @@ so. There is no personal data: no owners, no plates, no VIN lookups.
 
 ## Try it
 
-A test instance runs on a free plan: it sleeps after 15 minutes without requests and
-takes about a minute to wake up, and it has no rate limiting yet, so please be gentle.
+With a server running (see [Run it yourself](#run-it-yourself)), on its default local
+address:
 
 ```bash
-U=https://openvehicle-data.onrender.com/api/v1
+U=http://localhost:8000/api/v1
 
 # find a model by name (typos get a "did_you_mean")
 curl "$U/search?q=panda"
@@ -142,11 +142,11 @@ malformed value gives a 422.
 
 ## MCP server
 
-Endpoint `/mcp` (Streamable HTTP, stateless, no authentication). Add it to an MCP
-client, for example Claude Code:
+Endpoint `/mcp` (Streamable HTTP, stateless, no authentication). Add your server to
+an MCP client, for example Claude Code:
 
 ```bash
-claude mcp add --transport http openvehicle https://openvehicle-data.onrender.com/mcp
+claude mcp add --transport http openvehicle http://localhost:8000/mcp
 ```
 
 | Tool | Use it to |
@@ -211,7 +211,8 @@ domain) is described in [DEPLOY.md](DEPLOY.md).
   too much between cars of one variant to serve as a check.
 - Wikidata ids exist for 56 of 90 brands; models are not linked (Wikidata has
   duplicate and mixed items for them).
-- The test instance has no rate limiting and sleeps when idle.
+- The API has no authentication and no rate limiting of its own: put it behind a
+  proxy that limits requests if you expose it publicly (see [DEPLOY.md](DEPLOY.md)).
 
 ## Contributing
 
