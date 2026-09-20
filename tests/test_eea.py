@@ -681,3 +681,8 @@ def test_separator_merge_is_applied_after_the_reviewed_merges(st):
     eea.load([row(Mk="TOYOTA", Cn="YARIS GR", n=7), row(Mk="TOYOTA", Cn="GRYARIS", n=1, Va="B")], st, 2025, TODAY, corr)
     m = models(st)
     assert list(m) == ["GR YARIS"] and m["GR YARIS"].registrations == 8
+
+
+def test_a_plus_sign_keeps_models_apart(st):
+    eea.load([row(Mk="MERCEDES-BENZ", Cn="EQA 250+", Va="A"), row(Mk="MERCEDES-BENZ", Cn="EQA 250", Va="B"), row(Mk="LEXUS", Cn="RX450H+", Va="C"), row(Mk="LEXUS", Cn="RX450H", Va="D")], st, 2025, TODAY)
+    assert sorted(models(st)) == ["EQA 250", "EQA 250+", "RX450H", "RX450H+"]

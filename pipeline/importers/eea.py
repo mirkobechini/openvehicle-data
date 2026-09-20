@@ -93,7 +93,7 @@ def _best(rs):
 
 
 def _key(s):
-    return re.sub(r"(?<!\d)\.|\.(?!\d)", "", re.sub(r"[^A-Z0-9.]", "", s.upper()))
+    return re.sub(r"(?<!\d)\.|\.(?!\d)", "", re.sub(r"[^A-Z0-9.+]", "", s.upper()))
 
 
 def _x(v):
