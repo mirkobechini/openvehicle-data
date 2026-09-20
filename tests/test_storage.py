@@ -356,3 +356,8 @@ def test_meta_of_a_database_without_the_table(tmp_path):
     sqlite3.connect(p).close()
     with Store(p, ro=True) as s:
         assert s.get_meta("version") is None
+
+
+def test_variants_have_a_type_approval_column(st):
+    cs = [r[1] for r in st.c.execute("PRAGMA table_info(variants)")]
+    assert cs[-1] == "type_approval"

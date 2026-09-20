@@ -127,3 +127,18 @@ def test_model_family_id_is_optional_and_checked():
     for bad in ("model_a", "family_", "FAMILY_a", 5):
         with pytest.raises(ValidationError):
             CarModel(id="model_a", brand_id="brand_a", name="A", family_id=bad)
+
+
+@pytest.mark.parametrize("a", ["e3*2007/46*0064", "e13*2007/46*1234", "e11*nksf99/99*0001"])
+def test_variant_accepts_a_type_approval_base(a):
+    assert var(type_approval=a).type_approval == a
+
+
+@pytest.mark.parametrize("a", ["", "e3*2007/46*0064*05", "E3*2007/46*0064", "3*2007/46*0064", "e3*2007/46", "e3 2007/46 0064", "e3*20 07*0064"])
+def test_variant_rejects_a_malformed_type_approval(a):
+    with pytest.raises(ValidationError):
+        var(type_approval=a)
+
+
+def test_type_approval_is_optional():
+    assert var().type_approval is None

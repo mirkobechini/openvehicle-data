@@ -12,7 +12,7 @@ RANGES = [
 ]
 SPEC = {
     Engine: ("displacement_cc", "power_kw"),
-    Variant: ("mass_kg", "wheelbase_mm", "track_width_mm", "co2_wltp_g_km"),
+    Variant: ("mass_kg", "wheelbase_mm", "track_width_mm", "co2_wltp_g_km", "type_approval"),
 }
 COMB = {Fuel.PETROL, Fuel.DIESEL, Fuel.LPG, Fuel.CNG}
 
