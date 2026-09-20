@@ -398,3 +398,12 @@ def test_mcp_family_tool_is_described_and_used_in_the_instructions(m):
 
 def test_mcp_dataset_info_counts_families(m):
     assert call(m, "dataset_info")["counts"]["Family"] == 9
+
+
+def test_mcp_variants_by_year(m):
+    a = call(m, "list_variants")["total"]
+    assert call(m, "list_variants", year=2025)["total"] == a
+    assert call(m, "list_variants", year=2019)["total"] == 0
+    assert call(m, "list_variants", year=2025, brand_id="brand_fiat")["total"] > 0
+    with pytest.raises(Exception):
+        call(m, "list_variants", year=1800)
