@@ -477,3 +477,9 @@ def test_variants_by_year(cl):
     assert cl.get(f"{B}/variants", params={"year": 2025}).json()["total"] == a
     assert cl.get(f"{B}/variants", params={"year": 2019}).json()["total"] == 0
     assert cl.get(f"{B}/variants", params={"year": 1800}).status_code == 422
+
+
+def test_search_text_is_capped(cl):
+    assert cl.get(f"{B}/models", params={"q": "a" * 100}).status_code == 200
+    assert cl.get(f"{B}/models", params={"q": "a" * 101}).status_code == 422
+    assert cl.get(f"{B}/search", params={"q": "a" * 101}).status_code == 422
