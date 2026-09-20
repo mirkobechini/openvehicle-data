@@ -86,7 +86,7 @@ SHIPPED = load_family_rules()
 
 
 def test_the_shipped_rules_are_valid_and_each_brand_has_a_reason():
-    assert len(SHIPPED.brands) >= 18
+    assert len(SHIPPED.brands) >= 36
     assert all(len(b.reason) >= 10 and b.rules for b in SHIPPED.brands.values())
 
 
@@ -123,8 +123,7 @@ def test_shipped_rules_on_real_names(brand, name, family):
 
 
 @pytest.mark.parametrize("brand,name", [
-    ("TOYOTA", "YARIS CROSS"), ("TOYOTA", "GR YARIS"), ("FIAT", "PANDA 4X4"), ("FORD", "MUSTANG MACH-E"), ("TESLA", "MODEL 3"),
-    ("CITROEN", "C3 AIRCROSS"), ("KIA", "EV9 GT"), ("DACIA", "SANDERO"), ("BYD", "SEAL U DM-I"),
+    ("TESLA", "MODEL 3"), ("DR", "EVO 5"), ("LANCIA", "YPSILON"), ("JAGUAR", "E-PACE"),
 ])
 def test_brands_without_rules_keep_every_model_apart(brand, name):
     assert family_of(SHIPPED, brand, name) == name
@@ -134,3 +133,39 @@ def test_a_model_of_the_related_car_is_not_pulled_into_another_family():
     assert family_of(SHIPPED, "AUDI", "Q4 45 E-TRON") != family_of(SHIPPED, "AUDI", "E-TRON GT")
     assert family_of(SHIPPED, "MERCEDES-BENZ", "GLC 220 D") != family_of(SHIPPED, "MERCEDES-BENZ", "GLA 200 D")
     assert family_of(SHIPPED, "BMW", "X1 SDRIVE18D") != family_of(SHIPPED, "BMW", "IX1 EDRIVE20")
+
+
+@pytest.mark.parametrize("brand,name,family", [
+    ("FIAT", "PANDA 4X4", "PANDA"), ("FIAT", "E-DOBLO", "DOBLO"), ("FIAT", "DOBLO' OLMEDO", "DOBLO"), ("FIAT", "DUCATO TWIN ARM", "DUCATO"),
+    ("FIAT", "QUBO IMOBILITY", "QUBO"), ("FIAT", "500 HYBRID", "500"), ("FIAT", "500", "500"), ("FIAT", "500X", "500X"), ("FIAT", "500L", "500L"),
+    ("FIAT", "500 ABARTH - NEWTRON", "ABARTH 500"), ("FIAT", "ABARTH 500", "ABARTH 500"), ("FIAT", "ABARTH 124 SPIDER", "124 SPIDER"),
+    ("TOYOTA", "YARIS HYBRID", "YARIS"), ("TOYOTA", "YARIS CROSS VAN", "YARIS CROSS"), ("TOYOTA", "GR YARIS", "GR YARIS"),
+    ("TOYOTA", "PRIUS PHEV", "PRIUS"), ("TOYOTA", "PROACE CITY VERSO ELECTRIC", "PROACE CITY"), ("TOYOTA", "PROACE F-STYLE WAV", "PROACE"),
+    ("TOYOTA", "LAND CRUISER (150 SERIES)", "LAND CRUISER"), ("TOYOTA", "CH-R VAN", "C-HR"), ("TOYOTA", "GR 86", "86"), ("TOYOTA", "C-HR", "C-HR"),
+    ("PEUGEOT", "E-RIFTER", "RIFTER"), ("PEUGEOT", "RIFTER OLMEDO", "RIFTER"), ("PEUGEOT", "EXPERT TRAVELLER TREK", "TRAVELLER"),
+    ("PEUGEOT", "TRAVELLER", "TRAVELLER"), ("PEUGEOT", "PARTNER 4X4", "PARTNER"), ("PEUGEOT", "BOXER TWIN ARM", "BOXER"),
+    ("PEUGEOT", "3008 VAN", "3008"), ("PEUGEOT", "3008 - 5008", "3008 - 5008"), ("PEUGEOT", "EXPERT", "EXPERT"), ("PEUGEOT", "208", "208"),
+    ("CITROEN", "E-C3", "C3"), ("CITROEN", "E-C3 AIRCROSS", "C3 AIRCROSS"), ("CITROEN", "C4X", "C4 X"), ("CITROEN", "E-C4 X", "C4 X"),
+    ("CITROEN", "E-C4", "C4"), ("CITROEN", "C5 AIRCROSS VAN", "C5 AIRCROSS"), ("CITROEN", "SPACETOURER", "C4 SPACETOURER"),
+    ("CITROEN", "JUMPY SPACETOURER", "JUMPY"), ("CITROEN", "E-BERLINGO", "BERLINGO"), ("CITROEN", "BERLINGO-ROLFI", "BERLINGO"), ("CITROEN", "C4 CACTUS", "C4 CACTUS"),
+    ("FORD", "TOURNEO CONNECT OLMEDO", "TOURNEO CONNECT"), ("FORD", "TRANSIT CUSTOM-FOCACCIA WAV", "TRANSIT CUSTOM"), ("FORD", "TRANSIT", "TRANSIT"),
+    ("FORD", "TRANSIT \"VISION-AMBULANZE SRL\"", "TRANSIT"), ("FORD", "MONDEO HYBRID", "MONDEO"), ("FORD", "GRAND CMAX", "C-MAX"), ("FORD", "SMAX", "S-MAX"),
+    ("FORD", "MUSTANG MACH-E", "MUSTANG MACH-E"), ("FORD", "PUMA", "PUMA"),
+    ("KIA", "CEE'D", "CEED"), ("KIA", "XCEED", "XCEED"), ("KIA", "NIRO GPL", "NIRO"), ("KIA", "SOUL EMOTION", "SOUL"), ("KIA", "EV9 GT", "EV9"), ("KIA", "EV6 GT", "EV6"),
+    ("NISSAN", "LEAF 40KWH", "LEAF"), ("NISSAN", "MICRA BIFUEL", "MICRA"), ("NISSAN", "JUKE BIFUEL", "JUKE"), ("NISSAN", "E-NV 200", "E-NV200"), ("NISSAN", "QASHQAI", "QASHQAI"),
+    ("SEAT", "LEON SP E-HYBRID150", "LEON"), ("SEAT", "CUPRA LEON", "LEON"), ("SEAT", "CUPRA ATECA", "ATECA"), ("SEAT", "ARONA", "ARONA"),
+    ("SMART", "EQ FORTWO COUPE", "FORTWO"), ("SMART", "FORTWO CABRIO BRABUS", "FORTWO"), ("SMART", "EQ FORFOUR", "FORFOUR"), ("SMART", "#1", "#1"),
+    ("DS", "7 CROSSBACK", "DS 7"), ("DS", "DS7", "DS 7"), ("DS", "3 CROSSBACK", "DS 3 CROSSBACK"), ("DS", "DS3", "DS 3"), ("DS", "3 CABRIO", "DS 3"),
+    ("DS", "4", "DS 4"), ("DS", "DS4", "DS 4"), ("DS", "9", "DS 9"), ("DS", "N 8", "N 8"),
+    ("MG", "MG3 HYBRID+", "MG3"), ("MG", "MG4 ELECTRIC", "MG4"), ("MG", "MG5 ELECTRIC", "MG5"), ("MG", "ZS EV", "ZS"), ("MG", "EHS PLUG-IN HYBRID", "HS"), ("MG", "HS HYBRID+", "HS"),
+    ("ALFA ROMEO", "STELVIO QUADRIFOGLIO", "STELVIO"), ("ALFA ROMEO", "ALFA GIULIETTA", "GIULIETTA"), ("ALFA ROMEO", "ALFA MITO", "MITO"),
+    ("ALFA ROMEO", "GIULIA GTAM", "GIULIA"), ("ALFA ROMEO", "4C SPIDER", "4C"), ("ALFA ROMEO", "TONALE", "TONALE"),
+    ("JEEP", "GRAND CHEROKEE SRT", "GRAND CHEROKEE"), ("JEEP", "WRANGLER UNLIMITED ROCK'S", "WRANGLER"), ("JEEP", "COMPASS VAN", "COMPASS"), ("JEEP", "RENEGADE", "RENEGADE"),
+    ("DACIA", "DOKKER OLMEDO", "DOKKER"), ("DACIA", "SANDERO", "SANDERO"), ("MAZDA", "MAZDA2 HYBRID", "MAZDA2"), ("MAZDA", "CX-30", "CX-30"),
+    ("HONDA", "CIVIC TYPE R", "CIVIC"), ("HONDA", "CIVIC 5DR", "CIVIC"), ("HONDA", "JAZZ", "JAZZ"),
+    ("BYD", "SEAL U DM-I", "SEAL U"), ("BYD", "SEAL 6 DM-I TOURING", "SEAL 6"), ("BYD", "DOLPHIN SURF", "DOLPHIN"), ("BYD", "SEAL", "SEAL"), ("BYD", "ATTO 3", "ATTO 3"),
+    ("SUZUKI", "JIMNY OLMEDO ZMODE GAN #05", "JIMNY"), ("SUZUKI", "JIMMY GAN 01", "JIMNY"), ("SUZUKI", "OLMEDO-ZMODE", "JIMNY"), ("SUZUKI", "E VITARA", "VITARA"),
+    ("SUZUKI", "SWIFT", "SWIFT"),
+])
+def test_shipped_rules_for_the_second_group_of_brands(brand, name, family):
+    assert family_of(SHIPPED, brand, name) == family
