@@ -32,10 +32,10 @@ def st():
 
 def test_shipped_mapping_is_valid():
     m = wd.load_wikidata()
-    assert len(m.brands) >= 50
+    assert len(m.brands) >= 70
     assert m.brands["FIAT"].id == "Q27597" and m.brands["VOLKSWAGEN"].id == "Q246" and m.brands["TOYOTA"].id == "Q53268"
     assert all(len(e.reason) >= 10 and e.label for e in m.brands.values())
-    assert not {"EMC", "SMART", "MOKE", "SHINERAY", "RENAULT"} & set(m.brands)
+    assert not {"EMC", "SMART", "MOKE", "SHINERAY", "RENAULT", "SSANGYONG", "SERES", "DFSK"} & set(m.brands)
 
 
 def test_shipped_mapping_is_next_to_the_module():
@@ -112,3 +112,16 @@ def test_main(monkeypatch, capsys):
     monkeypatch.setattr(wd, "run", lambda *a: calls.append(a) or {"ok": 1})
     wd.main(["--db", "x.db"])
     assert calls == [("x.db",)] and "'ok': 1" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("brand,q", [
+    ("SUZUKI", "Q181642"), ("BENTLEY", "Q27224"), ("DS", "Q16040593"), ("MG", "Q1881443"), ("LYNK&CO", "Q27555283"),
+    ("GENESIS", "Q21451523"), ("LOTUS", "Q35935"), ("CHERY", "Q98172997"), ("BYD", "Q27423"),
+])
+def test_shipped_ids_of_the_second_group_of_brands(brand, q):
+    assert wd.load_wikidata().brands[brand].id == q
+
+
+def test_shipped_ids_are_unique_and_labelled():
+    b = wd.load_wikidata().brands
+    assert len({e.id for e in b.values()}) == len(b) and all(e.label for e in b.values())
