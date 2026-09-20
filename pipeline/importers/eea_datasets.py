@@ -46,6 +46,7 @@ DATASETS = {
 
 def parse_years(s):
     ys = set()
+    s = ",".join(map(str, s)) if isinstance(s, (list, tuple, set)) else s
     for p in str(s).replace(" ", "").split(","):
         m = re.fullmatch(r"(\d{4})(?:-(\d{4}))?", p)
         if not m:
