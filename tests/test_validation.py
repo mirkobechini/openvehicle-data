@@ -66,7 +66,7 @@ def test_implausible(vk, ek):
 
 
 def test_plausible_boundaries():
-    assert validate(build(vk={"mass_kg": 400, "wheelbase_mm": 4000}, ek={"power_kw": 1000})) == []
+    assert validate(build(vk={"mass_kg": 400, "wheelbase_mm": 4500}, ek={"power_kw": 1000})) == []
 
 
 def test_units_litres():
@@ -230,3 +230,8 @@ def test_family_registrations_can_be_unknown_when_no_model_has_any():
     st.put(Family(id="family_citroen-u", brand_id="brand_citroen", name="U", model_count=1))
     st.put(CarModel(id="model_u", brand_id="brand_citroen", name="U", family_id="family_citroen-u"))
     assert validate(st) == []
+
+
+def test_a_long_van_based_wheelbase_is_plausible_but_a_longer_one_is_not():
+    assert validate(build(vk={"wheelbase_mm": 4035})) == []
+    assert rules(build(vk={"wheelbase_mm": 4501})) == ["implausible_value"]
