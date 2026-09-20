@@ -145,6 +145,9 @@ def verify(st, fo, today=None):
 
 def run(db, since, client=None, today=None):
     fo = fold(fetch(since, client))
+    pl = fetch(since, client, query_plates)
+    for k, ps in fold_power(pl, fetch_power([x["k"] for x in pl], client)).items():
+        fo.setdefault(k, {})["power_kw"] = ps
     with Store(db) as st:
         return verify(st, fo, today)
 
