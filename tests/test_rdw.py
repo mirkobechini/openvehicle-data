@@ -269,3 +269,47 @@ def test_fetch_power_closes_only_its_own_client(monkeypatch):
 def test_fold_power_joins_plates_back_to_variants():
     pl = [{"merk": "MERCEDES-BENZ", "type": "1", "variant": "2", "uitvoering": "3", "k": "A1"}, {"merk": "FIAT", "type": "4", "variant": "5", "uitvoering": "6", "k": "B2"}, {"merk": None, "type": "7", "variant": "8", "uitvoering": "9", "k": "C3"}]
     assert rdw.fold_power(pl, {"A1": [62.0, 51.5, 62.0], "C3": [40.0]}) == {("mercedesbenz", "1", "2", "3"): [51.5, 62.0], ("", "7", "8", "9"): [40.0]}
+
+
+def pw(*v, **k):
+    return {("fiat", "312", "A", "B"): {"power_kw": list(v)}} | k
+
+
+def eng(st, name="312 A B"):
+    v = next(x for x in st.find(Variant) if x.name == name)
+    return next(p for p in st.prov(v.engine_id) if p.field == "power_kw")
+
+
+def test_verify_confirms_power_within_a_kilowatt(st):
+    s = rdw.verify(st, pw(51.5), TODAY)
+    p = eng(st)
+    assert p.status is Status.CONFIRMED and [e.source_id for e in p.evidence] == ["eea-co2", "rdw-nl"] and p.evidence[1].value == 51.5
+    assert s == {"variants": 3, "matched": 1, "fields": 1, "confirmed": 1, "conflicts": 0}
+
+
+def test_verify_uses_the_value_closest_to_the_engine_for_hybrids(st):
+    rdw.verify(st, pw(110.0, 52.0, 60.0), TODAY)
+    p = eng(st)
+    assert p.evidence[1].value == 52.0 and p.status is Status.CONFIRMED
+
+
+def test_verify_flags_a_power_difference(st):
+    s = rdw.verify(st, pw(70.0), TODAY)
+    assert eng(st).status is Status.CONFLICT and s["conflicts"] == 1
+
+
+def test_verify_skips_missing_power(st):
+    assert rdw.verify(st, pw(), TODAY)["fields"] == 0
+    assert eng(st).status is Status.SINGLE
+
+
+def test_verify_adds_power_once_per_value_for_a_shared_engine(st):
+    fo = pw(52.0) | {("fiat", "312", "C", "D"): {"power_kw": [52.0]}}
+    rdw.verify(st, fo, TODAY)
+    assert [e.source_id for e in eng(st).evidence] == ["eea-co2", "rdw-nl"]
+
+
+def test_verify_skips_power_when_the_engine_has_none(tmp_path):
+    with Store(tmp_path / "n.db") as s:
+        eea.load([erow(ep=None)], s, 2025, TODAY)
+        assert rdw.verify(s, pw(52.0), TODAY)["fields"] == 0
