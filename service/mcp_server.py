@@ -27,7 +27,7 @@ INSTR = (
 RO = ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False)
 Lim = Annotated[int, Field(ge=1, le=100, description="Page size")]
 Off = Annotated[int, Field(ge=0, description="Items to skip; use next_offset from the previous page")]
-Qs = Annotated[str | None, Field(min_length=1, description="Case-insensitive text in name or aliases")]
+Qs = Annotated[str | None, Field(min_length=1, max_length=100, description="Case-insensitive text in name or aliases")]
 Sort = Annotated[
     Literal["registrations", "id"],
     Field(description="'registrations' (default) lists the most registered first; 'id' is alphabetical"),
@@ -123,7 +123,7 @@ def build_mcp(p):
             return _run(qs.variant_detail, st, variant_id)
 
     @m.tool(annotations=RO)
-    def search_catalog(q: Annotated[str, Field(min_length=1, description="Text to find in brand and model names")]) -> qs.Found:
+    def search_catalog(q: Annotated[str, Field(min_length=1, max_length=100, description="Text to find in brand and model names")]) -> qs.Found:
         """Search brands and models by name or alias (up to 10 of each)."""
         with Store(p, ro=True) as st:
             return _out(qs.search(st, q))
