@@ -14,6 +14,7 @@ from core.models import Brand, CarModel, Engine, Family, Generation, Variant
 from core.provenance import Source
 from core.storage import Store
 from service import queries as qs
+from service.headers import Headers
 from service.mcp_server import build_mcp
 from service.queries import ATTR, Found, Meta, Page, VariantDetail
 
