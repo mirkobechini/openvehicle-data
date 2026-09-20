@@ -479,3 +479,31 @@ def test_a_family_can_hold_a_model_named_like_it(st):
     eea.load(rows, st, 2025, TODAY)
     f = st.find(Family)[0]
     assert (f.id, f.model_count, f.registrations) == ("family_porsche-macan", 2, 10)
+
+
+def test_query_adds_the_year_and_status_filter_only_when_asked():
+    assert "[Year]" not in eea.query("co2cars_2024Fv30")
+    q = eea.query("co2cars", "IT", 2019, "F")
+    assert "WHERE MS='IT' AND Ct='M1' AND Cr='M1' AND [Year]=2019 AND Status='F' GROUP BY" in q
+
+
+@pytest.mark.parametrize("y,s", [(2019, None), (None, "F"), ("2019", "F"), (2019, "X"), (2019, "F'; DROP"), (True, "F"), (2019.0, "F")])
+def test_query_rejects_a_bad_year_or_status(y, s):
+    with pytest.raises(ValueError):
+        eea.query("co2cars", "IT", y, s)
+
+
+def test_fetch_dataset_filters_the_combined_table_by_year_and_status():
+    from pipeline.importers.eea_datasets import DATASETS
+    seen = []
+
+    def h(req):
+        seen.append(req.url.params["query"])
+        return httpx.Response(200, json={"results": ROWS})
+
+    assert eea.fetch_dataset(DATASETS[2019], "IT", client(h)) == ROWS
+    assert "[co2cars] WHERE" in seen[0] and "[Year]=2019 AND Status='F'" in seen[0]
+    eea.fetch_dataset(DATASETS[2020], "IT", client(h))
+    assert "[co2cars_2020Fv22] WHERE" in seen[1] and "[Year]" not in seen[1]
+    eea.fetch_dataset(DATASETS[2025], "DE", client(h))
+    assert "[co2cars_2025Pv31] WHERE MS='DE'" in seen[2]
