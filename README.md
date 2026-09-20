@@ -17,8 +17,9 @@ are found there and get `confirmed` or `conflict`); Wikidata enrichment is plann
 
 Known limits: no trims or equipment; wheelbase and track width only for vehicles
 registered in 2019-2022 (the EEA stopped reporting them from 2023); names as
-reported by the EEA (upper case, a few near-duplicates with reordered words, and
-models split by trim or engine, such as Mercedes `GLC 220 D 4MATIC`); the years of
+reported by the EEA (upper case; spellings that differ only by spaces or hyphens are
+merged, a few near-duplicates with reordered words remain, and models can still be
+split by trim or engine for brands without family rules); the years of
 a variant are the registration years seen in the data (2019-2025), not production
 years.
 
