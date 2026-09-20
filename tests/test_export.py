@@ -252,3 +252,9 @@ def test_comparing_with_an_older_release_that_has_no_families(v1, tmp_path):
     assert len(ch["models"]["changed"]) == 10 and ch["models"]["added"] == [] and ch["models"]["removed"] == []
     assert ch["variants"] == {"added": [], "removed": [], "changed": []}
     assert "- families: +9 -0 ~0" in (tmp_path / "out2" / "CHANGELOG.md").read_text(encoding="utf-8")
+
+
+def test_exported_database_knows_its_version(v1):
+    _, out = v1
+    with Store(out / DB, ro=True) as s:
+        assert (s.get_meta("version"), s.get_meta("generated")) == ("0.1.0", "2026-09-19")

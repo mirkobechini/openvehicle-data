@@ -477,3 +477,26 @@ def test_variants_by_year(cl):
     assert cl.get(f"{B}/variants", params={"year": 2025}).json()["total"] == a
     assert cl.get(f"{B}/variants", params={"year": 2019}).json()["total"] == 0
     assert cl.get(f"{B}/variants", params={"year": 1800}).status_code == 422
+
+
+def test_search_text_is_capped(cl):
+    assert cl.get(f"{B}/models", params={"q": "a" * 100}).status_code == 200
+    assert cl.get(f"{B}/models", params={"q": "a" * 101}).status_code == 422
+    assert cl.get(f"{B}/search", params={"q": "a" * 101}).status_code == 422
+
+
+def test_meta_says_unknown_for_a_dataset_without_a_version(cl):
+    j = cl.get(f"{B}/meta").json()
+    assert j["version"] == "unknown" and j["generated"] is None and j["software_version"]
+
+
+def test_meta_reports_the_data_version(db, tmp_path):
+    import shutil
+
+    p = tmp_path / "v.db"
+    shutil.copy(db, p)
+    with Store(p) as s:
+        s.set_meta("version", "0.7.0")
+        s.set_meta("generated", "2026-09-20")
+    j = TestClient(create_app(p)).get(f"{B}/meta").json()
+    assert (j["version"], j["generated"]) == ("0.7.0", "2026-09-20")

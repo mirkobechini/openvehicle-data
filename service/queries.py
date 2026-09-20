@@ -43,6 +43,8 @@ class Found(BaseModel):
 
 class Meta(BaseModel):
     version: str
+    generated: str | None
+    software_version: str
     license: str
     attribution: str
     counts: dict[str, int]
@@ -163,4 +165,4 @@ def search(st, q):
 
 def meta(st, version):
     cs = {c.__name__: st.count(c) for c in (Brand, Family, CarModel, Generation, Engine, Variant, Source)}
-    return Meta(version=version, license="CC-BY-4.0", attribution=ATTR, counts=cs, sources=st.find(Source))
+    return Meta(version=st.get_meta("version") or "unknown", generated=st.get_meta("generated"), software_version=version, license="CC-BY-4.0", attribution=ATTR, counts=cs, sources=st.find(Source))

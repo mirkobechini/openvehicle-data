@@ -15,7 +15,10 @@ source and license):
   public access") was checked on the metadata record of each year on 2026-09-20.
   Records are aggregated, merged across years and filtered by this project
   (category M1, Italy).
-- RDW Open Data (https://opendata.rdw.nl) - released under CC0.
+- RDW Open Data, "Gekentekende voertuigen" (https://opendata.rdw.nl) - Public
+  Domain, attribution: Team Open Data RDW; license checked on 2026-09-20. Used only
+  to verify mass, engine size and wheelbase, aggregated by type, variant and
+  version: no plate or other vehicle-level record is stored.
 
 This project is not affiliated with, endorsed by or sponsored by any vehicle
 manufacturer. Brand and model names are trademarks of their respective owners

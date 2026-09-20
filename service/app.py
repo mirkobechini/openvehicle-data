@@ -14,10 +14,11 @@ from core.models import Brand, CarModel, Engine, Family, Generation, Variant
 from core.provenance import Source
 from core.storage import Store
 from service import queries as qs
+from service.headers import Headers
 from service.mcp_server import build_mcp
 from service.queries import ATTR, Found, Meta, Page, VariantDetail
 
-Q = Annotated[str | None, Query(min_length=1, description="Case-insensitive search in name and aliases")]
+Q = Annotated[str | None, Query(min_length=1, max_length=100, description="Case-insensitive search in name and aliases")]
 Sort = Annotated[Literal["id", "registrations"], Query(description="'registrations' lists the most registered first")]
 Yr = Annotated[int | None, Query(ge=1900, le=2100, description="Only variants registered in this year")]
 MinReg = Annotated[int | None, Query(ge=0, description="Only entries with at least this many registrations")]
@@ -151,9 +152,10 @@ def create_app(db=None):
             return st.find(Source)
 
     @app.get("/api/v1/search", response_model=Found)
-    def search(q: Annotated[str, Query(min_length=1)]):
+    def search(q: Annotated[str, Query(min_length=1, max_length=100)]):
         with rd() as st:
             return qs.search(st, q)
 
     app.router.routes.append(Route("/mcp", endpoint=mcp_app))
+    app.add_middleware(Headers)
     return app

@@ -113,7 +113,7 @@ def test_dataset_info(m):
     j = call(m, "dataset_info")
     assert j["license"] == "CC-BY-4.0" and "CC BY 4.0" in j["attribution"]
     assert j["counts"]["Variant"] == 14 and j["sources"][0]["id"] == "eea-co2"
-    assert j["version"] == m.version
+    assert j["software_version"] == m.version and j["version"] == "unknown"
 
 
 @pytest.mark.parametrize("name,a", [
@@ -407,3 +407,32 @@ def test_mcp_variants_by_year(m):
     assert call(m, "list_variants", year=2025, brand_id="brand_fiat")["total"] > 0
     with pytest.raises(Exception):
         call(m, "list_variants", year=1800)
+
+
+def test_mcp_search_text_is_capped(m):
+    assert call(m, "list_models", q="a" * 100)["total"] == 0
+    with pytest.raises(Exception):
+        call(m, "list_models", q="a" * 101)
+    with pytest.raises(Exception):
+        call(m, "search_catalog", q="a" * 101)
+
+
+def test_endpoint_sends_security_headers(http):
+    from service.headers import H
+
+    r = rpc(http, "tools/list")
+    assert r.status_code == 200 and all(r.headers.get(k.decode()) == v.decode() for k, v in H)
+
+
+def test_dataset_info_reports_the_data_version(db, tmp_path):
+    import shutil
+
+    p = tmp_path / "v.db"
+    shutil.copy(db, p)
+    j = call(build_mcp(p), "dataset_info")
+    assert j["version"] == "unknown" and j["generated"] is None and j["software_version"]
+    with Store(p) as s:
+        s.set_meta("version", "0.7.0")
+        s.set_meta("generated", "2026-09-20")
+    j = call(build_mcp(p), "dataset_info")
+    assert (j["version"], j["generated"]) == ("0.7.0", "2026-09-20")

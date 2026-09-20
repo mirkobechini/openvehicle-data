@@ -105,6 +105,8 @@ def export(st, out, version, today=None, prev=None, legal=LEGAL):
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     (out / DB).unlink(missing_ok=True)
+    st.set_meta("version", version)
+    st.set_meta("generated", str(today))
     st.backup(out / DB)
     for t, c in TABLES.items():
         _csv(out / f"{t}.csv", rows[t], ["id", *(f for f in c.model_fields if f != "id")])
