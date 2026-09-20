@@ -60,7 +60,7 @@ def test_confirmed():
 
 
 def test_conflict():
-    assert fp(ev(), ev("rdw", 52)).status is Status.CONFLICT
+    assert fp(ev(), ev("rdw", 60)).status is Status.CONFLICT
 
 
 def test_conflict_with_none():
@@ -82,7 +82,7 @@ def test_extra_forbidden():
 
 
 def test_round_trip_ignores_derived_status():
-    p = fp(ev(), ev("rdw", 52))
+    p = fp(ev(), ev("rdw", 60))
     d = p.model_dump(mode="json")
     assert d["status"] == "conflict"
     assert FieldProvenance.model_validate(d) == p
@@ -112,3 +112,9 @@ def test_other_fields_are_compared_exactly():
 
 def test_values_of_different_types_conflict():
     assert fq("mass_kg", "1045", 1045) is Status.CONFLICT
+
+
+def test_power_tolerance_is_one_kilowatt():
+    assert fq("power_kw", 52, 51.5) is Status.CONFIRMED
+    assert fq("power_kw", 52, 51) is Status.CONFIRMED
+    assert fq("power_kw", 52, 50.9) is Status.CONFLICT
