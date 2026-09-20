@@ -11,8 +11,9 @@ Early development. Pre-release datasets are published on the Releases page
 (`data-v*` tags). The data targets passenger cars (EU category M1) registered in
 Italy from 2019 to 2025, built only from sources with clear open licenses.
 Implemented so far: the EEA CO2 monitoring data importer (about 49,000 variants
-for Italy, 2019-2024 final and 2025 provisional). Wikidata enrichment and an RDW
-cross-check (mass, engine size, wheelbase) are planned.
+for Italy, 2019-2024 final and 2025 provisional). The build cross-checks mass,
+engine size and wheelbase with the Dutch RDW open data (about half of the variants
+are found there and get `confirmed` or `conflict`); Wikidata enrichment is planned.
 
 Known limits: no trims or equipment; wheelbase and track width only for vehicles
 registered in 2019-2022 (the EEA stopped reporting them from 2023); names as
@@ -26,7 +27,8 @@ years.
 ```bash
 python -m venv .venv && .venv/Scripts/pip install -e ".[dev]"   # Linux/macOS: .venv/bin/pip
 
-# build the dataset (downloads 2019-2025 from the EEA, validates, exports to ./dist)
+# build the dataset (downloads 2019-2025 from the EEA and the RDW, validates, exports
+# to ./dist; add --skip-rdw to skip the RDW cross-check)
 python -m pipeline.build --years 2019-2025 --version 0.1.0 --out dist
 
 # serve the REST API (docs at /docs) and the MCP server (at /mcp)
