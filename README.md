@@ -8,24 +8,26 @@ beyond.
 ## Status
 
 Early development. Pre-release datasets are published on the Releases page
-(`data-v*` tags). The data targets passenger cars (EU category M1) sold in Italy,
-built only from sources with clear open licenses. Implemented so far: the EEA CO2
-monitoring data importer (about 12,600 variants for Italy, 2025 provisional).
-Wikidata enrichment and an RDW cross-check are planned.
+(`data-v*` tags). The data targets passenger cars (EU category M1) registered in
+Italy from 2019 to 2025, built only from sources with clear open licenses.
+Implemented so far: the EEA CO2 monitoring data importer (about 49,000 variants
+for Italy, 2019-2024 final and 2025 provisional). Wikidata enrichment and an RDW
+cross-check are planned.
 
-Known limits of v0.1: no trims or equipment, no wheelbase or track width
-(empty in the Italian EEA data), names as reported by the EEA (upper case, a few
-near-duplicates with reordered words, and models split by trim or engine, such as
-Mercedes `GLC 220 D 4MATIC`), and only the years seen in the data (registration
-years, not production years).
+Known limits: no trims or equipment; wheelbase and track width only for vehicles
+registered in 2019-2022 (the EEA stopped reporting them from 2023); names as
+reported by the EEA (upper case, a few near-duplicates with reordered words, and
+models split by trim or engine, such as Mercedes `GLC 220 D 4MATIC`); the years of
+a variant are the registration years seen in the data (2019-2025), not production
+years.
 
 ## Quick start
 
 ```bash
 python -m venv .venv && .venv/Scripts/pip install -e ".[dev]"   # Linux/macOS: .venv/bin/pip
 
-# build the dataset (downloads from the EEA, validates, exports to ./dist)
-python -m pipeline.build --table co2cars_2025Pv31 --year 2025 --version 0.1.0 --out dist
+# build the dataset (downloads 2019-2025 from the EEA, validates, exports to ./dist)
+python -m pipeline.build --years 2019-2025 --version 0.1.0 --out dist
 
 # serve the REST API (docs at /docs) and the MCP server (at /mcp)
 OVD_DB=dist/openvehicle-data.db uvicorn --factory service.app:create_app

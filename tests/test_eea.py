@@ -1,4 +1,5 @@
 import json
+import re
 from collections import Counter
 from datetime import date
 from pathlib import Path
@@ -13,6 +14,7 @@ from core.provenance import Source, Status
 from core.storage import Store
 from pipeline.importers import eea
 from pipeline.importers.corrections import Corrections, Exclusion, Merge
+from pipeline.importers.eea_datasets import DATASETS
 from pipeline.importers.families import FamilyRules
 from pipeline.sources import EEA
 from pipeline.validation import validate
@@ -41,7 +43,7 @@ def loaded(st):
 
 def test_load_stats(loaded):
     _, s = loaded
-    assert s == {"rows": 17, "skipped": 0, "excluded": 0, "conflicts": 0, "brands": 6, "families": 9, "models": 10, "engines": 8, "variants": 14, "dropped": {}}
+    assert s == {"years": [2025], "rows": 17, "skipped": 0, "excluded": 0, "conflicts": 0, "brands": 6, "families": 9, "models": 10, "engines": 8, "variants": 14, "dropped": {}}
 
 
 def test_load_is_valid(loaded):
@@ -202,20 +204,12 @@ def test_fetch_http_error():
         eea.fetch("t1", client=client(lambda r: httpx.Response(500)))
 
 
-def test_run(tmp_path):
-    db = tmp_path / "v.db"
-    s = eea.run(db, "t1", 2025, client=client(lambda r: httpx.Response(200, json={"results": ROWS})), today=TODAY)
-    assert s["variants"] == 14
-    with Store(db, ro=True) as r:
-        assert len(r.find(Variant)) == 14
-
-
 def test_main(monkeypatch, capsys):
     calls = []
     monkeypatch.setattr(eea, "run", lambda *a: calls.append(a) or {"ok": 1})
-    eea.main(["--table", "t", "--year", "2025", "--db", "x.db"])
-    eea.main(["--table", "t", "--year", "2024", "--db", "y.db", "--country", "DE"])
-    assert calls == [("x.db", "t", 2025, "IT"), ("y.db", "t", 2024, "DE")]
+    eea.main(["--years", "2025", "--db", "x.db"])
+    eea.main(["--years", "2019-2025", "--db", "y.db", "--country", "DE"])
+    assert calls == [("x.db", "2025", "IT"), ("y.db", "2019-2025", "DE")]
     assert capsys.readouterr().out.count("{'ok': 1}") == 2
 
 
@@ -479,3 +473,162 @@ def test_a_family_can_hold_a_model_named_like_it(st):
     eea.load(rows, st, 2025, TODAY)
     f = st.find(Family)[0]
     assert (f.id, f.model_count, f.registrations) == ("family_porsche-macan", 2, 10)
+
+
+def test_query_adds_the_year_and_status_filter_only_when_asked():
+    assert "[Year]" not in eea.query("co2cars_2024Fv30")
+    q = eea.query("co2cars", "IT", 2019, "F")
+    assert "WHERE MS='IT' AND Ct='M1' AND Cr='M1' AND [Year]=2019 AND Status='F' GROUP BY" in q
+
+
+@pytest.mark.parametrize("y,s", [(2019, None), (None, "F"), ("2019", "F"), (2019, "X"), (2019, "F'; DROP"), (True, "F"), (2019.0, "F")])
+def test_query_rejects_a_bad_year_or_status(y, s):
+    with pytest.raises(ValueError):
+        eea.query("co2cars", "IT", y, s)
+
+
+def test_fetch_dataset_filters_the_combined_table_by_year_and_status():
+    from pipeline.importers.eea_datasets import DATASETS
+    seen = []
+
+    def h(req):
+        seen.append(req.url.params["query"])
+        return httpx.Response(200, json={"results": ROWS})
+
+    assert eea.fetch_dataset(DATASETS[2019], "IT", client(h)) == ROWS
+    assert "[co2cars] WHERE" in seen[0] and "[Year]=2019 AND Status='F'" in seen[0]
+    eea.fetch_dataset(DATASETS[2020], "IT", client(h))
+    assert "[co2cars_2020Fv22] WHERE" in seen[1] and "[Year]" not in seen[1]
+    eea.fetch_dataset(DATASETS[2025], "DE", client(h))
+    assert "[co2cars_2025Pv31] WHERE MS='DE'" in seen[2]
+
+
+def by_year(data, seen=None):
+    def h(req):
+        q = req.url.params["query"]
+        if seen is not None:
+            seen.append(q)
+        m = re.search(r"co2cars_(\d{4})", q) or re.search(r"\[Year\]=(\d{4})", q)
+        return httpx.Response(200, json={"results": data[int(m[1])]})
+
+    return client(h)
+
+
+def test_run_fetches_each_year_and_loads_them_together(tmp_path):
+    db, seen = tmp_path / "v.db", []
+    s = eea.run(db, "2019,2025", client=by_year({2019: [row(w=2300, at1=1400, n=10)], 2025: ROWS}, seen), today=TODAY)
+    assert s["years"] == [2019, 2025] and s["variants"] == 15 and len(seen) == 2
+    assert "[co2cars] WHERE" in seen[0] and "[Year]=2019 AND Status='F'" in seen[0]
+    assert "[co2cars_2025Pv31] WHERE" in seen[1] and "[Year]" not in seen[1]
+    with Store(db, ro=True) as r:
+        assert len(r.find(Variant)) == 15 and r.get(Variant, "var_fiat-panda-312-a-b").year_from == 2019
+
+
+def test_run_accepts_a_list_of_years_and_rejects_unknown_ones_before_fetching(tmp_path):
+    seen = []
+    eea.run(tmp_path / "a.db", [2024, 2025], client=by_year({2024: [row()], 2025: [row()]}, seen), today=TODAY)
+    assert len(seen) == 2 and "co2cars_2024Fv30" in seen[0]
+    with pytest.raises(ValueError, match="2019-2025"):
+        eea.run(tmp_path / "b.db", "2018", client=by_year({}, seen))
+    assert len(seen) == 2 and not (tmp_path / "b.db").exists()
+
+
+def test_a_variant_seen_in_several_years_is_one_variant_with_real_years(st):
+    s = eea.load_years({2019: [row(n=10)], 2021: [row(n=5)], 2025: [row(n=20)]}, st, TODAY)
+    v = st.find(Variant)
+    assert len(v) == 1 and (v[0].year_from, v[0].year_to, v[0].registrations) == (2019, 2025, 35)
+    assert s["years"] == [2019, 2021, 2025] and s["variants"] == 1 and s["rows"] == 3
+    assert validate(st) == []
+
+
+def test_each_field_comes_from_the_latest_year_that_has_it(st):
+    eea.load_years({2019: [row(m=1000, w=2300, at1=1400, co2=120)], 2025: [row(m=1010, w=None, at1=None, co2=110)]}, st, TODAY)
+    v = st.find(Variant)[0]
+    assert (v.mass_kg, v.co2_wltp_g_km, v.wheelbase_mm, v.track_width_mm) == (1010, 110, 2300, 1400)
+    ev = {p.field: p.evidence[0] for p in st.prov(v.id)}
+    assert ev["mass_kg"].url == DATASETS[2025].url and ev["co2_wltp_g_km"].url == DATASETS[2025].url
+    assert ev["wheelbase_mm"].url == DATASETS[2019].url and ev["track_width_mm"].url == DATASETS[2019].url
+    assert {p.status for p in st.prov(v.id)} == {Status.SINGLE}
+    assert validate(st) == []
+
+
+def test_a_field_missing_in_every_year_stays_empty(st):
+    eea.load_years({2019: [row(w=None)], 2025: [row(w=None)]}, st, TODAY)
+    v = st.find(Variant)[0]
+    assert v.wheelbase_mm is None and "wheelbase_mm" not in {p.field for p in st.prov(v.id)}
+
+
+def test_the_latest_year_defines_the_engine_and_nothing_is_dropped(st):
+    s = eea.load_years({2019: [row(ep=52, n=100)], 2025: [row(ep=51, n=5)]}, st, TODAY)
+    v = st.find(Variant)[0]
+    assert s["conflicts"] == 0 and (v.registrations, v.year_from, v.year_to) == (105, 2019, 2025)
+    assert st.get(Engine, v.engine_id).power_kw == 51
+
+
+def test_contradictions_within_one_year_are_still_dropped(st):
+    rs = [row(Ft="petrol", Fm="H", ec=1995, ep=110, n=5), row(Ft="diesel", Fm="H", ec=1995, ep=110, n=2)]
+    s = eea.load_years({2019: rs, 2020: [row(Ft="petrol", Fm="H", ec=1995, ep=110, n=4)]}, st, TODAY)
+    assert s["conflicts"] == 1 and st.find(Variant)[0].registrations == 9
+
+
+def test_engine_evidence_points_to_the_latest_year_the_engine_was_seen(st):
+    eea.load_years({2019: [row(Ve="B1", ep=52), row(Ve="B2", ep=52)], 2025: [row(Ve="B2", ep=52)]}, st, TODAY)
+    e = st.find(Engine)[0]
+    assert {p.evidence[0].url for p in st.prov(e.id)} == {DATASETS[2025].url}
+    assert len(st.find(Variant)) == 2
+
+
+def test_the_generation_spans_the_years_of_its_variants(st):
+    eea.load_years({2019: [row(Ve="A")], 2020: [row(Ve="A")], 2024: [row(Ve="B")], 2025: [row(Ve="B")]}, st, TODAY)
+    g = st.find(Generation)[0]
+    assert (g.year_from, g.year_to) == (2019, 2025)
+    assert {(v.year_from, v.year_to) for v in st.find(Variant)} == {(2019, 2020), (2024, 2025)}
+    assert validate(st) == []
+
+
+def test_registrations_add_up_over_the_years_for_models_and_families(st):
+    eea.load_years({2019: [row(Ve="A", n=10)], 2025: [row(Ve="A", n=20), row(Ve="B", n=30)]}, st, TODAY)
+    assert st.find(CarModel)[0].registrations == 60 and st.find(Family)[0].registrations == 60
+    assert sorted(v.registrations for v in st.find(Variant)) == [30, 30]
+
+
+def test_spellings_and_corrections_apply_across_years(st):
+    d = {2019: [row(Mk="VW", Cn="VW GOLF", n=2), row(Cn="GOLF", Ve="X")], 2025: [row(Mk="VOLKSWAGEN", Cn="GOLF", n=8)]}
+    s = eea.load_years(d, st, TODAY)
+    assert (s["excluded"], s["brands"], s["models"]) == (1, 1, 1)
+    m = st.find(CarModel)[0]
+    assert (m.id, m.registrations) == ("model_volkswagen-golf", 10)
+
+
+def test_evidence_of_one_year_never_looks_like_a_conflict(st):
+    eea.load_years({2019: [row(m=1000)], 2025: [row(m=1100)]}, st, TODAY)
+    v = st.find(Variant)[0]
+    assert v.mass_kg == 1100 and [p.status for p in st.prov(v.id) if p.field == "mass_kg"] == [Status.SINGLE]
+
+
+def test_single_year_load_keeps_the_overview_page_as_evidence(st):
+    eea.load([row()], st, 2025, TODAY)
+    assert {p.evidence[0].url for p in st.prov(st.find(Variant)[0].id)} == {eea.PAGE}
+    assert st.find(Variant)[0].year_from == st.find(Variant)[0].year_to == 2025
+
+
+def test_fetch_does_not_close_a_client_it_was_given():
+    c = by_year({2024: [row()], 2025: [row()]})
+    eea.fetch("co2cars_2024Fv30", client=c)
+    assert c.is_closed is False
+    eea.fetch("co2cars_2025Pv31", client=c)
+    c.close()
+
+
+def test_fetch_closes_the_client_it_creates(monkeypatch):
+    made = []
+    real = httpx.Client
+
+    def factory(**k):
+        c = real(transport=httpx.MockTransport(lambda r: httpx.Response(200, json={"results": []})), **k)
+        made.append(c)
+        return c
+
+    monkeypatch.setattr(eea.httpx, "Client", factory)
+    assert eea.fetch("co2cars_2025Pv31") == []
+    assert len(made) == 1 and made[0].is_closed
