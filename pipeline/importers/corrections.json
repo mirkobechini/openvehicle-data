@@ -6,7 +6,16 @@
     "SOCIETE DES AUTOMOBILES ALPINE(SAA)": "ALPINE",
     "CATERHAM CARS LTD.": "CATERHAM",
     "MERCEDES": "MERCEDES-BENZ",
-    "DS AUTOMOBILES": "DS"
+    "DS AUTOMOBILES": "DS",
+    "MITSUBISHI MOTORS (THAILAND)": "MITSUBISHI",
+    "MITSUBISHI MOTORS CORPORATION": "MITSUBISHI",
+    "MITSUBISHI MOTORS THAILAND Ltd.": "MITSUBISHI",
+    "Mitsubishi Motors (Thailand) C": "MITSUBISHI",
+    "FORD-CNG TECHNIK": "FORD",
+    "FORD W GMBH": "FORD",
+    "AUTOMOBILI LAMBORGHINI S.P.A.": "LAMBORGHINI",
+    "PAGANI S.P.A.": "PAGANI",
+    "BMW I": "BMW"
   },
   "exclude_models": [
     {
@@ -18,6 +27,36 @@
       "brand": "FIAT",
       "model": "AVENGER",
       "reason": "Jeep model (47,085 registrations under JEEP) with 1 under FIAT in the EEA 2025 data: wrong make in the source"
+    },
+    {
+      "brand": "AUDI",
+      "model": "PANDA",
+      "reason": "Fiat model with 1 registration under AUDI in the EEA 2019-2025 data: wrong make in the source"
+    },
+    {
+      "brand": "AUDI",
+      "model": "RANGER",
+      "reason": "Ford model with 1 registration under AUDI in the EEA 2019-2025 data: wrong make in the source"
+    },
+    {
+      "brand": "FIAT",
+      "model": "MITSUBISHI ASX",
+      "reason": "Mitsubishi model with 1 registration under FIAT in the EEA 2019-2025 data: wrong make in the source"
+    },
+    {
+      "brand": "HYUNDAI",
+      "model": "CLA 220 D",
+      "reason": "Mercedes-Benz model with 1 registration under HYUNDAI in the EEA 2019-2025 data: wrong make in the source"
+    },
+    {
+      "brand": "SUZUKI",
+      "model": "B 180",
+      "reason": "Mercedes-Benz model with 1 registration under SUZUKI in the EEA 2019-2025 data: wrong make in the source"
+    },
+    {
+      "brand": "TOYOTA",
+      "model": "COUNTRYMAN COOPER",
+      "reason": "Mini model with 1 registration under TOYOTA in the EEA 2019-2025 data: wrong make in the source"
     }
   ],
   "merge_models": [
