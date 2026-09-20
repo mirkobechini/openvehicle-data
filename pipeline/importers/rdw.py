@@ -1,4 +1,5 @@
 import argparse
+import re
 from collections import Counter, defaultdict
 from datetime import date
 
@@ -12,32 +13,42 @@ from pipeline.sources import RDW
 
 URL = "https://opendata.rdw.nl/resource/m9d7-ebf2.json"
 PAGE = "https://opendata.rdw.nl/Voertuigen/Open-Data-RDW-Gekentekende_voertuigen/m9d7-ebf2"
+FUEL = "https://opendata.rdw.nl/resource/8ys7-d773.json"
 UA = "openvehicle-data/0.0 (+https://github.com/mirkobechini/openvehicle-data)"
 STEP = 50000
+BATCH = 400
 KEY = ("merk", "type", "variant", "uitvoering")
 CV = {"massa_rijklaar": ("mass_kg", float), "cilinderinhoud": ("displacement_cc", int), "wielbasis": ("wheelbase_mm", lambda v: int(v) * 10)}
 COLS = (*KEY, *CV)
 
 
-def query(since, limit=STEP, offset=0):
+def _q(since, cols, sel, limit, offset):
     if not (type(since) is int and 1900 <= since <= 2100):
         raise ValueError("bad year")
     return {
-        "$select": ",".join(COLS) + ",count(*) as n",
+        "$select": ",".join(cols) + "," + sel,
         "$where": f"europese_voertuigcategorie='M1' AND voertuigsoort='Personenauto' AND datum_eerste_toelating>='{since}0101'",
-        "$group": ",".join(COLS),
-        "$order": ",".join(COLS),
+        "$group": ",".join(cols),
+        "$order": ",".join(cols),
         "$limit": limit,
         "$offset": offset,
     }
 
 
-def fetch(since, client=None):
+def query(since, limit=STEP, offset=0):
+    return _q(since, COLS, "count(*) as n", limit, offset)
+
+
+def query_plates(since, limit=STEP, offset=0):
+    return _q(since, KEY, "min(kenteken) as k", limit, offset)
+
+
+def fetch(since, client=None, q=query):
     c = client or httpx.Client(timeout=300)
     rows = []
     try:
         while True:
-            r = c.get(URL, params=query(since, STEP, len(rows)), headers={"Accept": "application/json", "User-Agent": UA})
+            r = c.get(URL, params=q(since, STEP, len(rows)), headers={"Accept": "application/json", "User-Agent": UA})
             r.raise_for_status()
             p = r.json()
             rows += p
@@ -46,6 +57,32 @@ def fetch(since, client=None):
     finally:
         if client is None:
             c.close()
+
+
+def fetch_power(plates, client=None):
+    c = client or httpx.Client(timeout=300)
+    out = defaultdict(list)
+    ok = [x for x in plates if re.fullmatch(r"[A-Z0-9]{1,8}", x or "")]
+    try:
+        for i in range(0, len(ok), BATCH):
+            b = ",".join(f"'{x}'" for x in ok[i:i + BATCH])
+            try:
+                r = c.get(FUEL, params={"$select": "kenteken,nettomaximumvermogen", "$where": f"kenteken in({b})", "$limit": 5000}, headers={"Accept": "application/json", "User-Agent": UA})
+                r.raise_for_status()
+            except httpx.HTTPError as e:
+                raise RuntimeError(f"RDW fuel request failed: {type(e).__name__}") from None
+            for x in r.json():
+                w = _num(x.get("nettomaximumvermogen"), float)
+                if w is not None:
+                    out[x["kenteken"]].append(w)
+    finally:
+        if client is None:
+            c.close()
+    return out
+
+
+def fold_power(pl, pw):
+    return {(norm(r["merk"] or ""), *(r.get(x) for x in KEY[1:])): sorted(set(pw[r["k"]])) for r in pl if r["k"] in pw}
 
 
 def _num(v, f):
