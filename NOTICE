@@ -18,7 +18,8 @@ source and license):
 - RDW Open Data, "Gekentekende voertuigen" (https://opendata.rdw.nl) - Public
   Domain, attribution: Team Open Data RDW; license checked on 2026-09-20. Also the
   fuel table "Gekentekende voertuigen brandstof" (Public Domain, checked on
-  2026-09-20). Used only to verify mass, engine size, wheelbase and engine power,
+  2026-09-20). Used only to verify mass, engine size, wheelbase and engine power and to read
+  the EU type-approval number,
   aggregated by type, variant and version: no plate or other vehicle-level record
   is stored (a plate is held in memory during the build to look up its power, then
   discarded).
