@@ -779,6 +779,24 @@
           "family": "\\1"
         }
       ]
+    },
+    "MCLAREN": {
+      "reason": "McLaren lists Spider and Coupe versions as models (570S SPIDER, 750S COUPE', ARTURA SPIDE with a typo): the family is the base model.",
+      "rules": [
+        {
+          "pattern": "^(570S|750S|ARTURA)",
+          "family": "\\1"
+        }
+      ]
+    },
+    "CATERHAM": {
+      "reason": "Caterham lists variants of the Seven as models (SEVEN SV, SEVEN CSR, SEVEN S3): the family is SEVEN.",
+      "rules": [
+        {
+          "pattern": "^(SEVEN)",
+          "family": "\\1"
+        }
+      ]
     }
   }
 }

@@ -204,7 +204,7 @@ domain) is described in [DEPLOY.md](DEPLOY.md).
 - Only vehicles registered in Italy, 2019-2025. Years are registration years.
 - Names are as the EEA reports them, in upper case. Spellings that differ only by
   spaces, hyphens or case are merged; a few near-duplicates remain.
-- Family rules cover 48 brands; the other brands keep one family per model.
+- Family rules cover 50 brands; the other brands keep one family per model.
 - Wheelbase and track width exist only for 2019-2022 (the EEA stopped reporting them).
 - RDW covers about half of the variants (cars sold in the Netherlands), so the rest
   stay `single_source`. CO2 is single-source everywhere: RDW's per-plate values vary
