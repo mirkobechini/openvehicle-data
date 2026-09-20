@@ -209,7 +209,7 @@ domain) is described in [DEPLOY.md](DEPLOY.md).
 - RDW covers about half of the variants (cars sold in the Netherlands), so the rest
   stay `single_source`. CO2 is single-source everywhere: RDW's per-plate values vary
   too much between cars of one variant to serve as a check.
-- Wikidata ids exist for 56 of 90 brands; models are not linked (Wikidata has
+- Wikidata ids exist for 70 of 90 brands; models are not linked (Wikidata has
   duplicate and mixed items for them).
 - The API has no authentication and no rate limiting of its own: put it behind a
   proxy that limits requests if you expose it publicly (see [DEPLOY.md](DEPLOY.md)).
