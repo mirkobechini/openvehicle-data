@@ -40,6 +40,7 @@ class Period(Base):
 
 class Brand(Named):
     id: BrandId
+    wikidata_id: str | None = Field(default=None, pattern=r"^Q[1-9]\d*$")
 
 
 class Family(Named):
