@@ -1,0 +1,51 @@
+name: Data refresh
+
+on:
+  schedule:
+    - cron: "0 5 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  GH_TOKEN: ${{ github.token }}
+  YEARS: "2019-2025"
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: "3.12"
+      - run: pip install -e .
+      - id: prev
+        run: |
+          tag=$(gh release list --json tagName --jq '[.[] | select(.tagName | startswith("data-v"))][0].tagName')
+          gh release download "$tag" -D prev
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=$(python -m pipeline.refresh next "$tag")" >> "$GITHUB_OUTPUT"
+      - run: python -m pipeline.build --years "$YEARS" --version "${{ steps.prev.outputs.version }}" --out dist --prev prev
+      - id: chg
+        run: |
+          if python -m pipeline.refresh changed dist/changelog.json; then echo "changed=true" >> "$GITHUB_OUTPUT"; fi
+      - if: steps.chg.outputs.changed == 'true'
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: dataset
+          path: dist
+          retention-days: 30
+      - if: steps.chg.outputs.changed == 'true'
+        run: |
+          {
+            cat dist/CHANGELOG.md
+            echo
+            echo "Built by ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} (artifact: dataset, kept 30 days). Nothing was published: to release it, build the same version locally and publish it."
+          } > body.md
+          gh issue create --title "Data refresh ${{ steps.prev.outputs.version }}: changes found" --body-file body.md
+      - if: failure()
+        run: gh issue create --title "Data refresh failed" --body "See ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
