@@ -407,3 +407,11 @@ def test_mcp_variants_by_year(m):
     assert call(m, "list_variants", year=2025, brand_id="brand_fiat")["total"] > 0
     with pytest.raises(Exception):
         call(m, "list_variants", year=1800)
+
+
+def test_mcp_search_text_is_capped(m):
+    assert call(m, "list_models", q="a" * 100)["total"] == 0
+    with pytest.raises(Exception):
+        call(m, "list_models", q="a" * 101)
+    with pytest.raises(Exception):
+        call(m, "search_catalog", q="a" * 101)
