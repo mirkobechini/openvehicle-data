@@ -3,7 +3,7 @@ import unicodedata
 
 
 def slug(s):
-    a = unicodedata.normalize("NFKD", str(s)).encode("ascii", "ignore").decode()
+    a = unicodedata.normalize("NFKD", str(s).replace("+", " plus ")).encode("ascii", "ignore").decode()
     return re.sub(r"[^a-z0-9]+", "-", a.lower()).strip("-")
 
 

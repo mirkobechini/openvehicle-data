@@ -23,7 +23,7 @@ Then point the Dockerfile at it: set the defaults of `DATA_URL`
 and `DATA_SHA256` (the `openvehicle-data.db` entry in `dist/manifest.json`), and
 merge that change to `dev`.
 
-The releases up to `data-v0.7.0` are already published and the Dockerfile points
+The releases up to `data-v0.8.0` are already published and the Dockerfile points
 at the latest one, so this step is only needed for a new data version.
 
 ## 2. Release to `main`
@@ -81,6 +81,15 @@ merge. The `checksPass` deploy trigger redeploys once CI is green.
 python -m pipeline.build --years 2019-2025 --version 0.2.0 --prev dist --out dist2
 gh release create data-v0.2.0 dist2/* --title "Data 0.2.0" --notes-file dist2/CHANGELOG.md
 ```
+
+## Monthly refresh check
+
+`.github/workflows/refresh.yml` runs on the 1st of each month (and from the Actions
+tab, Run workflow). It builds the next patch version against the latest data
+release, and if anything changed it opens an issue with the changelog and keeps the
+files as an artifact for 30 days. It never publishes: to release, build the version
+locally as above, publish it and update the Dockerfile. A failed run opens an issue
+too. The workflow appears in the Actions tab once it is on `main`.
 
 ## Things to know
 

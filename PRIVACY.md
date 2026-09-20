@@ -1,6 +1,6 @@
 # Privacy notice
 
-Last updated: 2026-09-19
+Last updated: 2026-09-20
 
 This notice covers the public services of the openvehicle-data project: the REST
 API and the MCP server.
@@ -19,14 +19,17 @@ When you call the API or the MCP server, the request reaches our servers with:
 - the time of the request and your client's user agent
 
 The dataset itself contains no personal data: it describes vehicle models, not
-owners, plates or people.
+owners, plates or people. While building the dataset, one licence plate per vehicle
+version is read from the Dutch RDW open data and held in memory only, to look up
+that version's engine power; plates are never stored, published or logged.
 
 ## Who processes it and why
 
 The requests pass through:
 
-- **Cloudflare**, which sits in front of the services to filter abuse and limit
-  request rates (see the [Cloudflare privacy policy](https://www.cloudflare.com/privacypolicy/)).
+- **Cloudflare**, which the hosting network uses in front of the services to filter
+  abuse (see the [Cloudflare privacy policy](https://www.cloudflare.com/privacypolicy/)).
+  The project does not limit request rates yet.
 - **Render**, which hosts the services and keeps their logs
   (see the [Render privacy policy](https://render.com/privacy)).
 

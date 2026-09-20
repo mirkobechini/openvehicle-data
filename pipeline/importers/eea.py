@@ -92,6 +92,10 @@ def _best(rs):
     return min(rs, key=lambda r: (-r["n"], *(1e18 if r[k] is None else r[k] for k in VF)))
 
 
+def _key(s):
+    return re.sub(r"(?<!\d)\.|\.(?!\d)", "", re.sub(r"[^A-Z0-9.+]", "", s.upper()))
+
+
 def _x(v):
     return "x" if v is None else v
 
@@ -130,6 +134,7 @@ def _load(rows, st, today, corr, fam, urls):
     ex = {(norm(x.brand), slug(x.model)) for x in corr.exclude_models}
     mmap = {(norm(x.brand), slug(x.model)): x.into for x in corr.merge_models}
     gr, bn, mn, skip, excl = defaultdict(list), defaultdict(set), defaultdict(set), 0, 0
+    pre, cnt = [], Counter()
     for r in rows:
         mk0, raw = (r["Mk"] or "").strip(), (r["Cn"] or "").strip()
         if not (slug(mk0) and slug(raw)):
@@ -142,6 +147,13 @@ def _load(rows, st, today, corr, fam, urls):
             continue
         cn0 = cn
         cn = mmap.get((norm(mk), slug(cn)), cn)
+        pre.append((r, mk, mk0, raw, cn0, cn))
+        cnt[(norm(mk), cn)] += r["n"]
+    canon = {}
+    for (b0, c0), _ in sorted(cnt.items(), key=lambda x: (-x[1], x[0][1])):
+        canon.setdefault((b0, _key(c0)), c0)
+    for r, mk, mk0, raw, cn0, cn in pre:
+        cn = canon[(norm(mk), _key(cn))]
         b, m = make_id("brand", mk), make_id("model", mk, cn)
         bn[b].add((mk, mk0))
         mn[m].add((cn, raw, cn0))

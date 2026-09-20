@@ -99,6 +99,8 @@ def test_build_cross_checks_with_rdw_from_the_first_year(tmp_path):
     seen = []
 
     def h(req):
+        if req.url.host == RDW and req.url.path.endswith("8ys7-d773.json") or req.url.host == RDW and "min(kenteken)" in req.url.params["$select"]:
+            return httpx.Response(200, json=[])
         if req.url.host == RDW:
             seen.append(req.url.params["$where"])
             return httpx.Response(200, json=[{"merk": "FIAT", "type": "312", "variant": "PYD1B", "uitvoering": "S5G", "massa_rijklaar": "1045", "cilinderinhoud": "999", "wielbasis": "230", "n": "3"}])

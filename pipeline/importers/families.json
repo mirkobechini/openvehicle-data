@@ -241,6 +241,392 @@
           "family": "\\1"
         }
       ]
+    },
+    "FIAT": {
+      "reason": "Fiat lists conversions and trims as models (DOBLO' OLMEDO, DUCATO TWIN ARM, PANDA 4X4, 500 HYBRID, ABARTH 124 SPIDER): the family is the base model.",
+      "rules": [
+        {
+          "pattern": "^500 ABARTH",
+          "family": "ABARTH 500"
+        },
+        {
+          "pattern": "^500 HYBRID",
+          "family": "500"
+        },
+        {
+          "pattern": "^(?:E-)?(DOBLO)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(DUCATO)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(QUBO)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(PANDA)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(?:ABARTH )?(124 SPIDER)",
+          "family": "\\1"
+        }
+      ]
+    },
+    "TOYOTA": {
+      "reason": "Toyota lists hybrids, vans and conversions as models (YARIS HYBRID, PRIUS PHEV, PROACE F-STYLE WAV, LAND CRUISER SERIE 150): the family is the base model.",
+      "rules": [
+        {
+          "pattern": "^(YARIS CROSS)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(YARIS)(?: HYBRID)?$",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(PRIUS)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(PROACE CITY)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(PROACE)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(LAND CRUISER)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^CH-R",
+          "family": "C-HR"
+        },
+        {
+          "pattern": "^(?:GR )?86$",
+          "family": "86"
+        }
+      ]
+    },
+    "PEUGEOT": {
+      "reason": "Peugeot lists conversions and body variants as models (RIFTER OLMEDO, EXPERT TRAVELLER TREK, PARTNER 4X4, 3008 VAN): the family is the base model.",
+      "rules": [
+        {
+          "pattern": "^(?:E-)?(RIFTER)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(?:EXPERT )?(TRAVELLER)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(PARTNER)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(BOXER)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(3008)(?: VAN)?$",
+          "family": "\\1"
+        }
+      ]
+    },
+    "CITROEN": {
+      "reason": "Citroen lists electric versions and conversions as models (E-C3, C5 AIRCROSS VAN, BERLINGO OLMEDO, JUMPY SPACETOURER): the family is the base model.",
+      "rules": [
+        {
+          "pattern": "^(?:E-)?(C3 AIRCROSS)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(?:E-)?(C3)$",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(?:E-)?C4 ?X$",
+          "family": "C4 X"
+        },
+        {
+          "pattern": "^(?:E-)?(C4)$",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(C5 AIRCROSS)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(?:C4 )?SPACETOURER$",
+          "family": "C4 SPACETOURER"
+        },
+        {
+          "pattern": "^(JUMPY)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(?:E-)?(BERLINGO)",
+          "family": "\\1"
+        }
+      ]
+    },
+    "FORD": {
+      "reason": "Ford lists hybrids and conversions as models (MONDEO HYBRID, GRAND C-MAX, TOURNEO CONNECT OLMEDO, TRANSIT CUSTOM-FOCACCIA WAV): the family is the base model.",
+      "rules": [
+        {
+          "pattern": "^(TOURNEO CONNECT)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(TOURNEO CUSTOM)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(TRANSIT CUSTOM)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(TRANSIT)\\b",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(MONDEO)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(?:GRAND )?C-?MAX$",
+          "family": "C-MAX"
+        },
+        {
+          "pattern": "^S-?MAX$",
+          "family": "S-MAX"
+        }
+      ]
+    },
+    "KIA": {
+      "reason": "Kia lists trims and fuel versions as models (EV9 GT, EV6 GT, SOUL EMOTION, NIRO GPL) and spells Ceed two ways: the family is the base model.",
+      "rules": [
+        {
+          "pattern": "^CEE'?D$",
+          "family": "CEED"
+        },
+        {
+          "pattern": "^(NIRO)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(SOUL)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(EV9)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(EV6)",
+          "family": "\\1"
+        }
+      ]
+    },
+    "NISSAN": {
+      "reason": "Nissan lists battery sizes, fuel versions and vans as models (LEAF 40KWH, MICRA BIFUEL, JUKE BIFUEL, E-NV 200): the family is the base model.",
+      "rules": [
+        {
+          "pattern": "^(LEAF)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(MICRA)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(JUKE)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^E-NV ?200$",
+          "family": "E-NV200"
+        }
+      ]
+    },
+    "SEAT": {
+      "reason": "SEAT lists body styles and Cupra-badged cars as models (LEON SP, LEON SPORTSTOURER, CUPRA LEON, CUPRA ATECA): the family is the base model.",
+      "rules": [
+        {
+          "pattern": "^(?:CUPRA )?(LEON)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(?:CUPRA )?(ATECA)",
+          "family": "\\1"
+        }
+      ]
+    },
+    "SMART": {
+      "reason": "smart lists body styles and electric versions as models (FORTWO COUPE, EQ FORTWO CABRIO, FORFOUR BRABUS): the family is FORTWO or FORFOUR.",
+      "rules": [
+        {
+          "pattern": "^(?:EQ )?(FORTWO)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(?:EQ )?(FORFOUR)",
+          "family": "\\1"
+        }
+      ]
+    },
+    "DS": {
+      "reason": "DS writes the same models with and without the DS prefix (7 CROSSBACK and DS7, 3 and DS3, 4 and DS4): the family carries the DS prefix.",
+      "rules": [
+        {
+          "pattern": "^(?:DS)?7(?: CROSSBACK)?$",
+          "family": "DS 7"
+        },
+        {
+          "pattern": "^(?:DS)?3 CROSSBACK$",
+          "family": "DS 3 CROSSBACK"
+        },
+        {
+          "pattern": "^(?:DS)?3(?: CABRIO)?$",
+          "family": "DS 3"
+        },
+        {
+          "pattern": "^(?:DS)?4$",
+          "family": "DS 4"
+        },
+        {
+          "pattern": "^(?:DS)?9$",
+          "family": "DS 9"
+        }
+      ]
+    },
+    "MG": {
+      "reason": "MG lists hybrids and electric versions as models (MG3 HYBRID+, EHS PLUG-IN HYBRID, HS HYBRID+, ZS EV): the family is the base model.",
+      "rules": [
+        {
+          "pattern": "^(MG3)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(MG4)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(MG5)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(ZS)(?: EV)?$",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^E?HS",
+          "family": "HS"
+        }
+      ]
+    },
+    "ALFA ROMEO": {
+      "reason": "Alfa Romeo lists Quadrifoglio and special editions as models (STELVIO QUADRIFOGLIO, GIULIA GTAM) and prefixes some names with ALFA: the family is the base model.",
+      "rules": [
+        {
+          "pattern": "^(STELVIO)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(GIULIA)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(?:ALFA )?(GIULIETTA)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(?:ALFA )?(MITO)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(4C)",
+          "family": "\\1"
+        }
+      ]
+    },
+    "JEEP": {
+      "reason": "Jeep lists trims and vans as models (GRAND CHEROKEE SRT, WRANGLER UNLIMITED ROCK'S, COMPASS VAN): the family is the base model.",
+      "rules": [
+        {
+          "pattern": "^(GRAND CHEROKEE)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(WRANGLER)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(COMPASS)",
+          "family": "\\1"
+        }
+      ]
+    },
+    "DACIA": {
+      "reason": "Dacia lists conversions of the Dokker as models (DOKKER OLMEDO, DOKKER IMOBILITY): the family is the base model.",
+      "rules": [
+        {
+          "pattern": "^(DOKKER)",
+          "family": "\\1"
+        }
+      ]
+    },
+    "MAZDA": {
+      "reason": "Mazda lists the hybrid as a separate model (MAZDA2 HYBRID): the family is the base model.",
+      "rules": [
+        {
+          "pattern": "^(MAZDA2)",
+          "family": "\\1"
+        }
+      ]
+    },
+    "HONDA": {
+      "reason": "Honda lists body styles and versions of the Civic as models (CIVIC 5DR, CIVIC 4DR, CIVIC TYPE R): the family is CIVIC.",
+      "rules": [
+        {
+          "pattern": "^(CIVIC)",
+          "family": "\\1"
+        }
+      ]
+    },
+    "BYD": {
+      "reason": "BYD lists plug-in and touring versions as models (SEAL U DM-I, SEAL 6 DM-I TOURING, DOLPHIN SURF): the family is the base model.",
+      "rules": [
+        {
+          "pattern": "^(SEAL U)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(SEAL 6)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(DOLPHIN)",
+          "family": "\\1"
+        }
+      ]
+    },
+    "SUZUKI": {
+      "reason": "Suzuki lists dozens of Olmedo conversions of the Jimny as models (JIMNY OLMEDO ZMODE GAN #05, OLMEDO-ZMODE, JIMMY GAN 01): the family is JIMNY.",
+      "rules": [
+        {
+          "pattern": "^(?:JIMNY|JIMMY|OLMEDO)",
+          "family": "JIMNY"
+        },
+        {
+          "pattern": "^(?:E )?(VITARA)",
+          "family": "\\1"
+        }
+      ]
     }
   }
 }

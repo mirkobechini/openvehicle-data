@@ -149,7 +149,7 @@ def test_value_unsupported():
 
 def test_conflict_is_warning():
     st = build(srcs=(SRC, RDW))
-    st.put_prov(pv("eng_petrol-1199-60", "power_kw", ev(60), ev(61, "rdw")))
+    st.put_prov(pv("eng_petrol-1199-60", "power_kw", ev(60), ev(65, "rdw")))
     vs = validate(st)
     assert [(v.rule, v.severity) for v in vs] == [("source_conflict", Severity.WARNING)]
     assert ensure(st) == vs
