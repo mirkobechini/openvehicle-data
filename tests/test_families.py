@@ -86,7 +86,7 @@ SHIPPED = load_family_rules()
 
 
 def test_the_shipped_rules_are_valid_and_each_brand_has_a_reason():
-    assert len(SHIPPED.brands) >= 36
+    assert len(SHIPPED.brands) >= 48
     assert all(len(b.reason) >= 10 and b.rules for b in SHIPPED.brands.values())
 
 
@@ -168,4 +168,24 @@ def test_a_model_of_the_related_car_is_not_pulled_into_another_family():
     ("SUZUKI", "SWIFT", "SWIFT"),
 ])
 def test_shipped_rules_for_the_second_group_of_brands(brand, name, family):
+    assert family_of(SHIPPED, brand, name) == family
+
+
+@pytest.mark.parametrize("brand,name,family", [
+    ("SSANGYONG", "KORANDO E-MOTION", "KORANDO"), ("SSANGYONG", "TORRES EVX", "TORRES"), ("SSANGYONG", "TIVOLI", "TIVOLI"),
+    ("ASTON MARTIN", "DB12 VOLANTE", "DB12"), ("ASTON MARTIN", "DB11 AMR", "DB11"), ("ASTON MARTIN", "DBS 770 ULTIMATE VOLANTE", "DBS"),
+    ("ASTON MARTIN", "DBX707", "DBX"), ("ASTON MARTIN", "V12 VANTAGE ROADSTER", "V12 VANTAGE"), ("ASTON MARTIN", "VANTAGE ROADSTER F1 EDITION", "VANTAGE"),
+    ("ASTON MARTIN", "VANQUISH", "VANQUISH"),
+    ("CIRELLI", "5 BIFUEL CROSS", "5"), ("CIRELLI", "4 PLUG-IN", "4"), ("CIRELLI", "3 SPORT", "3"), ("CIRELLI", "SPORT COUPE'", "SPORT COUPE'"),
+    ("EMC", "SEI GPL", "SEI"), ("EMC", "SEI", "SEI"), ("EMC", "WAVE 3 GPL", "WAVE 3"), ("EMC", "WAVE 2", "WAVE 2"), ("EMC", "SETTE", "SETTE"),
+    ("MAHINDRA", "KUV 100 NXT LPG", "KUV 100"), ("MAHINDRA", "XUV 500", "XUV 500"),
+    ("LOTUS", "EMIRA V6 MANUAL SPORT CHASSIS", "EMIRA"), ("LOTUS", "ELETRE", "ELETRE"),
+    ("FORTHING", "FRIDAY 1.5T DCT DUAL-FUEL", "FRIDAY"), ("FORTHING", "U-TOUR 1.5T DCT 5 DUAL FUEL", "U-TOUR"), ("FORTHING", "T5 HEV 1.5T", "T5"),
+    ("DONGFENG", "BOX PREMIUM", "BOX"), ("DONGFENG", "FREE", "FREE"),
+    ("OMODA", "OMODA5 EV", "OMODA5"), ("OMODA", "5", "OMODA5"), ("OMODA", "9 PHEV", "9"),
+    ("JAECOO", "JAECOO7 PHEV", "JAECOO7"), ("JAECOO", "JAECOO5", "JAECOO5"),
+    ("SUBARU", "BRZ TOUGE", "BRZ"), ("SUBARU", "CROSSTRECK", "CROSSTREK"), ("SUBARU", "CROSSTREK", "CROSSTREK"), ("SUBARU", "XV", "XV"),
+    ("MORGAN", "PLUS SIX SUPERSPORT", "PLUS SIX"), ("MORGAN", "PLUS FOUR 1909", "PLUS FOUR"), ("MORGAN", "MIDSUMMER", "MIDSUMMER"),
+])
+def test_shipped_rules_for_the_smaller_brands(brand, name, family):
     assert family_of(SHIPPED, brand, name) == family
