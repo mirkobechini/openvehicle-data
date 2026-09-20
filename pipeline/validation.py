@@ -7,7 +7,7 @@ from core.provenance import Source, Status
 
 RANGES = [
     (Variant, "mass_kg", 400, 5000),
-    (Variant, "wheelbase_mm", 1500, 4000),
+    (Variant, "wheelbase_mm", 1500, 4500),
     (Engine, "power_kw", None, 1000),
 ]
 SPEC = {
