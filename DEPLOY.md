@@ -82,6 +82,15 @@ python -m pipeline.build --years 2019-2025 --version 0.2.0 --prev dist --out dis
 gh release create data-v0.2.0 dist2/* --title "Data 0.2.0" --notes-file dist2/CHANGELOG.md
 ```
 
+## Monthly refresh check
+
+`.github/workflows/refresh.yml` runs on the 1st of each month (and from the Actions
+tab, Run workflow). It builds the next patch version against the latest data
+release, and if anything changed it opens an issue with the changelog and keeps the
+files as an artifact for 30 days. It never publishes: to release, build the version
+locally as above, publish it and update the Dockerfile. A failed run opens an issue
+too. The workflow appears in the Actions tab once it is on `main`.
+
 ## Things to know
 
 - **No rate limiting on the plain address:** without your own domain behind
