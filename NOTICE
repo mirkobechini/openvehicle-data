@@ -4,7 +4,9 @@ Copyright (c) 2026 Mirko Bechini
 Data sources (each technical specification field in the dataset records its own
 source and license):
 
-- Wikidata (https://www.wikidata.org) - structured data released under CC0 1.0.
+- Wikidata (https://www.wikidata.org) - structured data released under CC0 1.0
+  (licence checked on 2026-09-20). Used for the Wikidata identifier of brands, from
+  a reviewed list.
 - European Environment Agency (EEA) and Directorate-General for Climate Action
   (DG CLIMA), "Monitoring of CO2 emissions from passenger cars - Regulation (EU)
   2019/631", data for 2019 to 2025 (2019-2024 final, 2025 provisional) - reused

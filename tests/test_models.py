@@ -142,3 +142,18 @@ def test_variant_rejects_a_malformed_type_approval(a):
 
 def test_type_approval_is_optional():
     assert var().type_approval is None
+
+
+@pytest.mark.parametrize("q", ["Q1", "Q27597", "Q125054811"])
+def test_brand_accepts_a_wikidata_id(q):
+    assert Brand(id="brand_fiat", name="Fiat", wikidata_id=q).wikidata_id == q
+
+
+@pytest.mark.parametrize("q", ["", "Q0", "Q", "q27597", "27597", "Q27a", "Q 27597", "P31"])
+def test_brand_rejects_a_malformed_wikidata_id(q):
+    with pytest.raises(ValidationError):
+        Brand(id="brand_fiat", name="Fiat", wikidata_id=q)
+
+
+def test_wikidata_id_is_optional():
+    assert Brand(id="brand_fiat", name="Fiat").wikidata_id is None
