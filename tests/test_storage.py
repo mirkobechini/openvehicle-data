@@ -339,3 +339,20 @@ def test_maximum_filter(st):
     assert st.count(CarModel, registrations__lte=1) == 0
     with pytest.raises(ValueError):
         st.count(CarModel, nope__lte=1)
+
+
+def test_meta_values(st):
+    assert st.get_meta("version") is None
+    st.set_meta("version", "0.7.0")
+    st.set_meta("version", "0.7.1")
+    st.set_meta("generated", "2026-09-20")
+    assert (st.get_meta("version"), st.get_meta("generated")) == ("0.7.1", "2026-09-20")
+
+
+def test_meta_of_a_database_without_the_table(tmp_path):
+    import sqlite3
+
+    p = tmp_path / "old.db"
+    sqlite3.connect(p).close()
+    with Store(p, ro=True) as s:
+        assert s.get_meta("version") is None
