@@ -10,7 +10,7 @@ Url = Annotated[str, Field(pattern=r"^https?://\S+$")]
 SrcId = Annotated[str, Field(pattern=r"^[a-z0-9]+(-[a-z0-9]+)*$")]
 
 
-TOL = {"mass_kg": 1, "wheelbase_mm": 10}
+TOL = {"mass_kg": 1, "wheelbase_mm": 10, "power_kw": 1}
 
 
 def _same(f, vs):
