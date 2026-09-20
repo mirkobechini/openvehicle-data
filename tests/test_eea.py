@@ -632,3 +632,52 @@ def test_fetch_closes_the_client_it_creates(monkeypatch):
     monkeypatch.setattr(eea.httpx, "Client", factory)
     assert eea.fetch("co2cars_2025Pv31") == []
     assert len(made) == 1 and made[0].is_closed
+
+
+def models(st):
+    return {m.name: m for m in st.find(CarModel)}
+
+
+def test_names_that_differ_only_by_separators_are_one_model(st):
+    eea.load([row(Mk="HYUNDAI", Cn="TUCSONIX35", n=2), row(Mk="HYUNDAI", Cn="TUCSON IX35", n=5, Va="B")], st, 2025, TODAY)
+    m = models(st)
+    assert list(m) == ["TUCSON IX35"] and m["TUCSON IX35"].aliases == ["TUCSONIX35"] and m["TUCSON IX35"].registrations == 7
+
+
+def test_the_most_registered_spelling_wins_whatever_the_order(st):
+    eea.load([row(Cn="C4 X", n=1, Va="A"), row(Cn="C4X", n=9, Va="B"), row(Cn="C4-X", n=3, Va="C")], st, 2025, TODAY)
+    m = models(st)
+    assert list(m) == ["C4X"] and m["C4X"].aliases == ["C4 X", "C4-X"]
+
+
+def test_equal_registrations_pick_the_first_name_alphabetically(st):
+    eea.load([row(Cn="SANTAFE", n=2, Va="A"), row(Cn="SANTA FE", n=2, Va="B")], st, 2025, TODAY)
+    assert list(models(st)) == ["SANTA FE"]
+
+
+def test_the_same_variant_under_two_spellings_is_one_variant(st):
+    eea.load([row(Cn="I 30", n=4), row(Cn="I30", n=1)], st, 2025, TODAY)
+    vs = st.find(Variant)
+    assert len(vs) == 1 and vs[0].registrations == 5 and vs[0].id.startswith("var_fiat-i-30-")
+
+
+def test_case_and_dots_after_letters_do_not_separate_models(st):
+    eea.load([row(Cn="ID.3", n=3, Va="A"), row(Cn="ID3", n=1, Va="B"), row(Cn="Panda", n=1, Va="C"), row(Cn="PANDA", n=5, Va="D")], st, 2025, TODAY)
+    assert sorted(models(st)) == ["ID.3", "PANDA"]
+
+
+def test_a_dot_between_digits_keeps_models_apart(st):
+    eea.load([row(Mk="DR", Cn="5.0", Va="A"), row(Mk="DR", Cn="50", Va="B"), row(Mk="DR", Cn="DR3.0", Va="C"), row(Mk="DR", Cn="DR30", Va="D")], st, 2025, TODAY)
+    assert sorted(models(st)) == ["5.0", "50", "DR3.0", "DR30"]
+
+
+def test_the_same_spelling_in_two_brands_is_not_merged(st):
+    eea.load([row(Mk="CITROEN", Cn="C4 X"), row(Mk="FIAT", Cn="C4X", Va="B")], st, 2025, TODAY)
+    assert len(st.find(CarModel)) == 2
+
+
+def test_separator_merge_is_applied_after_the_reviewed_merges(st):
+    corr = Corrections(merge_models=[Merge(brand="TOYOTA", model="YARIS GR", into="GR YARIS", reason="the same car with the words swapped")])
+    eea.load([row(Mk="TOYOTA", Cn="YARIS GR", n=7), row(Mk="TOYOTA", Cn="GRYARIS", n=1, Va="B")], st, 2025, TODAY, corr)
+    m = models(st)
+    assert list(m) == ["GR YARIS"] and m["GR YARIS"].registrations == 8
