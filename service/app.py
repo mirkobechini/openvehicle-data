@@ -21,6 +21,7 @@ from service.queries import ATTR, Found, Meta, Page, VariantDetail
 Q = Annotated[str | None, Query(min_length=1, max_length=100, description="Case-insensitive search in name and aliases")]
 Sort = Annotated[Literal["id", "registrations"], Query(description="'registrations' lists the most registered first")]
 Yr = Annotated[int | None, Query(ge=1900, le=2100, description="Only variants registered in this year")]
+Ta = Annotated[str | None, Query(pattern=r"^\s*[eE]\d{1,3}\*[^*\s]+\*[^*\s]+(\*[^*\s]+)?\s*$", description="EU type-approval number as on the registration document, e.g. e3*2007/46*0064*05 or without the last part")]
 MinReg = Annotated[int | None, Query(ge=0, description="Only entries with at least this many registrations")]
 
 
@@ -137,9 +138,10 @@ def create_app(db=None):
         sort: Sort = "id",
         min_registrations: MinReg = None,
         year: Yr = None,
+        type_approval: Ta = None,
     ):
         with rd() as st:
-            return _get(qs.variants_page, st, pg, q, model_id, generation_id, engine_id, fuel, sort, min_registrations, brand_id, family_id, year)
+            return _get(qs.variants_page, st, pg, q, model_id, generation_id, engine_id, fuel, sort, min_registrations, brand_id, family_id, year, type_approval)
 
     @app.get("/api/v1/variants/{i}", response_model=VariantDetail)
     def variant(i: str):

@@ -627,6 +627,158 @@
           "family": "\\1"
         }
       ]
+    },
+    "SSANGYONG": {
+      "reason": "Ssangyong lists an electric or special version as a model (KORANDO E-MOTION, TORRES EVX): the family is the base model.",
+      "rules": [
+        {
+          "pattern": "^(KORANDO)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(TORRES)",
+          "family": "\\1"
+        }
+      ]
+    },
+    "ASTON MARTIN": {
+      "reason": "Aston Martin lists Volante, Roadster and edition versions as models (DB12 VOLANTE, VANTAGE ROADSTER F1 EDITION, DBS 770 ULTIMATE VOLANTE): the family is the base model; V12 VANTAGE stays apart from VANTAGE.",
+      "rules": [
+        {
+          "pattern": "^(DB12)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(DB11)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(DBS)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(DBX)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(V12 VANTAGE)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(VANTAGE)",
+          "family": "\\1"
+        }
+      ]
+    },
+    "CIRELLI": {
+      "reason": "Cirelli names its cars with a number plus a version (5 BIFUEL, 5 CROSS, 7 BIFUEL CROSS, 4 PLUG-IN): the family is the number.",
+      "rules": [
+        {
+          "pattern": "^(\\d+)\\b",
+          "family": "\\1"
+        }
+      ]
+    },
+    "EMC": {
+      "reason": "EMC lists the LPG versions as separate models (SEI GPL, WAVE 3 GPL): the family is the base model.",
+      "rules": [
+        {
+          "pattern": "^(SEI)\\b",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(WAVE \\d)",
+          "family": "\\1"
+        }
+      ]
+    },
+    "MAHINDRA": {
+      "reason": "Mahindra lists NXT and LPG versions of the KUV 100 as models (KUV 100 NXT LPG): the family is KUV 100.",
+      "rules": [
+        {
+          "pattern": "^(KUV 100)",
+          "family": "\\1"
+        }
+      ]
+    },
+    "LOTUS": {
+      "reason": "Lotus lists chassis versions of the Emira as models (EMIRA V6 MANUAL SPORT CHASSIS): the family is EMIRA.",
+      "rules": [
+        {
+          "pattern": "^(EMIRA)",
+          "family": "\\1"
+        }
+      ]
+    },
+    "FORTHING": {
+      "reason": "Forthing lists engine and fuel versions as models (FRIDAY 1.5T DCT DUAL-FUEL, U-TOUR 1.5T DCT 7): the family is the model name.",
+      "rules": [
+        {
+          "pattern": "^(FRIDAY)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(U-TOUR)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^(T5)",
+          "family": "\\1"
+        }
+      ]
+    },
+    "DONGFENG": {
+      "reason": "Dongfeng lists trims of the Box as models (BOX PREMIUM, BOX STYLE): the family is BOX.",
+      "rules": [
+        {
+          "pattern": "^(BOX)",
+          "family": "\\1"
+        }
+      ]
+    },
+    "OMODA": {
+      "reason": "Omoda writes the same cars with and without the brand (OMODA5, 5, OMODA5 EV; 9, 9 PHEV): the family is OMODA5 or 9.",
+      "rules": [
+        {
+          "pattern": "^(?:OMODA)?5\\b",
+          "family": "OMODA5"
+        },
+        {
+          "pattern": "^(9)\\b",
+          "family": "\\1"
+        }
+      ]
+    },
+    "JAECOO": {
+      "reason": "Jaecoo lists the plug-in version of the 7 as a model (JAECOO7 PHEV): the family is JAECOO7.",
+      "rules": [
+        {
+          "pattern": "^(JAECOO7)",
+          "family": "\\1"
+        }
+      ]
+    },
+    "SUBARU": {
+      "reason": "Subaru lists an edition of the BRZ as a model (BRZ TOUGE) and spells Crosstrek two ways: the family is the base model.",
+      "rules": [
+        {
+          "pattern": "^(BRZ)",
+          "family": "\\1"
+        },
+        {
+          "pattern": "^CROSSTRE(?:K|CK)$",
+          "family": "CROSSTREK"
+        }
+      ]
+    },
+    "MORGAN": {
+      "reason": "Morgan lists editions as models (PLUS SIX SUPERSPORT, PLUS FOUR 1909): the family is the base model.",
+      "rules": [
+        {
+          "pattern": "^(PLUS (?:SIX|FOUR))",
+          "family": "\\1"
+        }
+      ]
     }
   }
 }

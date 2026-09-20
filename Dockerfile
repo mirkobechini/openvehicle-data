@@ -1,7 +1,7 @@
 FROM python:3.12-slim
 
-ARG DATA_URL=https://github.com/mirkobechini/openvehicle-data/releases/download/data-v0.8.0/openvehicle-data.db
-ARG DATA_SHA256=f660aa71786b5d0923035fbee121bb8496bf8ebb339803d512711754292c632e
+ARG DATA_URL=https://github.com/mirkobechini/openvehicle-data/releases/download/data-v0.9.0/openvehicle-data.db
+ARG DATA_SHA256=edc600d726d0a33c4e79bc865b0b1b0386247b38db6e747ebf7b6d02e9dacbf6
 
 WORKDIR /app
 COPY pyproject.toml README.md LICENSE LICENSE-DATA NOTICE ./

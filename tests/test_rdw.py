@@ -4,7 +4,7 @@ import httpx
 import pytest
 
 from core.models import Variant
-from core.provenance import Status
+from core.provenance import Evidence, FieldProvenance, Status
 from core.storage import Store
 from pipeline.importers import eea, rdw
 from pipeline.validation import Severity, validate
@@ -336,3 +336,53 @@ def test_run_keeps_working_when_only_power_matches(tmp_path):
     plates = [{"merk": "FIAT", "type": "312", "variant": "A", "uitvoering": "B", "k": "AB123C"}]
     r = rdw.run(db, 2019, rclient([], plates, [{"kenteken": "AB123C", "nettomaximumvermogen": "52.00"}]), TODAY)
     assert r["matched"] == 1 and r["fields"] == 1
+
+
+TA = "typegoedkeuringsnummer"
+
+
+def test_fold_takes_the_most_common_type_approval_base():
+    r = rdw.fold([rrow(**{TA: "e3*2007/46*0064*05", "n": "2"}), rrow(**{TA: "e3*2007/46*0064*06", "n": "3"}), rrow(**{TA: "e3*2007/46*0099*01", "n": "4"})])
+    assert r[("fiat", "312", "A", "B")]["type_approval"] == "e3*2007/46*0064"
+
+
+def test_fold_ignores_a_missing_or_odd_type_approval():
+    r = rdw.fold([rrow(**{TA: None}), rrow(**{TA: "None"}), rrow(**{TA: ""})])
+    assert "type_approval" not in r[("fiat", "312", "A", "B")]
+
+
+def ta(st, name="312 A B"):
+    v = next(x for x in st.find(Variant) if x.name == name)
+    return v, next((p for p in st.prov(v.id) if p.field == "type_approval"), None)
+
+
+def test_verify_sets_the_type_approval_with_its_source(st):
+    fo = {("fiat", "312", "A", "B"): {"type_approval": "e3*2007/46*0064"}}
+    s = rdw.verify(st, fo, TODAY)
+    v, p = ta(st)
+    assert v.type_approval == "e3*2007/46*0064" and s["fields"] == 1
+    assert p.status is Status.SINGLE and [(e.source_id, e.value, e.url) for e in p.evidence] == [("rdw-nl", "e3*2007/46*0064", rdw.PAGE)]
+    assert validate(st) == []
+
+
+def test_verify_leaves_variants_without_a_match_alone(st):
+    rdw.verify(st, {("fiat", "312", "A", "B"): {"type_approval": "e3*2007/46*0064"}}, TODAY)
+    assert ta(st, "312 C D") == (next(x for x in st.find(Variant) if x.name == "312 C D"), None)
+    assert next(x for x in st.find(Variant) if x.name == "312 C D").type_approval is None
+
+
+def test_verify_does_not_replace_an_existing_type_approval(st):
+    v, _ = ta(st)
+    st.put(v.model_copy(update={"type_approval": "e3*2007/46*0001"}))
+    st.put_prov(FieldProvenance(entity_id=v.id, field="type_approval", evidence=[Evidence(source_id="rdw-nl", value="e3*2007/46*0001", retrieved=TODAY)], last_verified=TODAY))
+    rdw.verify(st, {("fiat", "312", "A", "B"): {"type_approval": "e3*2007/46*0064"}}, TODAY)
+    assert ta(st)[0].type_approval == "e3*2007/46*0001"
+
+
+def test_run_stores_the_type_approval(tmp_path):
+    db = tmp_path / "r.db"
+    with Store(db) as s:
+        eea.load([erow()], s, 2025, TODAY)
+    rdw.run(db, 2019, rclient([rrow(**{TA: "e3*2007/46*0064*05"})]), TODAY)
+    with Store(db, ro=True) as s:
+        assert ta(s)[0].type_approval == "e3*2007/46*0064"

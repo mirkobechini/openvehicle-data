@@ -9,7 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 from mcp.server.mcpserver.exceptions import ToolError
 
-from core.models import Brand
+from core.models import Brand, Variant
 from core.storage import Store
 from pipeline.importers import eea
 from service.app import create_app
@@ -436,3 +436,35 @@ def test_dataset_info_reports_the_data_version(db, tmp_path):
         s.set_meta("generated", "2026-09-20")
     j = call(build_mcp(p), "dataset_info")
     assert (j["version"], j["generated"]) == ("0.7.0", "2026-09-20")
+
+
+@pytest.fixture(scope="module")
+def mta(db, tmp_path_factory):
+    import shutil
+
+    p = tmp_path_factory.mktemp("mta") / "v.db"
+    shutil.copy(db, p)
+    with Store(p) as s:
+        vs = s.find(Variant, sort="-registrations")
+        s.put(vs[0].model_copy(update={"type_approval": "e3*2007/46*0064"}), vs[1].model_copy(update={"type_approval": "e3*2007/46*0064"}), vs[2].model_copy(update={"type_approval": "e13*2007/46*1111"}))
+    return build_mcp(p), [v.id for v in vs[:3]]
+
+
+def test_mcp_variants_by_type_approval(mta):
+    m2, ids3 = mta
+    j = call(m2, "list_variants", type_approval="e3*2007/46*0064")
+    assert j["total"] == 2 and sorted(i["id"] for i in j["items"]) == sorted(ids3[:2])
+    assert call(m2, "list_variants", type_approval=" E13*2007/46*1111*00 ")["items"][0]["id"] == ids3[2]
+    assert call(m2, "list_variants", type_approval="e3*2007/46*9999")["total"] == 0
+    assert call(m2, "list_variants", type_approval="e3*2007/46*0064", min_registrations=10**9)["total"] == 0
+
+
+@pytest.mark.parametrize("s", ["312", "e3*2007/46", "x3*2007/46*0064", "e3*20 07*0064"])
+def test_mcp_rejects_a_malformed_type_approval(m, s):
+    with pytest.raises(Exception):
+        call(m, "list_variants", type_approval=s)
+
+
+def test_mcp_type_approval_is_described(m):
+    props = next(t for t in asyncio.run(m.list_tools()) if t.name == "list_variants").input_schema["properties"]
+    assert "carta di circolazione" in props["type_approval"]["description"]

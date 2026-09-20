@@ -1,0 +1,284 @@
+{
+  "brands": {
+    "ABARTH": {
+      "id": "Q26823",
+      "label": "Abarth",
+      "reason": "Wikidata item 'Abarth' (Italian automotive company), reviewed on 2026-09-20 from its label and description"
+    },
+    "AIWAYS": {
+      "id": "Q65158716",
+      "label": "Aiways",
+      "reason": "Wikidata item 'Aiways' (Chinese EV manufacturer), reviewed on 2026-09-20 from its label and description"
+    },
+    "ALFA ROMEO": {
+      "id": "Q124982078",
+      "label": "Alfa Romeo",
+      "reason": "Wikidata item 'Alfa Romeo' (Italian car brand), reviewed on 2026-09-20 from its label and description"
+    },
+    "ASTON MARTIN": {
+      "id": "Q63049904",
+      "label": "Aston Martin",
+      "reason": "Wikidata item 'Aston Martin' (British luxury sports car marque), reviewed on 2026-09-20 from its label and description"
+    },
+    "AUDI": {
+      "id": "Q23317",
+      "label": "Audi AG",
+      "reason": "Wikidata item 'Audi AG' (German automotive manufacturing subsidiary of Volk), reviewed on 2026-09-20 from its label and description"
+    },
+    "BMW": {
+      "id": "Q26678",
+      "label": "BMW",
+      "reason": "Wikidata item 'BMW' (German automobile manufacturer, and conglomerate), reviewed on 2026-09-20 from its label and description"
+    },
+    "CADILLAC": {
+      "id": "Q27436",
+      "label": "Cadillac",
+      "reason": "Wikidata item 'Cadillac' (division of General Motors), reviewed on 2026-09-20 from its label and description"
+    },
+    "CHEVROLET": {
+      "id": "Q29570",
+      "label": "Chevrolet",
+      "reason": "Wikidata item 'Chevrolet' (American automobile division of GM), reviewed on 2026-09-20 from its label and description"
+    },
+    "CITROEN": {
+      "id": "Q6746",
+      "label": "Citroën",
+      "reason": "Wikidata item 'Citroën' (French automotive manufacturer), reviewed on 2026-09-20 from its label and description"
+    },
+    "CUPRA": {
+      "id": "Q8352675",
+      "label": "Cupra",
+      "reason": "Wikidata item 'Cupra' (Spanish automobile manufacturer), reviewed on 2026-09-20 from its label and description"
+    },
+    "DACIA": {
+      "id": "Q27460",
+      "label": "Dacia",
+      "reason": "Wikidata item 'Dacia' (brand and romanian car manufacturer from Renault), reviewed on 2026-09-20 from its label and description"
+    },
+    "DALLARA": {
+      "id": "Q1157975",
+      "label": "Dallara",
+      "reason": "Wikidata item 'Dallara' (automobile chassis manufacturer), reviewed on 2026-09-20 from its label and description"
+    },
+    "FERRARI": {
+      "id": "Q27586",
+      "label": "Ferrari",
+      "reason": "Wikidata item 'Ferrari' (Italian luxury sports car manufacturer), reviewed on 2026-09-20 from its label and description"
+    },
+    "FIAT": {
+      "id": "Q27597",
+      "label": "Fiat",
+      "reason": "Wikidata item 'Fiat' (Italian automotive company), reviewed on 2026-09-20 from its label and description"
+    },
+    "FORD": {
+      "id": "Q20827633",
+      "label": "Ford",
+      "reason": "Wikidata item 'Ford' (car brand owned by Ford Motor Company), reviewed on 2026-09-20 from its label and description"
+    },
+    "FORTHING": {
+      "id": "Q111943892",
+      "label": "Forthing",
+      "reason": "Wikidata item 'Forthing' (Chinese automobile brand), reviewed on 2026-09-20 from its label and description"
+    },
+    "GEELY": {
+      "id": "Q739000",
+      "label": "Geely",
+      "reason": "Wikidata item 'Geely' (Chinese automotive manufacturing company), reviewed on 2026-09-20 from its label and description"
+    },
+    "HONDA": {
+      "id": "Q124966298",
+      "label": "Honda",
+      "reason": "Wikidata item 'Honda' (brand of cars and motocycles), reviewed on 2026-09-20 from its label and description"
+    },
+    "HYUNDAI": {
+      "id": "Q125054811",
+      "label": "Hyundai",
+      "reason": "Wikidata item 'Hyundai' (brand of cars), reviewed on 2026-09-20 from its label and description"
+    },
+    "INFINITI": {
+      "id": "Q29714",
+      "label": "Infiniti",
+      "reason": "Wikidata item 'Infiniti' (Japanese luxury vehicle brand owned by Nissan), reviewed on 2026-09-20 from its label and description"
+    },
+    "JAGUAR": {
+      "id": "Q21170490",
+      "label": "Jaguar",
+      "reason": "Wikidata item 'Jaguar' (British car marque used by Jaguar Land Rover), reviewed on 2026-09-20 from its label and description"
+    },
+    "JEEP": {
+      "id": "Q30113",
+      "label": "Jeep",
+      "reason": "Wikidata item 'Jeep' (US automotive company), reviewed on 2026-09-20 from its label and description"
+    },
+    "KG MOBILITY": {
+      "id": "Q221869",
+      "label": "KG Mobility",
+      "reason": "Wikidata item 'KG Mobility' (South Korean automobile manufacturer), reviewed on 2026-09-20 from its label and description"
+    },
+    "KIA": {
+      "id": "Q35349",
+      "label": "Kia",
+      "reason": "Wikidata item 'Kia' (South Korean automobile manufacturer), reviewed on 2026-09-20 from its label and description"
+    },
+    "KTM": {
+      "id": "Q215657",
+      "label": "KTM",
+      "reason": "Wikidata item 'KTM' (Austrian motorcycle and sports car brand), reviewed on 2026-09-20 from its label and description"
+    },
+    "LAMBORGHINI": {
+      "id": "Q124966860",
+      "label": "Lamborghini",
+      "reason": "Wikidata item 'Lamborghini' (car brand owned by Automobili Lamborghini S.p.A.), reviewed on 2026-09-20 from its label and description"
+    },
+    "LANCIA": {
+      "id": "Q125097315",
+      "label": "Lancia",
+      "reason": "Wikidata item 'Lancia' (car brand), reviewed on 2026-09-20 from its label and description"
+    },
+    "LAND ROVER": {
+      "id": "Q26777551",
+      "label": "Land Rover",
+      "reason": "Wikidata item 'Land Rover' (British car marque used by Jaguar Land Rover), reviewed on 2026-09-20 from its label and description"
+    },
+    "LEAPMOTOR": {
+      "id": "Q99510294",
+      "label": "Leapmotor",
+      "reason": "Wikidata item 'Leapmotor' (Chinese automotive company), reviewed on 2026-09-20 from its label and description"
+    },
+    "LEXUS": {
+      "id": "Q35919",
+      "label": "Lexus",
+      "reason": "Wikidata item 'Lexus' (Japanese brand of luxury vehicle owned by Toyota M), reviewed on 2026-09-20 from its label and description"
+    },
+    "MAHINDRA": {
+      "id": "Q848059",
+      "label": "Mahindra & Mahindra",
+      "reason": "Wikidata item 'Mahindra & Mahindra' (Indian multinational automobile manufacturer), reviewed on 2026-09-20 from its label and description"
+    },
+    "MASERATI": {
+      "id": "Q124991042",
+      "label": "Maserati",
+      "reason": "Wikidata item 'Maserati' (Italian automobile brand), reviewed on 2026-09-20 from its label and description"
+    },
+    "MAXUS": {
+      "id": "Q3302845",
+      "label": "Maxus",
+      "reason": "Wikidata item 'Maxus' (automobile manufacturer), reviewed on 2026-09-20 from its label and description"
+    },
+    "MAZDA": {
+      "id": "Q35996",
+      "label": "Mazda",
+      "reason": "Wikidata item 'Mazda' (Japanese multinational automaker), reviewed on 2026-09-20 from its label and description"
+    },
+    "MCLAREN": {
+      "id": "Q131552505",
+      "label": "McLaren",
+      "reason": "Wikidata item 'McLaren' (car brand owned by McLaren Automotive Limited), reviewed on 2026-09-20 from its label and description"
+    },
+    "MERCEDES AMG": {
+      "id": "Q26966",
+      "label": "Mercedes-AMG",
+      "reason": "Wikidata item 'Mercedes-AMG' (subsidiary and sub-brand of Mercedes-Benz AG), reviewed on 2026-09-20 from its label and description"
+    },
+    "MERCEDES-BENZ": {
+      "id": "Q36008",
+      "label": "Mercedes-Benz",
+      "reason": "Wikidata item 'Mercedes-Benz' (German automobile brand owned by Mercedes-Benz AG), reviewed on 2026-09-20 from its label and description"
+    },
+    "MITSUBISHI": {
+      "id": "Q36033",
+      "label": "Mitsubishi Motors",
+      "reason": "Wikidata item 'Mitsubishi Motors' (Japanese automotive manufacturer), reviewed on 2026-09-20 from its label and description"
+    },
+    "NISSAN": {
+      "id": "Q20165",
+      "label": "Nissan",
+      "reason": "Wikidata item 'Nissan' (Japanese automobile manufacturer), reviewed on 2026-09-20 from its label and description"
+    },
+    "OMODA": {
+      "id": "Q118646009",
+      "label": "Omoda",
+      "reason": "Wikidata item 'Omoda' (marque owned by Chery), reviewed on 2026-09-20 from its label and description"
+    },
+    "OPEL": {
+      "id": "Q40966",
+      "label": "Opel",
+      "reason": "Wikidata item 'Opel' (German automobile manufacturer, subsidiary of Stel), reviewed on 2026-09-20 from its label and description"
+    },
+    "PAGANI": {
+      "id": "Q132560748",
+      "label": "Pagani",
+      "reason": "Wikidata item 'Pagani' (car brand owned by Pagani Automobili S.p.A.), reviewed on 2026-09-20 from its label and description"
+    },
+    "PEUGEOT": {
+      "id": "Q6742",
+      "label": "Peugeot",
+      "reason": "Wikidata item 'Peugeot' (French automotive brand of Stellantis), reviewed on 2026-09-20 from its label and description"
+    },
+    "POLESTAR": {
+      "id": "Q4047174",
+      "label": "Polestar",
+      "reason": "Wikidata item 'Polestar' (Swedish automotive brand), reviewed on 2026-09-20 from its label and description"
+    },
+    "PORSCHE": {
+      "id": "Q124966804",
+      "label": "Porsche",
+      "reason": "Wikidata item 'Porsche' (car brand), reviewed on 2026-09-20 from its label and description"
+    },
+    "ROEWE": {
+      "id": "Q1637227",
+      "label": "Roewe",
+      "reason": "Wikidata item 'Roewe' (car brand), reviewed on 2026-09-20 from its label and description"
+    },
+    "ROLLS ROYCE": {
+      "id": "Q125141709",
+      "label": "Rolls-Royce",
+      "reason": "Wikidata item 'Rolls-Royce' (car brand), reviewed on 2026-09-20 from its label and description"
+    },
+    "SEAT": {
+      "id": "Q188217",
+      "label": "SEAT",
+      "reason": "Wikidata item 'SEAT' (Spanish automotive company based in Martorell, sub), reviewed on 2026-09-20 from its label and description"
+    },
+    "SKODA": {
+      "id": "Q29637",
+      "label": "Škoda Auto",
+      "reason": "Wikidata item 'Škoda Auto' (automotive manufacturing subsidiary of Volkswagen ), reviewed on 2026-09-20 from its label and description"
+    },
+    "SPORTEQUIPE": {
+      "id": "Q115287319",
+      "label": "Sportequipe",
+      "reason": "Wikidata item 'Sportequipe' (DR Automobiles brand), reviewed on 2026-09-20 from its label and description"
+    },
+    "SUBARU": {
+      "id": "Q125214266",
+      "label": "Subaru",
+      "reason": "Wikidata item 'Subaru' (Japanese car brand), reviewed on 2026-09-20 from its label and description"
+    },
+    "TESLA": {
+      "id": "Q478214",
+      "label": "Tesla",
+      "reason": "Wikidata item 'Tesla' (American automotive, energy storage and solar powe), reviewed on 2026-09-20 from its label and description"
+    },
+    "TOYOTA": {
+      "id": "Q53268",
+      "label": "Toyota",
+      "reason": "Wikidata item 'Toyota' (Japanese multinational automotive manufacturer), reviewed on 2026-09-20 from its label and description"
+    },
+    "VOLKSWAGEN": {
+      "id": "Q246",
+      "label": "Volkswagen",
+      "reason": "Wikidata item 'Volkswagen' (German automotive brand; manufacturing subsidiary ), reviewed on 2026-09-20 from its label and description"
+    },
+    "VOLVO": {
+      "id": "Q20827600",
+      "label": "Volvo",
+      "reason": "Wikidata item 'Volvo' (brand of cars owned by Volvo Trademark Holding), reviewed on 2026-09-20 from its label and description"
+    },
+    "XPENG": {
+      "id": "Q63035278",
+      "label": "XPeng",
+      "reason": "Wikidata item 'XPeng' (Chinese automobile manufacturer), reviewed on 2026-09-20 from its label and description"
+    }
+  }
+}
