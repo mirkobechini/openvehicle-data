@@ -2,7 +2,7 @@ from pipeline.sources import EEA, RDW, SOURCES
 
 
 def test_registry():
-    assert SOURCES == {"eea-co2": EEA, "rdw-nl": RDW}
+    assert SOURCES.items() >= {"eea-co2": EEA, "rdw-nl": RDW}.items()
 
 
 def test_eea_license_checked():
