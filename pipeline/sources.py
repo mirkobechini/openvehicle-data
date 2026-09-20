@@ -18,4 +18,12 @@ RDW = Source(
     license_checked=date(2026, 9, 20),
 )
 
-SOURCES = {s.id: s for s in (EEA, RDW)}
+WIKIDATA = Source(
+    id="wikidata",
+    name="Wikidata",
+    license="CC0-1.0",
+    license_url="https://www.wikidata.org/wiki/Wikidata:Licensing",
+    license_checked=date(2026, 9, 20),
+)
+
+SOURCES = {s.id: s for s in (EEA, RDW, WIKIDATA)}
