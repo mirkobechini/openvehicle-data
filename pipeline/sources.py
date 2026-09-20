@@ -10,4 +10,12 @@ EEA = Source(
     license_checked=date(2026, 9, 20),
 )
 
-SOURCES = {s.id: s for s in (EEA,)}
+RDW = Source(
+    id="rdw-nl",
+    name="RDW Open Data - Gekentekende voertuigen",
+    license="Public-Domain",
+    license_url="https://opendata.rdw.nl/Voertuigen/Open-Data-RDW-Gekentekende_voertuigen/m9d7-ebf2",
+    license_checked=date(2026, 9, 20),
+)
+
+SOURCES = {s.id: s for s in (EEA, RDW)}

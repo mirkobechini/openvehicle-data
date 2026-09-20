@@ -5,13 +5,16 @@ from pathlib import Path
 
 from core.storage import Store
 from pipeline.export import export
-from pipeline.importers import eea
+from pipeline.importers import eea, rdw
+from pipeline.importers.eea_datasets import parse_years
 
 
-def build(out, version, years, ms="IT", prev=None, client=None, today=None):
+def build(out, version, years, ms="IT", prev=None, client=None, today=None, check=True):
     with tempfile.TemporaryDirectory() as d:
         db = Path(d) / "build.db"
         stats = eea.run(db, years, ms, client, today)
+        if check:
+            stats["rdw"] = rdw.run(db, min(parse_years(years)), client, today)
         with Store(db) as st:
             return {"import": stats, "export": export(st, out, version, today, prev)}
 
@@ -23,8 +26,9 @@ def main(argv=None):
     a.add_argument("--out", required=True)
     a.add_argument("--country", default="IT")
     a.add_argument("--prev", help="folder of the previous export, for the changelog")
+    a.add_argument("--skip-rdw", action="store_true", help="do not cross-check with the RDW data")
     n = a.parse_args(argv)
-    r = build(n.out, n.version, n.years, n.country, n.prev)
+    r = build(n.out, n.version, n.years, n.country, n.prev, check=not n.skip_rdw)
     print(json.dumps({"import": r["import"], "counts": r["export"]["counts"], "warnings": r["export"]["warnings"]}, indent=1))
 
 

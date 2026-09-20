@@ -10,6 +10,16 @@ Url = Annotated[str, Field(pattern=r"^https?://\S+$")]
 SrcId = Annotated[str, Field(pattern=r"^[a-z0-9]+(-[a-z0-9]+)*$")]
 
 
+TOL = {"mass_kg": 1, "wheelbase_mm": 10}
+
+
+def _same(f, vs):
+    try:
+        return max(vs) - min(vs) <= TOL.get(f, 0)
+    except TypeError:
+        return len(set(vs)) == 1
+
+
 class Status(StrEnum):
     SINGLE = "single_source"
     CONFIRMED = "confirmed"
@@ -49,7 +59,7 @@ class FieldProvenance(Base):
     @computed_field
     @property
     def status(self) -> Status:
-        if len({e.value for e in self.evidence}) > 1:
+        if not _same(self.field, [e.value for e in self.evidence]):
             return Status.CONFLICT
         if len({e.source_id for e in self.evidence}) > 1:
             return Status.CONFIRMED
