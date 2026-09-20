@@ -27,6 +27,17 @@ def client(h):
     return httpx.Client(transport=httpx.MockTransport(h))
 
 
+def rclient(main=None, plates=None, fuel=None):
+    def h(req):
+        if req.url.path.endswith("8ys7-d773.json"):
+            return httpx.Response(200, json=fuel or [])
+        if "min(kenteken)" in req.url.params["$select"]:
+            return httpx.Response(200, json=plates or [])
+        return httpx.Response(200, json=main or [])
+
+    return client(h)
+
+
 @pytest.fixture
 def st(tmp_path):
     with Store(tmp_path / "v.db") as s:
@@ -177,7 +188,7 @@ def test_run(tmp_path):
     db = tmp_path / "r.db"
     with Store(db) as s:
         eea.load([erow()], s, 2025, TODAY)
-    r = rdw.run(db, 2019, client(lambda q: httpx.Response(200, json=[rrow()])), TODAY)
+    r = rdw.run(db, 2019, rclient([rrow()]), TODAY)
     assert r["matched"] == 1 and r["confirmed"] == 3
 
 
