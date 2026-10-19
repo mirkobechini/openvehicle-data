@@ -83,6 +83,7 @@ mistyped entries.
 | `co2_wltp_g_km` | WLTP combined CO2 |
 | `registrations` | cars registered in Italy in the source data, summed over the years |
 | `type_approval` | EU type-approval base number, e.g. `e3*2007/46*0064` (nearly all variants) |
+| `type_code`, `variant_code`, `version_code` | type, variant and version as in field D.2 of the registration document |
 | `engine` | fuel, `displacement_cc`, `power_kw` |
 
 Brands also carry a `wikidata_id` where a reliable match was reviewed.
