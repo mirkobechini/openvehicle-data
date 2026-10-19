@@ -766,3 +766,27 @@ def test_years_are_the_registration_years_not_the_range(st):
     v = st.get(Variant, "var_fiat-panda-312-a-b")
     assert (v.year_from, v.year_to, v.years) == (2019, 2025, [2019, 2025])
     assert st.get(Variant, "var_fiat-panda-312-x-b").years == [2022]
+
+
+def r2(y, **k):
+    return {**row(**k), "y": y}
+
+
+def test_yearly_picks_the_winning_engine_per_year_and_counts_the_losers():
+    by, tas, wins, reg, conf = eea._yearly([r2(2024, n=3), r2(2024, ec=1200, n=1), r2(2025, ta="E3*2007/46*0064*01", n=2)])
+    assert sorted(by) == [2024, 2025] and wins[2024][2] == 999 and reg == 5 and conf == 1
+    assert tas == {2024: None, 2025: "e3*2007/46*0064"}
+
+
+def test_values_take_each_field_from_the_latest_year_that_has_it():
+    by, tas, *_ = eea._yearly([r2(2024, w=2300, m=1000), r2(2025, w=None, m=1100)])
+    vals, src = eea._values(by, tas, {2024: "u24", 2025: "u25"})
+    assert (vals["mass_kg"], src["mass_kg"]) == (1100, "u25") and (vals["wheelbase_mm"], src["wheelbase_mm"]) == (2300, "u24")
+    assert "type_approval" not in vals
+
+
+def test_names_count_skipped_and_excluded_rows():
+    from pipeline.importers.corrections import load_corrections
+
+    pre, skip, excl = eea._names([r2(2025, Mk=" "), r2(2025, Cn=None), r2(2025)], load_corrections())
+    assert (len(pre), skip, excl) == (1, 2, 0)
