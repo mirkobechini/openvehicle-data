@@ -125,8 +125,8 @@ def verify(st, fo, today=None):
     out, seen, hit, tot, nv = {}, set(), 0, 0, {}
     for v in st.find(Variant):
         tot += 1
-        p = v.name.split(" ")
-        r = next((fo[(n, *p)] for n in sorted(bn[gb[v.generation_id]]) if len(p) == 3 and (n, *p) in fo), None)
+        p = (v.type_code, v.variant_code, v.version_code)
+        r = next((fo[(n, *p)] for n in sorted(bn[gb[v.generation_id]]) if (n, *p) in fo), None)
         if r is None:
             continue
         hit += 1
