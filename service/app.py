@@ -13,7 +13,7 @@ from core.coverage import Coverage
 from core.enums import Fuel
 from core.models import Brand, CarModel, Engine, Family, Generation, Variant
 from core.provenance import Source
-from core.storage import Store
+from core.storage import SCHEMA_VERSION, SchemaError, Store
 from service import queries as qs
 from service.headers import Cache, Headers, RateLimit
 from service.mcp_server import build_mcp
@@ -44,6 +44,10 @@ def create_app(db=None, rate=None):
     p = Path(db or os.environ.get("OVD_DB", "openvehicle-data.db"))
     if not p.is_file():
         raise FileNotFoundError(p)
+    with Store(p, ro=True) as st:
+        v = st.get_meta("schema_version")
+    if v != str(SCHEMA_VERSION):
+        raise SchemaError(f"dataset schema is {v or 'unversioned'}, this service needs {SCHEMA_VERSION}: use a newer dataset release")
     mcp = build_mcp(p)
     mcp_app = mcp.streamable_http_app(
         streamable_http_path="/mcp",

@@ -46,6 +46,7 @@ class Found(BaseModel):
 
 class Meta(BaseModel):
     version: str
+    schema_version: int | None
     generated: str | None
     software_version: str
     license: str
@@ -181,4 +182,4 @@ def coverage_of(st, brand_id=None):
 
 def meta(st, version):
     cs = {c.__name__: st.count(c) for c in (Brand, Family, CarModel, Generation, Engine, Variant, Source)}
-    return Meta(version=st.get_meta("version") or "unknown", generated=st.get_meta("generated"), software_version=version, license="CC-BY-4.0", attribution=ATTR, counts=cs, coverage=coverage(st).overall, sources=st.find(Source))
+    return Meta(version=st.get_meta("version") or "unknown", schema_version=int(st.get_meta("schema_version") or 0) or None, generated=st.get_meta("generated"), software_version=version, license="CC-BY-4.0", attribution=ATTR, counts=cs, coverage=coverage(st).overall, sources=st.find(Source))
