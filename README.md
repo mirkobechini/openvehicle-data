@@ -78,6 +78,7 @@ mistyped entries.
 | --- | --- |
 | `name`, `aliases` | the type/variant/version codes, as reported |
 | `year_from`, `year_to` | first and last registration year seen (2019-2025), not production years |
+| `years` | the years with registrations (the `year` filter matches these, not the range between first and last) |
 | `mass_kg` | mass in running order |
 | `wheelbase_mm`, `track_width_mm` | only for vehicles registered in 2019-2022 |
 | `co2_wltp_g_km` | WLTP combined CO2 |

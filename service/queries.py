@@ -147,7 +147,7 @@ def variants_page(st, lo, q=None, model_id=None, generation_id=None, engine_id=N
         if v is not None:
             w[k] = v.strip()
     if year is not None:
-        w["year_from__lte"] = w["year_to__gte"] = year
+        w["years__has"] = year
     return page(st, Variant, lo, q, sort, min_reg, **w)
 
 

@@ -759,3 +759,10 @@ def test_missing_parts_are_none_not_a_shifted_name(st, va, ve):
     (v,) = st.find(Variant)
     assert v.type_code == "312" and v.variant_code == (va.strip() or None if va else None) and v.version_code == ve
     assert v.name.split() == [x for x in ("312", v.variant_code, v.version_code) if x]
+
+
+def test_years_are_the_registration_years_not_the_range(st):
+    eea.load_years({2019: [row()], 2022: [row(Va="X")], 2025: [row()]}, st, TODAY)
+    v = st.get(Variant, "var_fiat-panda-312-a-b")
+    assert (v.year_from, v.year_to, v.years) == (2019, 2025, [2019, 2025])
+    assert st.get(Variant, "var_fiat-panda-312-x-b").years == [2022]

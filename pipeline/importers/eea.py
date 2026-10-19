@@ -216,7 +216,7 @@ def _load(rows, st, today, corr, fam, urls):
             Variant, drops, id=vid, generation_id=gid, engine_id=eid,
             name=" ".join(str(p).strip() for p in (r["T"], r["Va"], r["Ve"]) if p and str(p).strip()) or "unknown",
             year_from=ys[0], year_to=ys[-1], registrations=reg,
-            type_code=_c(r["T"]), variant_code=_c(r["Va"]), version_code=_c(r["Ve"]),**{f: vals.get(f) for f in (*VF.values(), "type_approval")},
+            years=ys, type_code=_c(r["T"]), variant_code=_c(r["Va"]), version_code=_c(r["Ve"]),**{f: vals.get(f) for f in (*VF.values(), "type_approval")},
         )
         _pv(vs[vid], (*VF.values(), "type_approval"), src, today, pv)
     for eid, e in es.items():

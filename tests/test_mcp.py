@@ -484,3 +484,11 @@ def test_mcp_rejects_empty_codes_and_describes_them(m, k):
         call(m, "list_variants", **{k: ""})
     props = next(t for t in asyncio.run(m.list_tools()) if t.name == "list_variants").input_schema["properties"]
     assert "D.2" in props[k]["description"]
+
+
+def test_mcp_year_filter_uses_the_observed_years(tmp_path):
+    p = tmp_path / "g.db"
+    with Store(p) as st:
+        eea.load_years({2019: ROWS[:3], 2025: ROWS[:3]}, st, date(2026, 9, 19))
+    g = build_mcp(p)
+    assert call(g, "list_variants", year=2019)["total"] > 0 and call(g, "list_variants", year=2022)["total"] == 0
