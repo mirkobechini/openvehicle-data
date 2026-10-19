@@ -6,17 +6,18 @@ from pathlib import Path
 from core.coverage import coverage
 from core.storage import Store
 from pipeline.export import export
-from pipeline.importers import eea, rdw, wikidata
-from pipeline.importers.eea_datasets import parse_years
+from pipeline.importers import Ctx
+from pipeline.importers import stages as STAGES
 
 
-def build(out, version, years, ms="IT", prev=None, client=None, today=None, check=True):
+def build(out, version, years, ms="IT", prev=None, client=None, today=None, check=True, stages=None):
     with tempfile.TemporaryDirectory() as d:
         db = Path(d) / "build.db"
-        stats = eea.run(db, years, ms, client, today)
-        if check:
-            stats["rdw"] = rdw.run(db, min(parse_years(years)), client, today)
-        stats["wikidata"] = wikidata.run(db, today=today)
+        ctx = Ctx(years, ms, client, today, check)
+        first, *rest = [s for s in (stages or STAGES)() if s.enabled(ctx)]
+        stats = first.run(db, ctx)
+        for s in rest:
+            stats[s.name] = s.run(db, ctx)
         with Store(db) as st:
             stats["coverage"] = coverage(st).overall.model_dump()
             return {"import": stats, "export": export(st, out, version, today, prev)}
