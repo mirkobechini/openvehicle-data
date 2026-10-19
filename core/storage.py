@@ -6,6 +6,7 @@ from pathlib import Path
 from core.models import Brand, CarModel, Engine, Family, Generation, Variant
 from core.provenance import FieldProvenance, Source
 
+SCHEMA_VERSION = 2
 TB = {
     Brand: "brands",
     CarModel: "models",
@@ -77,6 +78,10 @@ def _op(k):
     return (k[: -len(o)], o) if o else (k, None)
 
 
+class SchemaError(Exception):
+    pass
+
+
 class Store:
     def __init__(self, path=":memory:", ro=False):
         if ro:
@@ -86,7 +91,13 @@ class Store:
         self.c.row_factory = sqlite3.Row
         self.c.execute("PRAGMA foreign_keys=ON")
         if not ro:
+            old = self.has(Variant)
             self.c.executescript(DDL)
+            v = self.get_meta("schema_version")
+            if (old and v is None) or v not in (None, str(SCHEMA_VERSION)):
+                self.c.close()
+                raise SchemaError(f"database schema is {v or 'unversioned'}, this code writes {SCHEMA_VERSION}: build a new dataset")
+            self.set_meta("schema_version", str(SCHEMA_VERSION))
 
     def close(self):
         self.c.close()
