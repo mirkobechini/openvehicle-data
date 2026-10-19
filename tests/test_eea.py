@@ -745,3 +745,17 @@ def test_splitting_rows_by_approval_does_not_change_the_measured_values(st):
     eea.load([a, b, c], st, 2025, TODAY)
     v, _ = ta(st)
     assert v.mass_kg == 1100 and v.registrations == 7
+
+
+def test_codes_come_from_type_variant_and_version(st):
+    eea.load([row(T=" 312 ", Va="PYD1B", Ve="AA4")], st, 2025, TODAY)
+    v = st.get(Variant, "var_fiat-panda-312-pyd1b-aa4")
+    assert (v.type_code, v.variant_code, v.version_code) == ("312", "PYD1B", "AA4")
+
+
+@pytest.mark.parametrize("va,ve", [(None, "B"), ("", "B"), ("  ", None), ("A", None)])
+def test_missing_parts_are_none_not_a_shifted_name(st, va, ve):
+    eea.load([row(Va=va, Ve=ve)], st, 2025, TODAY)
+    (v,) = st.find(Variant)
+    assert v.type_code == "312" and v.variant_code == (va.strip() or None if va else None) and v.version_code == ve
+    assert v.name.split() == [x for x in ("312", v.variant_code, v.version_code) if x]

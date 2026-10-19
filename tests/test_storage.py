@@ -358,9 +358,9 @@ def test_meta_of_a_database_without_the_table(tmp_path):
         assert s.get_meta("version") is None
 
 
-def test_variants_have_a_type_approval_column(st):
+def test_variants_have_the_approval_and_code_columns(st):
     cs = [r[1] for r in st.c.execute("PRAGMA table_info(variants)")]
-    assert cs[-1] == "type_approval"
+    assert {"type_approval", "type_code", "variant_code", "version_code"} <= set(cs)
 
 
 def test_brands_have_a_wikidata_id_column(st):

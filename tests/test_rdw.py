@@ -415,3 +415,24 @@ def test_verify_without_an_rdw_type_approval_keeps_the_eea_one_single(st):
     eea_ta(st, "e3*2007/46*0064")
     rdw.verify(st, {("fiat", "312", "A", "B"): {"mass_kg": 1000.0}}, TODAY)
     assert ta(st)[1].status is Status.SINGLE
+
+
+@pytest.mark.parametrize("ek,rk", [({"Va": None}, {"variant": None}), ({"Ve": ""}, {"uitvoering": None}), ({"Va": "A", "Ve": None}, {"uitvoering": None})])
+def test_verify_matches_variants_that_lack_a_part(tmp_path, ek, rk):
+    with Store(tmp_path / "w.db") as s:
+        eea.load([erow(**ek)], s, 2025, TODAY)
+        fo = rdw.fold([rrow(**rk)])
+        r = rdw.verify(s, fo, TODAY)
+        assert r["matched"] == 1 and r["variants"] == 1
+
+
+def test_verify_does_not_match_a_variant_with_a_different_part_missing(tmp_path):
+    with Store(tmp_path / "w.db") as s:
+        eea.load([erow(Va=None)], s, 2025, TODAY)
+        assert rdw.verify(s, rdw.fold([rrow(uitvoering=None)]), TODAY)["matched"] == 0
+
+
+def test_verify_matches_codes_that_contain_spaces(tmp_path):
+    with Store(tmp_path / "w.db") as s:
+        eea.load([erow(Va="A 1", Ve="B")], s, 2025, TODAY)
+        assert rdw.verify(s, rdw.fold([rrow(variant="A 1")]), TODAY)["matched"] == 1
