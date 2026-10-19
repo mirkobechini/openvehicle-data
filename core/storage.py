@@ -54,6 +54,13 @@ CREATE INDEX IF NOT EXISTS ix_models_family ON models(family_id);
 CREATE INDEX IF NOT EXISTS ix_families_brand ON families(brand_id);
 CREATE INDEX IF NOT EXISTS ix_gens_model ON generations(model_id);
 CREATE INDEX IF NOT EXISTS ix_vars_gen ON variants(generation_id);
+CREATE INDEX IF NOT EXISTS ix_vars_ta ON variants(type_approval);
+CREATE INDEX IF NOT EXISTS ix_vars_eng ON variants(engine_id);
+CREATE INDEX IF NOT EXISTS ix_vars_reg ON variants(registrations);
+CREATE INDEX IF NOT EXISTS ix_vars_codes ON variants(type_code, variant_code, version_code);
+CREATE INDEX IF NOT EXISTS ix_models_reg ON models(registrations);
+CREATE INDEX IF NOT EXISTS ix_fam_reg ON families(registrations);
+CREATE INDEX IF NOT EXISTS ix_engines_fuel ON engines(fuel);
 """
 
 

@@ -366,3 +366,20 @@ def test_variants_have_the_approval_and_code_columns(st):
 def test_brands_have_a_wikidata_id_column(st):
     cs = [r[1] for r in st.c.execute("PRAGMA table_info(brands)")]
     assert cs[-1] == "wikidata_id"
+
+
+def plan(st, sql, *a):
+    return " ".join(r[3] for r in st.c.execute("EXPLAIN QUERY PLAN " + sql, a))
+
+
+@pytest.mark.parametrize("sql,ix", [
+    ("SELECT * FROM variants WHERE type_approval=?", "ix_vars_ta"),
+    ("SELECT * FROM variants WHERE engine_id=?", "ix_vars_eng"),
+    ("SELECT * FROM variants WHERE type_code=? AND variant_code=? AND version_code=?", "ix_vars_codes"),
+    ("SELECT * FROM variants ORDER BY registrations DESC LIMIT 5", "ix_vars_reg"),
+    ("SELECT * FROM models ORDER BY registrations DESC LIMIT 5", "ix_models_reg"),
+    ("SELECT * FROM families ORDER BY registrations DESC LIMIT 5", "ix_fam_reg"),
+    ("SELECT * FROM engines WHERE fuel=?", "ix_engines_fuel"),
+])
+def test_hot_queries_use_an_index(st, sql, ix):
+    assert ix in plan(st, sql, *("x",) * sql.count("?"))
