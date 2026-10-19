@@ -157,3 +157,12 @@ def test_brand_rejects_a_malformed_wikidata_id(q):
 
 def test_wikidata_id_is_optional():
     assert Brand(id="brand_fiat", name="Fiat").wikidata_id is None
+
+
+def test_codes_are_optional_and_not_empty():
+    v = var()
+    assert (v.type_code, v.variant_code, v.version_code) == (None, None, None)
+    assert var(type_code="312", variant_code="A", version_code="B").version_code == "B"
+    for f in ("type_code", "variant_code", "version_code"):
+        with pytest.raises(ValidationError):
+            var(**{f: ""})
