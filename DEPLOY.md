@@ -82,14 +82,29 @@ python -m pipeline.build --years 2019-2025 --version 0.2.0 --prev dist --out dis
 gh release create data-v0.2.0 dist2/* --title "Data 0.2.0" --notes-file dist2/CHANGELOG.md
 ```
 
-## Monthly refresh check
+## Monthly refresh
 
-`.github/workflows/refresh.yml` runs on the 1st of each month (and from the Actions
-tab, Run workflow). It builds the next patch version against the latest data
-release, and if anything changed it opens an issue with the changelog and keeps the
-files as an artifact for 30 days. It never publishes: to release, build the version
-locally as above, publish it and update the Dockerfile. A failed run opens an issue
-too. The workflow appears in the Actions tab once it is on `main`.
+`.github/workflows/refresh.yml` runs on the 1st of each month (and from the Actions tab,
+Run workflow). It builds the next patch version against the latest data release. If
+nothing really changed (case-only differences in aliases do not count) it stops. If
+something did:
+
+1. **Guard**: it stops, and opens an issue, if any table shrank by more than 5%.
+2. It publishes the pre-release `data-vX.Y.Z` with all the files.
+3. It opens a pull request to `main` that moves `DATA_URL` and `DATA_SHA256` in the
+   `Dockerfile`, and starts CI on it (a pull request opened with the default token does
+   not start CI by itself). CI runs the tests and builds and runs the Docker image, which
+   also checks the checksum.
+4. **You merge it.** Render deploys from `main` by itself; if its health check fails
+   it keeps the previous version. Afterwards bring `main` back into `dev`
+   (`git checkout dev && git merge main`).
+
+A failed run opens an issue. One-off requirement: in the repository, Settings > Actions >
+General > Workflow permissions, tick **Allow GitHub Actions to create and approve pull
+requests**.
+
+To publish a data release by hand instead, build it locally as above, publish it and
+update the Dockerfile.
 
 ## Refreshing the pinned dependencies
 
