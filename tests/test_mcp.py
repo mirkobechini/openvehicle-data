@@ -468,3 +468,19 @@ def test_mcp_rejects_a_malformed_type_approval(m, s):
 def test_mcp_type_approval_is_described(m):
     props = next(t for t in asyncio.run(m.list_tools()) if t.name == "list_variants").input_schema["properties"]
     assert "carta di circolazione" in props["type_approval"]["description"]
+
+
+def test_mcp_variants_by_codes(mta):
+    m2, ids3 = mta
+    v = call(m2, "get_variant", variant_id=ids3[0])
+    j = call(m2, "list_variants", type_approval="e3*2007/46*0064", type_code=v["type_code"], variant_code=v["variant_code"], version_code=f" {v['version_code']} ")
+    assert [i["id"] for i in j["items"]] == [ids3[0]]
+    assert call(m2, "list_variants", version_code="nope")["total"] == 0
+
+
+@pytest.mark.parametrize("k", ["type_code", "variant_code", "version_code"])
+def test_mcp_rejects_empty_codes_and_describes_them(m, k):
+    with pytest.raises(ToolError):
+        call(m, "list_variants", **{k: ""})
+    props = next(t for t in asyncio.run(m.list_tools()) if t.name == "list_variants").input_schema["properties"]
+    assert "D.2" in props[k]["description"]

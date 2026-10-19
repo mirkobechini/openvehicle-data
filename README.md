@@ -138,7 +138,8 @@ Base path `/api/v1`. Everything is `GET`.
 Lists take `limit` (default 50, at most 200) and `offset`, and answer with `total`,
 `count`, `has_more` and `next_offset`. `sort` is `id` or `registrations`.
 `type_approval` accepts the full number as printed on the registration document or
-only its base. An unknown id gives a 404 with a "Did you mean" suggestion; a
+only its base. To find the variant of a registration document add `type_code`,
+`variant_code` and `version_code` (the three parts of field D.2). An unknown id gives a 404 with a "Did you mean" suggestion; a
 malformed value gives a 422.
 
 ## MCP server
