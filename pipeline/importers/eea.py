@@ -1,4 +1,3 @@
-import argparse
 import re
 from collections import Counter, defaultdict
 from datetime import date
@@ -12,6 +11,7 @@ from core.ids import make_id, slug
 from core.models import Brand, CarModel, Engine, Family, Generation, Variant
 from core.provenance import Evidence, FieldProvenance
 from core.storage import Store
+from pipeline.cli import cli
 from pipeline.importers.corrections import load_corrections, norm
 from pipeline.importers.eea_datasets import COMBINED, DATASETS, parse_years
 from pipeline.importers.families import family_of, load_family_rules
@@ -278,12 +278,7 @@ def run(db, years, ms="IT", client=None, today=None):
 
 
 def main(argv=None):
-    a = argparse.ArgumentParser(prog="python -m pipeline.importers.eea")
-    a.add_argument("--years", required=True, help="e.g. 2025, 2019-2025 or 2021,2023")
-    a.add_argument("--db", required=True)
-    a.add_argument("--country", default="IT")
-    n = a.parse_args(argv)
-    print(run(n.db, n.years, n.country))
+    cli("python -m pipeline.importers.eea", [(("--years",), {"required": True, "help": "e.g. 2025, 2019-2025 or 2021,2023"}), (("--db",), {"required": True}), (("--country",), {"default": "IT"})], lambda n: run(n.db, n.years, n.country), argv)
 
 
 if __name__ == "__main__":

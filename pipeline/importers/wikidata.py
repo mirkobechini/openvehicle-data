@@ -1,4 +1,3 @@
-import argparse
 import json
 from datetime import date
 from pathlib import Path
@@ -8,6 +7,7 @@ from pydantic import Field, model_validator
 from core.models import Base, Brand
 from core.provenance import Evidence, FieldProvenance
 from core.storage import Store
+from pipeline.cli import cli
 from pipeline.importers.corrections import norm
 from pipeline.sources import WIKIDATA
 
@@ -63,9 +63,7 @@ def run(db, path=PATH, today=None):
 
 
 def main(argv=None):
-    a = argparse.ArgumentParser(prog="python -m pipeline.importers.wikidata")
-    a.add_argument("--db", required=True)
-    print(run(a.parse_args(argv).db))
+    cli("python -m pipeline.importers.wikidata", [(("--db",), {"required": True})], lambda n: run(n.db), argv)
 
 
 if __name__ == "__main__":

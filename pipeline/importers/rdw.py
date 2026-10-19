@@ -1,4 +1,3 @@
-import argparse
 import re
 from collections import Counter, defaultdict
 from datetime import date
@@ -9,6 +8,7 @@ from core.approval import base
 from core.models import Brand, CarModel, Engine, Generation, Variant
 from core.provenance import Evidence, FieldProvenance
 from core.storage import Store
+from pipeline.cli import cli
 from pipeline.importers.corrections import norm
 from pipeline.sources import RDW
 
@@ -164,11 +164,7 @@ def run(db, since, client=None, today=None):
 
 
 def main(argv=None):
-    a = argparse.ArgumentParser(prog="python -m pipeline.importers.rdw")
-    a.add_argument("--db", required=True)
-    a.add_argument("--since", type=int, default=2019)
-    n = a.parse_args(argv)
-    print(run(n.db, n.since))
+    cli("python -m pipeline.importers.rdw", [(("--db",), {"required": True}), (("--since",), {"type": int, "default": 2019})], lambda n: run(n.db, n.since), argv)
 
 
 if __name__ == "__main__":
