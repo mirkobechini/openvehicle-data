@@ -6,7 +6,7 @@ All notable changes to the **software** (API, MCP server, pipeline). The format 
 Two version numbers exist and are independent:
 
 - **Software**: the number in `pyproject.toml`, reported by `/api/v1/meta` as `software_version`.
-  Nothing has been released yet (it still says `0.0.0`); the first release will be `0.1.0`.
+  The first release is `0.1.0` (2026-10-19).
 - **Dataset**: tags `data-vX.Y.Z`, reported as `version`. Each data release carries its own
   `CHANGELOG.md` listing ids added, removed and changed.
 
@@ -14,6 +14,8 @@ The dataset schema has its own number, `schema_version` (now 2). The service ref
 with a dataset of another schema, so this software needs a dataset built with it.
 
 ## [Unreleased]
+
+## [0.1.0] - 2026-10-19
 
 ### Added
 - Type-approval number read from the EEA data (`TAN`): nearly every variant has one (99.98%,
@@ -50,9 +52,8 @@ with a dataset of another schema, so this software needs a dataset built with it
 - `eea._load` split into steps; variant filters grouped in `VariantQuery` (#139, #141).
 
 ### Notes for upgrading
-- The Docker image still pins data release 0.9.0, which has schema 1. Build a new data
-  release with this code and update `DATA_URL` and `DATA_SHA256` in the `Dockerfile` before
-  merging to `main`, or the service will not start.
+- Needs dataset 0.10.0 or later (schema 2); the `Dockerfile` pins `data-v0.10.0`.
+  A dataset of another schema makes the service refuse to start.
 
 ## Before this changelog
 
