@@ -6,7 +6,7 @@ All notable changes to the **software** (API, MCP server, pipeline). The format 
 Two version numbers exist and are independent:
 
 - **Software**: the number in `pyproject.toml`, reported by `/api/v1/meta` as `software_version`.
-  Released: `0.1.0` and `0.1.1` (both 2026-10-19).
+  Released: `0.1.0`, `0.1.1` and `0.1.2` (all 2026-10-19).
 - **Dataset**: tags `data-vX.Y.Z`, reported as `version`. Each data release carries its own
   `CHANGELOG.md` listing ids added, removed and changed.
 
@@ -14,6 +14,11 @@ The dataset schema has its own number, `schema_version` (now 2). The service ref
 with a dataset of another schema, so this software needs a dataset built with it.
 
 ## [Unreleased]
+
+## [0.1.2] - 2026-10-19
+
+### Fixed
+- The EEA and RDW downloads retry transient errors (5xx, 429, timeouts) up to 3 times, so a momentary server error no longer fails the monthly refresh (#174).
 
 ## [0.1.1] - 2026-10-19
 
