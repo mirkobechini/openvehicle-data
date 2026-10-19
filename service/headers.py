@@ -28,8 +28,7 @@ class Cache:
         self.tag = tag
 
     def ok(self, scope):
-        p = scope["path"]
-        return scope["type"] == "http" and scope["method"] in ("GET", "HEAD") and p.startswith("/api/v1/") and p != "/api/v1/health"
+        return scope["type"] == "http" and scope["method"] == "GET" and scope["path"].startswith("/api/v1/") and scope["path"] != "/api/v1/health"
 
     async def __call__(self, scope, receive, send):
         if not self.ok(scope):
