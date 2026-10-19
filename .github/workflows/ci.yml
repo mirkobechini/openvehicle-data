@@ -5,6 +5,7 @@ on:
     branches: [dev, main]
   pull_request:
     branches: [dev, main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -20,3 +21,14 @@ jobs:
       - run: pip install --require-hashes -r requirements-dev.lock
       - run: pip install --no-deps -e .
       - run: coverage run -m pytest tests/ -q && coverage report
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - run: docker build -t openvehicle-data .
+      - run: |
+          docker run -d --name ovd -p 10000:10000 openvehicle-data
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:10000/api/v1/health && break; sleep 2; done
+          curl -sf http://127.0.0.1:10000/api/v1/meta | grep -q '"schema_version"'
+          curl -sf http://127.0.0.1:10000/ | grep -q "openvehicle-data"
