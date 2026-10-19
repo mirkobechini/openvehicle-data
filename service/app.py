@@ -15,7 +15,7 @@ from core.models import Brand, CarModel, Engine, Family, Generation, Variant
 from core.provenance import Source
 from core.storage import Store
 from service import queries as qs
-from service.headers import Cache, Headers
+from service.headers import Cache, Headers, RateLimit
 from service.mcp_server import build_mcp
 from service.queries import ATTR, Found, Meta, Page, VariantDetail
 
@@ -40,7 +40,7 @@ def _get(fn, *a):
         raise HTTPException(404, str(e)) from None
 
 
-def create_app(db=None):
+def create_app(db=None, rate=None):
     p = Path(db or os.environ.get("OVD_DB", "openvehicle-data.db"))
     if not p.is_file():
         raise FileNotFoundError(p)
@@ -172,5 +172,6 @@ def create_app(db=None):
     with rd() as st:
         tag = f"{st.get_meta('version')}|{st.get_meta('generated')}|{app.version}"
     app.add_middleware(Cache, tag=tag)
+    app.add_middleware(RateLimit, limit=int(os.environ.get("OVD_RATE_LIMIT", 120)) if rate is None else rate)
     app.add_middleware(Headers)
     return app
