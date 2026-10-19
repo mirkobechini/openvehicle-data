@@ -139,9 +139,12 @@ def create_app(db=None):
         min_registrations: MinReg = None,
         year: Yr = None,
         type_approval: Ta = None,
+        type_code: Annotated[str | None, Query(min_length=1, max_length=40, description="Vehicle type, first part of field D.2 of the registration document, e.g. 312")] = None,
+        variant_code: Annotated[str | None, Query(min_length=1, max_length=40, description="Variant, second part of D.2, e.g. PYD1B")] = None,
+        version_code: Annotated[str | None, Query(min_length=1, max_length=40, description="Version, third part of D.2, e.g. AA4")] = None,
     ):
         with rd() as st:
-            return _get(qs.variants_page, st, pg, q, model_id, generation_id, engine_id, fuel, sort, min_registrations, brand_id, family_id, year, type_approval)
+            return _get(qs.variants_page, st, pg, q, model_id, generation_id, engine_id, fuel, sort, min_registrations, brand_id, family_id, year, type_approval, type_code, variant_code, version_code)
 
     @app.get("/api/v1/variants/{i}", response_model=VariantDetail)
     def variant(i: str):
