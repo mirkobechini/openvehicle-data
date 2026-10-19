@@ -584,3 +584,32 @@ def test_year_filter_skips_the_years_without_registrations(db, tmp_path):
     assert n > 0 and c.get(f"{B}/variants", params={"year": 2025}).json()["total"] == n
     assert c.get(f"{B}/variants", params={"year": 2022}).json()["total"] == 0
     assert c.get(f"{B}/variants", params={"year": 2019}).json()["items"][0]["years"] == [2019, 2025]
+
+
+def test_search_with_several_words_and_the_brand(cl):
+    j = cl.get(f"{B}/search", params={"q": "tesla model 3"}).json()
+    assert [m["id"] for m in j["models"]] == ["model_tesla-model-3"] and j["did_you_mean"] == []
+    assert [m["id"] for m in cl.get(f"{B}/search", params={"q": "model tesla"}).json()["models"]] == ["model_tesla-model-3", "model_tesla-model-y"]
+    assert cl.get(f"{B}/search", params={"q": "tesla panda"}).json()["models"] == []
+
+
+def test_a_brand_word_alone_does_not_list_its_models(cl):
+    assert cl.get(f"{B}/search", params={"q": "tesla"}).json()["models"] == []
+    assert cl.get(f"{B}/models", params={"q": "tesla"}).json()["total"] == 0
+
+
+def test_search_ignores_accents_and_case_in_the_query(cl):
+    assert [b["id"] for b in cl.get(f"{B}/search", params={"q": "FÍAT"}).json()["brands"]] == ["brand_fiat"]
+    assert [m["id"] for m in cl.get(f"{B}/search", params={"q": "Pàndä"}).json()["models"]] == ["model_fiat-panda"]
+
+
+def test_list_filters_use_the_same_word_search(cl):
+    assert ids(cl.get(f"{B}/models", params={"q": "tesla model y"})) == ["model_tesla-model-y"]
+    assert ids(cl.get(f"{B}/families", params={"q": "fiat panda"})) == ["family_fiat-panda"]
+    assert cl.get(f"{B}/variants", params={"q": "312 pyd1b"}).json()["total"] > 0
+
+
+def test_blank_search_matches_nothing_and_wildcards_stay_literal(cl):
+    assert cl.get(f"{B}/search", params={"q": "   "}).json()["brands"] == []
+    assert cl.get(f"{B}/brands", params={"q": "%"}).json()["total"] == 0
+    assert cl.get(f"{B}/brands", params={"q": "f_at"}).json()["total"] == 0
