@@ -143,15 +143,11 @@ def load_years(by_year, st, today=None, corr=None, fam=None):
     return _load(rows, st, today, corr, fam, {y: DATASETS[y].url for y in by_year})
 
 
-def _load(rows, st, today, corr, fam, urls):
-    today = today or date.today()
-    corr = corr or load_corrections()
-    fam = fam or load_family_rules()
+def _names(rows, corr):
     bmap = {norm(k): v for k, v in corr.brands.items()}
     ex = {(norm(x.brand), slug(x.model)) for x in corr.exclude_models}
     mmap = {(norm(x.brand), slug(x.model)): x.into for x in corr.merge_models}
-    gr, bn, mn, skip, excl = defaultdict(list), defaultdict(set), defaultdict(set), 0, 0
-    pre, cnt = [], Counter()
+    pre, cnt, skip, excl = [], Counter(), 0, 0
     for r in rows:
         mk0, raw = (r["Mk"] or "").strip(), (r["Cn"] or "").strip()
         if not (slug(mk0) and slug(raw)):
@@ -169,58 +165,57 @@ def _load(rows, st, today, corr, fam, urls):
     canon = {}
     for (b0, c0), _ in sorted(cnt.items(), key=lambda x: (-x[1], x[0][1])):
         canon.setdefault((b0, _key(c0)), c0)
+    return [(r, mk, mk0, raw, cn0, canon[(norm(mk), _key(cn))]) for r, mk, mk0, raw, cn0, cn in pre], skip, excl
+
+
+def _group(pre):
+    gr, bn, mn = defaultdict(list), defaultdict(set), defaultdict(set)
     for r, mk, mk0, raw, cn0, cn in pre:
-        cn = canon[(norm(mk), _key(cn))]
         b, m = make_id("brand", mk), make_id("model", mk, cn)
         bn[b].add((mk, mk0))
         mn[m].add((cn, raw, cn0))
         gr[(b, m, make_id("var", mk, cn, r["T"], r["Va"], r["Ve"]))].append(r)
-    ms, gs, gy, es, eyr, vs, pv, drops, conf, mreg = {}, {}, {}, {}, {}, {}, [], Counter(), 0, Counter()
-    for (b, m, vid), rs in sorted(gr.items()):
-        by, tas, wins, reg = {}, {}, {}, 0
-        for y in sorted({x["y"] for x in rs}):
-            yr = [x for x in rs if x["y"] == y]
-            ek = Counter()
-            for x in yr:
-                ek[(x["Ft"], x["Fm"], x["ec"], x["ep"])] += x["n"]
-            wins[y] = max(sorted(ek, key=str), key=ek.get)
-            kept = [x for x in yr if (x["Ft"], x["Fm"], x["ec"], x["ep"]) == wins[y]]
-            conf += len(yr) - len(kept)
-            reg += sum(x["n"] for x in kept)
-            by[y] = _best(kept)
-            tas[y] = _ta(kept)
-        ys = sorted(by)
-        win = wins[ys[-1]]
-        vals, src = {}, {}
-        for y in reversed(ys):
-            for c, f in VF.items():
-                if f not in vals and by[y][c] is not None:
-                    vals[f], src[f] = by[y][c], urls[y]
-        ty = next((y for y in reversed(ys) if tas[y]), None)
-        if ty is not None:
-            vals["type_approval"], src["type_approval"] = tas[ty], urls[ty]
-        r = by[ys[-1]]
-        mreg[m] += reg
-        ft, fm, ec, ep = win
-        ms[m] = b
-        gid = m.replace("model_", "gen_", 1) + "-observed"
-        gs[gid] = m
-        lo, hi = gy.get(gid, (ys[0], ys[-1]))
-        gy[gid] = (min(lo, ys[0]), max(hi, ys[-1]))
-        fl = fuel(ft, fm)
-        eid = make_id("eng", fl.value, _x(ec), _x(ep))
-        eyr[eid] = max(eyr.get(eid, 0), ys[-1])
-        if eid not in es:
-            es[eid] = _mk(Engine, drops, id=eid, fuel=fl, displacement_cc=ec, power_kw=ep)
-        vs[vid] = _mk(
-            Variant, drops, id=vid, generation_id=gid, engine_id=eid,
-            name=" ".join(str(p).strip() for p in (r["T"], r["Va"], r["Ve"]) if p and str(p).strip()) or "unknown",
-            year_from=ys[0], year_to=ys[-1], registrations=reg,
-            years=ys, type_code=_c(r["T"]), variant_code=_c(r["Va"]), version_code=_c(r["Ve"]),**{f: vals.get(f) for f in (*VF.values(), "type_approval")},
-        )
-        _pv(vs[vid], (*VF.values(), "type_approval"), src, today, pv)
-    for eid, e in es.items():
-        _pv(e, EF.values(), dict.fromkeys(EF.values(), urls[eyr[eid]]), today, pv)
+    return gr, bn, mn
+
+
+def _yearly(rs):
+    by, tas, wins, reg, conf = {}, {}, {}, 0, 0
+    for y in sorted({x["y"] for x in rs}):
+        yr = [x for x in rs if x["y"] == y]
+        ek = Counter()
+        for x in yr:
+            ek[(x["Ft"], x["Fm"], x["ec"], x["ep"])] += x["n"]
+        wins[y] = max(sorted(ek, key=str), key=ek.get)
+        kept = [x for x in yr if (x["Ft"], x["Fm"], x["ec"], x["ep"]) == wins[y]]
+        conf += len(yr) - len(kept)
+        reg += sum(x["n"] for x in kept)
+        by[y] = _best(kept)
+        tas[y] = _ta(kept)
+    return by, tas, wins, reg, conf
+
+
+def _values(by, tas, urls):
+    vals, src = {}, {}
+    for y in reversed(sorted(by)):
+        for c, f in VF.items():
+            if f not in vals and by[y][c] is not None:
+                vals[f], src[f] = by[y][c], urls[y]
+    ty = next((y for y in reversed(sorted(by)) if tas[y]), None)
+    if ty is not None:
+        vals["type_approval"], src["type_approval"] = tas[ty], urls[ty]
+    return vals, src
+
+
+def _variant(vid, gid, eid, r, ys, reg, vals, drops):
+    return _mk(
+        Variant, drops, id=vid, generation_id=gid, engine_id=eid,
+        name=" ".join(str(p).strip() for p in (r["T"], r["Va"], r["Ve"]) if p and str(p).strip()) or "unknown",
+        year_from=ys[0], year_to=ys[-1], registrations=reg,
+        years=ys, type_code=_c(r["T"]), variant_code=_c(r["Va"]), version_code=_c(r["Ve"]), **{f: vals.get(f) for f in (*VF.values(), "type_approval")},
+    )
+
+
+def _catalog(bn, mn, ms, mreg, fam):
     bs = []
     for i, s in bn.items():
         nm = sorted(c for c, _ in s)[0]
@@ -236,6 +231,36 @@ def _load(rows, st, today, corr, fam, urls):
         f["n"] += 1
         f["reg"] += mreg[i]
     fl = [Family(id=i, brand_id=f["brand"], name=f["name"], model_count=f["n"], registrations=f["reg"]) for i, f in fms.items()]
+    return bs, cs, fl
+
+
+def _load(rows, st, today, corr, fam, urls):
+    today = today or date.today()
+    pre, skip, excl = _names(rows, corr or load_corrections())
+    gr, bn, mn = _group(pre)
+    ms, gs, gy, es, eyr, vs, pv, drops, conf, mreg = {}, {}, {}, {}, {}, {}, [], Counter(), 0, Counter()
+    for (b, m, vid), rs in sorted(gr.items()):
+        by, tas, wins, reg, c = _yearly(rs)
+        conf += c
+        ys = sorted(by)
+        vals, src = _values(by, tas, urls)
+        mreg[m] += reg
+        ft, fm, ec, ep = wins[ys[-1]]
+        ms[m] = b
+        gid = m.replace("model_", "gen_", 1) + "-observed"
+        gs[gid] = m
+        lo, hi = gy.get(gid, (ys[0], ys[-1]))
+        gy[gid] = (min(lo, ys[0]), max(hi, ys[-1]))
+        fl = fuel(ft, fm)
+        eid = make_id("eng", fl.value, _x(ec), _x(ep))
+        eyr[eid] = max(eyr.get(eid, 0), ys[-1])
+        if eid not in es:
+            es[eid] = _mk(Engine, drops, id=eid, fuel=fl, displacement_cc=ec, power_kw=ep)
+        vs[vid] = _variant(vid, gid, eid, by[ys[-1]], ys, reg, vals, drops)
+        _pv(vs[vid], (*VF.values(), "type_approval"), src, today, pv)
+    for eid, e in es.items():
+        _pv(e, EF.values(), dict.fromkeys(EF.values(), urls[eyr[eid]]), today, pv)
+    bs, cs, fl = _catalog(bn, mn, ms, mreg, fam or load_family_rules())
     gl = [Generation(id=i, model_id=m, name="observed", year_from=gy[i][0], year_to=gy[i][1]) for i, m in gs.items()]
     st.put(EEA, *bs, *fl, *cs, *gl, *es.values(), *vs.values())
     st.put_prov(*pv)
