@@ -383,3 +383,17 @@ def plan(st, sql, *a):
 ])
 def test_hot_queries_use_an_index(st, sql, ix):
     assert ix in plan(st, sql, *("x",) * sql.count("?"))
+
+
+def test_years_roundtrip_and_has_filter(st):
+    st.put(V.model_copy(update={"id": "var_y1", "name": "y1", "years": [2019, 2025]}), V.model_copy(update={"id": "var_y2", "name": "y2", "years": [2021]}))
+    assert st.get(Variant, "var_y1").years == [2019, 2025]
+    assert [v.id for v in st.find(Variant, years__has=2025)] == ["var_y1"]
+    assert [v.id for v in st.find(Variant, years__has=2021)] == ["var_y2"]
+    assert st.count(Variant, years__has=2022) == 0
+    assert st.get(Variant, V.id).years == []
+
+
+def test_has_rejects_unknown_columns(st):
+    with pytest.raises(ValueError):
+        st.find(Variant, nope__has=1)

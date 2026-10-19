@@ -166,3 +166,10 @@ def test_codes_are_optional_and_not_empty():
     for f in ("type_code", "variant_code", "version_code"):
         with pytest.raises(ValidationError):
             var(**{f: ""})
+
+
+def test_years_are_sorted_unique_and_in_range():
+    assert var().years == []
+    assert var(years=[2025, 2019, 2025, 2021]).years == [2019, 2021, 2025]
+    with pytest.raises(ValidationError):
+        var(years=[1800])

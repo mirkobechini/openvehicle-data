@@ -571,3 +571,16 @@ def test_a_type_approval_plus_the_codes_pins_one_variant(cla):
 def test_empty_or_long_codes_are_rejected(cl, k):
     assert cl.get(f"{B}/variants", params={k: ""}).status_code == 422
     assert cl.get(f"{B}/variants", params={k: "x" * 41}).status_code == 422
+
+
+def test_year_filter_skips_the_years_without_registrations(db, tmp_path):
+    from fastapi.testclient import TestClient
+
+    p = tmp_path / "g.db"
+    with Store(p) as st:
+        eea.load_years({2019: ROWS[:3], 2025: ROWS[:3]}, st, date(2026, 9, 19))
+    c = TestClient(create_app(p))
+    n = c.get(f"{B}/variants", params={"year": 2019}).json()["total"]
+    assert n > 0 and c.get(f"{B}/variants", params={"year": 2025}).json()["total"] == n
+    assert c.get(f"{B}/variants", params={"year": 2022}).json()["total"] == 0
+    assert c.get(f"{B}/variants", params={"year": 2019}).json()["items"][0]["years"] == [2019, 2025]
