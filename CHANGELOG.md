@@ -15,6 +15,13 @@ with a dataset of another schema, so this software needs a dataset built with it
 
 ## [Unreleased]
 
+### Added
+- The monthly refresh publishes the data release and opens a pull request that moves the Docker pin; it needs one merge to go live (#168).
+- CI builds and runs the Docker image; `pipeline.refresh` has `guard` and `pin` commands (#168).
+
+### Changed
+- The changelog ignores case-only differences in aliases (#168).
+
 ## [0.1.0] - 2026-10-19
 
 ### Added
