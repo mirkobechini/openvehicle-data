@@ -79,7 +79,10 @@ mistyped entries.
 | `name`, `aliases` | the type/variant/version codes, as reported |
 | `year_from`, `year_to` | first and last registration year seen (2019-2025), not production years |
 | `years` | the years with registrations (the `year` filter matches these, not the range between first and last) |
-| `mass_kg` | mass in running order |
+| `mass_kg` | mass in running order (closest to field G of the registration document, **not** the maximum mass F.2) |
+| `max_mass_kg` | maximum permissible mass, field F.2 (RDW only) |
+| `seats` | seats including the driver, field S.1 (RDW only) |
+| `environmental_class` | `Euro 0` to `Euro 6` (RDW only; electric cars have none) |
 | `wheelbase_mm`, `track_width_mm` | only for vehicles registered in 2019-2022 |
 | `co2_wltp_g_km` | WLTP combined CO2 |
 | `registrations` | cars registered in Italy in the source data, summed over the years |
