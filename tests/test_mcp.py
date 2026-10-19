@@ -492,3 +492,9 @@ def test_mcp_year_filter_uses_the_observed_years(tmp_path):
         eea.load_years({2019: ROWS[:3], 2025: ROWS[:3]}, st, date(2026, 9, 19))
     g = build_mcp(p)
     assert call(g, "list_variants", year=2019)["total"] > 0 and call(g, "list_variants", year=2022)["total"] == 0
+
+
+def test_mcp_search_with_several_words(m):
+    j = call(m, "search_catalog", q="Tesla  Model 3")
+    assert [x["id"] for x in j["models"]] == ["model_tesla-model-3"]
+    assert [x["id"] for x in call(m, "list_models", q="tesla model y")["items"]] == ["model_tesla-model-y"]

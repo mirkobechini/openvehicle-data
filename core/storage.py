@@ -1,5 +1,6 @@
 import json
 import sqlite3
+import unicodedata
 from pathlib import Path
 
 from core.models import Brand, CarModel, Engine, Family, Generation, Variant
@@ -65,6 +66,10 @@ CREATE INDEX IF NOT EXISTS ix_models_reg ON models(registrations);
 CREATE INDEX IF NOT EXISTS ix_fam_reg ON families(registrations);
 CREATE INDEX IF NOT EXISTS ix_engines_fuel ON engines(fuel);
 """
+
+
+def fold(s):
+    return "".join(c for c in unicodedata.normalize("NFKD", s) if not unicodedata.combining(c))
 
 
 def _op(k):
@@ -135,9 +140,19 @@ class Store:
         if q is not None:
             if not {"name", "aliases"} <= set(cls.model_fields):
                 raise ValueError(f"{cls.__name__} is not searchable")
-            e = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-            cs.append("(name LIKE ? ESCAPE '\\' OR aliases LIKE ? ESCAPE '\\')")
-            ps += [f"%{e}%"] * 2
+            ws = fold(q).split()
+            if not ws:
+                cs.append("0")
+            br = "brand_id" in cls.model_fields
+            own = "(name LIKE ? ESCAPE '\\' OR aliases LIKE ? ESCAPE '\\')"
+            via = "brand_id IN (SELECT id FROM brands WHERE name LIKE ? ESCAPE '\\' OR aliases LIKE ? ESCAPE '\\')"
+            es = [f"%{t.replace(chr(92), chr(92) * 2).replace('%', chr(92) + '%').replace('_', chr(92) + '_')}%" for t in ws]
+            for e in es:
+                cs.append(f"({own} OR {via})" if br else own)
+                ps += [e] * (4 if br else 2)
+            if br and ws:
+                cs.append("(" + " OR ".join([own] * len(es)) + ")")
+                ps += [e for e in es for _ in range(2)]
         return (" WHERE " + " AND ".join(cs) if cs else ""), ps
 
     def find(self, cls, *, q=None, limit=None, offset=0, sort="id", **w):
