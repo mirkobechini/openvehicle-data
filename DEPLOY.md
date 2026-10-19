@@ -93,9 +93,10 @@ too. The workflow appears in the Actions tab once it is on `main`.
 
 ## Things to know
 
-- **No rate limiting on the plain address:** without your own domain behind
-  Cloudflare, nothing limits requests to the API. Fine for an early release; add
-  the domain and the rule from step 5 before promoting it.
+- **Rate limiting:** the service limits each client to 120 requests per minute
+  (`OVD_RATE_LIMIT`, `0` turns it off) and answers `429` with `Retry-After`. The
+  counter lives in the memory of the single running instance, so it resets on a
+  restart. Cloudflare in front (step 5) adds a second, stronger layer.
 - **Free plan:** the service sleeps after 15 minutes without requests and takes
   about a minute to wake up. Clients that time out earlier will fail on the first
   call, and MCP clients use POST, which is the case most likely to hit this. For

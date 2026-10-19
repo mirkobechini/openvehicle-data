@@ -218,8 +218,8 @@ domain) is described in [DEPLOY.md](DEPLOY.md).
   too much between cars of one variant to serve as a check.
 - Wikidata ids exist for 70 of 90 brands; models are not linked (Wikidata has
   duplicate and mixed items for them).
-- The API has no authentication and no rate limiting of its own: put it behind a
-  proxy that limits requests if you expose it publicly (see [DEPLOY.md](DEPLOY.md)).
+- The API has no authentication. It limits each client to 120 requests per minute
+  (`OVD_RATE_LIMIT`); behind your own proxy see [DEPLOY.md](DEPLOY.md).
 
 ## Contributing
 

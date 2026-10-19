@@ -18,4 +18,4 @@ USER app
 
 ENV OVD_DB=/data/openvehicle-data.db PORT=10000
 EXPOSE 10000
-CMD ["sh", "-c", "exec uvicorn --factory service.app:create_app --host 0.0.0.0 --port ${PORT} --proxy-headers --forwarded-allow-ips='*'"]
+CMD ["sh", "-c", "exec uvicorn --factory service.app:create_app --host 0.0.0.0 --port ${PORT}"]
