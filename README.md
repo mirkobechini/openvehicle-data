@@ -82,7 +82,7 @@ mistyped entries.
 | `wheelbase_mm`, `track_width_mm` | only for vehicles registered in 2019-2022 |
 | `co2_wltp_g_km` | WLTP combined CO2 |
 | `registrations` | cars registered in Italy in the source data, summed over the years |
-| `type_approval` | EU type-approval base number, e.g. `e3*2007/46*0064` (about half of the variants) |
+| `type_approval` | EU type-approval base number, e.g. `e3*2007/46*0064` (nearly all variants) |
 | `engine` | fuel, `displacement_cc`, `power_kw` |
 
 Brands also carry a `wikidata_id` where a reliable match was reviewed.
