@@ -173,3 +173,16 @@ def test_years_are_sorted_unique_and_in_range():
     assert var(years=[2025, 2019, 2025, 2021]).years == [2019, 2021, 2025]
     with pytest.raises(ValidationError):
         var(years=[1800])
+
+
+@pytest.mark.parametrize("k,v", [("seats", 0), ("seats", 10), ("max_mass_kg", 0), ("max_mass_kg", 10001), ("environmental_class", "Euro 7"), ("environmental_class", "euro 6"), ("environmental_class", "Euro 6d")])
+def test_variant_rejects_bad_seats_mass_and_class(k, v):
+    with pytest.raises(ValidationError):
+        var(**{k: v})
+
+
+def test_seats_max_mass_and_class_are_optional():
+    v = var()
+    assert (v.seats, v.max_mass_kg, v.environmental_class) == (None, None, None)
+    v = var(seats=5, max_mass_kg=1455, environmental_class="Euro 6")
+    assert (v.seats, v.max_mass_kg, v.environmental_class) == (5, 1455, "Euro 6")

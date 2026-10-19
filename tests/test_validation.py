@@ -268,3 +268,16 @@ def test_wikidata_id_must_match_its_evidence():
     st.put(Brand(id="brand_citroen", name="Citroën", wikidata_id="Q6746"))
     st.put_prov(pv("brand_citroen", "wikidata_id", ev("Q1", "wikidata")))
     assert [v.rule for v in validate(st)] == ["value_unsupported"]
+
+
+def test_new_variant_fields_need_a_source_and_a_plausible_mass():
+    from core.models import Brand, CarModel, Engine, Generation
+    from pipeline.validation import validate
+
+    with Store() as s:
+        s.put(Brand(id="brand_a", name="A"), CarModel(id="model_a-a", brand_id="brand_a", name="A"), Generation(id="gen_a-a", model_id="model_a-a", name="g", year_from=2020), Engine(id="eng_petrol-1", fuel="petrol"))
+        s.put(Variant(id="var_a-a", generation_id="gen_a-a", engine_id="eng_petrol-1", name="v", year_from=2020, seats=5, max_mass_kg=100, environmental_class="Euro 6"))
+        vs = validate(s)
+    rules = sorted((v.rule, v.message.split("=")[0].split(" ")[0]) for v in vs)
+    assert ("missing_provenance", "seats") in rules and ("missing_provenance", "max_mass_kg") in rules and ("missing_provenance", "environmental_class") in rules
+    assert any(v.rule == "implausible_value" and "max_mass_kg=100" in v.message for v in vs)
