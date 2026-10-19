@@ -49,7 +49,7 @@ def _csv(path, rows, cols):
         w = csv.DictWriter(f, cols)
         w.writeheader()
         for r in rows:
-            w.writerow({k: "|".join(v) if isinstance(v, list) else v for k, v in r.items()})
+            w.writerow({k: "|".join(map(str, v)) if isinstance(v, list) else v for k, v in r.items()})
 
 
 def _key(t, r):
