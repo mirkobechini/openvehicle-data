@@ -15,6 +15,7 @@ TB = {
     Source: "sources",
 }
 
+JS = {"aliases", "years"}
 DDL = """
 CREATE TABLE IF NOT EXISTS brands (
     id TEXT PRIMARY KEY, name TEXT NOT NULL, aliases TEXT NOT NULL, wikidata_id TEXT);
@@ -40,7 +41,7 @@ CREATE TABLE IF NOT EXISTS variants (
     year_from INTEGER NOT NULL, year_to INTEGER,
     mass_kg REAL, wheelbase_mm INTEGER, track_width_mm INTEGER,
     co2_wltp_g_km REAL, registrations INTEGER, type_approval TEXT,
-    type_code TEXT, variant_code TEXT, version_code TEXT);
+    type_code TEXT, variant_code TEXT, version_code TEXT, years TEXT NOT NULL DEFAULT '[]');
 CREATE TABLE IF NOT EXISTS sources (
     id TEXT PRIMARY KEY, name TEXT NOT NULL, license TEXT NOT NULL,
     license_url TEXT NOT NULL, license_checked TEXT);
@@ -86,16 +87,16 @@ class Store:
 
     def _m(self, cls, r):
         d = {k: v for k, v in dict(r).items() if k in cls.model_fields}
-        if "aliases" in d:
-            d["aliases"] = json.loads(d["aliases"])
+        for k in JS & set(d):
+            d[k] = json.loads(d[k])
         return cls(**d)
 
     def put(self, *os):
         with self.c:
             for o in os:
                 d = o.model_dump(mode="json")
-                if "aliases" in d:
-                    d["aliases"] = json.dumps(d["aliases"], ensure_ascii=False)
+                for k in JS & set(d):
+                    d[k] = json.dumps(d[k], ensure_ascii=False)
                 cs = list(d)
                 self.c.execute(
                     f"INSERT INTO {TB[type(o)]} ({','.join(cs)}) VALUES ({','.join('?' * len(cs))}) "
@@ -108,7 +109,7 @@ class Store:
         return None if r is None else self._m(cls, r)
 
     def _w(self, cls, q, w):
-        bad = {k.removesuffix("__gte").removesuffix("__lte") for k in w} - set(cls.model_fields)
+        bad = {k.removesuffix("__gte").removesuffix("__lte").removesuffix("__has") for k in w} - set(cls.model_fields)
         if bad:
             raise ValueError(f"unknown columns: {sorted(bad)}")
         cs, ps = [], []
@@ -119,6 +120,9 @@ class Store:
             elif k.endswith("__lte"):
                 cs.append(f"{k[:-5]}<=?")
                 ps.append(v)
+            elif k.endswith("__has"):
+                cs.append(f"{k[:-5]} LIKE ?")
+                ps.append(f"%{v}%")
             elif isinstance(v, (list, tuple, set)):
                 v = list(v)
                 cs.append(f"{k} IN ({','.join('?' * len(v))})")

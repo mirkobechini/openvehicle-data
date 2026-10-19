@@ -83,3 +83,9 @@ class Variant(Named, Period):
     type_code: str | None = Field(default=None, min_length=1)
     variant_code: str | None = Field(default=None, min_length=1)
     version_code: str | None = Field(default=None, min_length=1)
+    years: list[Year] = []
+
+    @field_validator("years")
+    @classmethod
+    def _ys(cls, v):
+        return sorted(set(v))
