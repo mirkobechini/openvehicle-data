@@ -8,12 +8,13 @@ from core.provenance import Source, Status
 RANGES = [
     (Variant, "mass_kg", 400, 5000),
     (Variant, "wheelbase_mm", 1500, 4500),
+    (Variant, "max_mass_kg", 500, 6000),
     (Engine, "power_kw", None, 1000),
 ]
 SPEC = {
     Brand: ("wikidata_id",),
     Engine: ("displacement_cc", "power_kw"),
-    Variant: ("mass_kg", "wheelbase_mm", "track_width_mm", "co2_wltp_g_km", "type_approval"),
+    Variant: ("mass_kg", "wheelbase_mm", "track_width_mm", "co2_wltp_g_km", "type_approval", "seats", "max_mass_kg", "environmental_class"),
 }
 COMB = {Fuel.PETROL, Fuel.DIESEL, Fuel.LPG, Fuel.CNG}
 
