@@ -59,7 +59,7 @@ def _key(t, r):
 def _cmp(t, r):
     if t == "provenance":
         return [r["status"], [[e["source_id"], e["value"]] for e in r["evidence"]]]
-    return r
+    return {**r, "aliases": sorted({a.casefold() for a in r["aliases"]})} if "aliases" in r else r
 
 
 def _diff(old, new):
