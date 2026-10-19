@@ -6,7 +6,7 @@ All notable changes to the **software** (API, MCP server, pipeline). The format 
 Two version numbers exist and are independent:
 
 - **Software**: the number in `pyproject.toml`, reported by `/api/v1/meta` as `software_version`.
-  The first release is `0.1.0` (2026-10-19).
+  Released: `0.1.0` and `0.1.1` (both 2026-10-19).
 - **Dataset**: tags `data-vX.Y.Z`, reported as `version`. Each data release carries its own
   `CHANGELOG.md` listing ids added, removed and changed.
 
@@ -14,6 +14,8 @@ The dataset schema has its own number, `schema_version` (now 2). The service ref
 with a dataset of another schema, so this software needs a dataset built with it.
 
 ## [Unreleased]
+
+## [0.1.1] - 2026-10-19
 
 ### Added
 - The monthly refresh publishes the data release and opens a pull request that moves the Docker pin; it needs one merge to go live (#168).
