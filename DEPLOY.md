@@ -91,6 +91,19 @@ files as an artifact for 30 days. It never publishes: to release, build the vers
 locally as above, publish it and update the Dockerfile. A failed run opens an issue
 too. The workflow appears in the Actions tab once it is on `main`.
 
+## Refreshing the pinned dependencies
+
+`requirements.lock` and `requirements-dev.lock` pin every package with its hash; the
+Dockerfile, CI and the weekly audit install from them, and the base image is pinned by
+digest. To pick up newer versions or security fixes:
+
+1. Run the **Lock dependencies** workflow (Actions tab > Run workflow), or change
+   `pyproject.toml` in a pull request (it runs by itself).
+2. Download the `lock` artifact, copy the two files into the repository root, and commit
+   them in a pull request: CI runs the tests on the new versions.
+3. For the base image, take the new `python:3.12-slim` digest from Docker Hub and edit the
+   first line of the `Dockerfile`.
+
 ## Things to know
 
 - **Rate limiting:** the service limits each client to 120 requests per minute
