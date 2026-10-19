@@ -193,3 +193,20 @@ class Store:
             self.c.backup(d)
         finally:
             d.close()
+
+    def coverage(self, vf, ef, brand_id=None):
+        bad = (set(vf) - set(Variant.model_fields)) | (set(ef) - set(Engine.model_fields))
+        if bad:
+            raise ValueError(f"unknown columns: {sorted(bad)}")
+        cols = [*(f"v.{f}" for f in vf), *(f"e.{f}" for f in ef)]
+        sel = ",".join(f"SUM({c} IS NOT NULL), SUM(CASE WHEN {c} IS NOT NULL THEN COALESCE(v.registrations,0) ELSE 0 END)" for c in cols)
+        sql = (
+            f"SELECT m.brand_id, COUNT(*), COALESCE(SUM(v.registrations),0), {sel} FROM variants v "
+            "JOIN generations g ON g.id=v.generation_id JOIN models m ON m.id=g.model_id JOIN engines e ON e.id=v.engine_id"
+            f"{' WHERE m.brand_id=?' if brand_id else ''} GROUP BY m.brand_id ORDER BY m.brand_id"
+        )
+        fs = [*vf, *ef]
+        out = []
+        for r in self.c.execute(sql, [brand_id] if brand_id else []):
+            out.append({"brand_id": r[0], "n": r[1], "reg": r[2], "cn": {f: r[3 + 2 * i] for i, f in enumerate(fs)}, "cr": {f: r[4 + 2 * i] for i, f in enumerate(fs)}})
+        return out

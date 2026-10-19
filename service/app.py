@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from mcp.server.transport_security import TransportSecuritySettings
 from starlette.routing import Route
 
+from core.coverage import Coverage
 from core.enums import Fuel
 from core.models import Brand, CarModel, Engine, Family, Generation, Variant
 from core.provenance import Source
@@ -79,6 +80,11 @@ def create_app(db=None):
     def meta():
         with rd() as st:
             return qs.meta(st, app.version)
+
+    @app.get("/api/v1/coverage", response_model=Coverage)
+    def cover(brand_id: str | None = None):
+        with rd() as st:
+            return _get(qs.coverage_of, st, brand_id)
 
     @app.get("/api/v1/brands", response_model=Page[Brand])
     def brands(pg: Pg, q: Q = None):

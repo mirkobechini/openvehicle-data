@@ -133,6 +133,7 @@ Base path `/api/v1`. Everything is `GET`.
 | `/variants` | `q`, `brand_id`, `family_id`, `model_id`, `generation_id`, `engine_id`, `fuel`, `year`, `type_approval`, `sort`, `min_registrations` |
 | `/variants/{id}` | the variant, its engine and the provenance of every field |
 | `/search?q=` | brands, families and models by name or alias |
+| `/coverage` | how many variants have each field, overall and per brand (`brand_id`), also weighted by registrations |
 | `/sources`, `/meta`, `/health` | sources and licences; version, counts and attribution; liveness |
 
 Lists take `limit` (default 50, at most 200) and `offset`, and answer with `total`,

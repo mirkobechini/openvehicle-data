@@ -5,6 +5,7 @@ from typing import Generic, TypeVar
 from pydantic import BaseModel
 
 from core.approval import base
+from core.coverage import Cov, coverage
 from core.models import Base, Brand, CarModel, Engine, Family, Generation, Variant
 from core.provenance import Evidence, Source, Status
 
@@ -49,6 +50,7 @@ class Meta(BaseModel):
     license: str
     attribution: str
     counts: dict[str, int]
+    coverage: Cov
     sources: list[Source]
 
 
@@ -169,6 +171,11 @@ def search(st, q):
     return Found(brands=bs, families=fs, models=ms, did_you_mean=[] if bs or fs or ms else _suggest(st, q))
 
 
+def coverage_of(st, brand_id=None):
+    need(st, Brand, brand_id)
+    return coverage(st, brand_id)
+
+
 def meta(st, version):
     cs = {c.__name__: st.count(c) for c in (Brand, Family, CarModel, Generation, Engine, Variant, Source)}
-    return Meta(version=st.get_meta("version") or "unknown", generated=st.get_meta("generated"), software_version=version, license="CC-BY-4.0", attribution=ATTR, counts=cs, sources=st.find(Source))
+    return Meta(version=st.get_meta("version") or "unknown", generated=st.get_meta("generated"), software_version=version, license="CC-BY-4.0", attribution=ATTR, counts=cs, coverage=coverage(st).overall, sources=st.find(Source))

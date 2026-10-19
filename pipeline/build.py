@@ -3,6 +3,7 @@ import json
 import tempfile
 from pathlib import Path
 
+from core.coverage import coverage
 from core.storage import Store
 from pipeline.export import export
 from pipeline.importers import eea, rdw, wikidata
@@ -17,6 +18,7 @@ def build(out, version, years, ms="IT", prev=None, client=None, today=None, chec
             stats["rdw"] = rdw.run(db, min(parse_years(years)), client, today)
         stats["wikidata"] = wikidata.run(db, today=today)
         with Store(db) as st:
+            stats["coverage"] = coverage(st).overall.model_dump()
             return {"import": stats, "export": export(st, out, version, today, prev)}
 
 
