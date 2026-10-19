@@ -91,11 +91,25 @@ files as an artifact for 30 days. It never publishes: to release, build the vers
 locally as above, publish it and update the Dockerfile. A failed run opens an issue
 too. The workflow appears in the Actions tab once it is on `main`.
 
+## Refreshing the pinned dependencies
+
+`requirements.lock` and `requirements-dev.lock` pin every package with its hash; the
+Dockerfile, CI and the weekly audit install from them, and the base image is pinned by
+digest. To pick up newer versions or security fixes:
+
+1. Run the **Lock dependencies** workflow (Actions tab > Run workflow), or change
+   `pyproject.toml` in a pull request (it runs by itself).
+2. Download the `lock` artifact, copy the two files into the repository root, and commit
+   them in a pull request: CI runs the tests on the new versions.
+3. For the base image, take the new `python:3.12-slim` digest from Docker Hub and edit the
+   first line of the `Dockerfile`.
+
 ## Things to know
 
-- **No rate limiting on the plain address:** without your own domain behind
-  Cloudflare, nothing limits requests to the API. Fine for an early release; add
-  the domain and the rule from step 5 before promoting it.
+- **Rate limiting:** the service limits each client to 120 requests per minute
+  (`OVD_RATE_LIMIT`, `0` turns it off) and answers `429` with `Retry-After`. The
+  counter lives in the memory of the single running instance, so it resets on a
+  restart. Cloudflare in front (step 5) adds a second, stronger layer.
 - **Free plan:** the service sleeps after 15 minutes without requests and takes
   about a minute to wake up. Clients that time out earlier will fail on the first
   call, and MCP clients use POST, which is the case most likely to hit this. For

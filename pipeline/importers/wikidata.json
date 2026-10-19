@@ -25,15 +25,35 @@
       "label": "Audi AG",
       "reason": "Wikidata item 'Audi AG' (German automotive manufacturing subsidiary of Volk), reviewed on 2026-09-20 from its label and description"
     },
+    "BENTLEY": {
+      "id": "Q27224",
+      "label": "Bentley",
+      "reason": "Wikidata item 'Bentley' (British automotive brand manufacturer), reviewed on 2026-09-20 from its label and description"
+    },
     "BMW": {
       "id": "Q26678",
       "label": "BMW",
       "reason": "Wikidata item 'BMW' (German automobile manufacturer, and conglomerate), reviewed on 2026-09-20 from its label and description"
     },
+    "BYD": {
+      "id": "Q27423",
+      "label": "BYD Auto",
+      "reason": "Wikidata item 'BYD Auto' (Chinese automobile manufacturer), reviewed on 2026-09-20 from its label and description"
+    },
     "CADILLAC": {
       "id": "Q27436",
       "label": "Cadillac",
       "reason": "Wikidata item 'Cadillac' (division of General Motors), reviewed on 2026-09-20 from its label and description"
+    },
+    "CATERHAM": {
+      "id": "Q838832",
+      "label": "Caterham Cars",
+      "reason": "Wikidata item 'Caterham Cars' (British manufacturer of specialist lightweight sports cars), reviewed on 2026-09-20 from its label and description"
+    },
+    "CHERY": {
+      "id": "Q98172997",
+      "label": "Chery",
+      "reason": "Wikidata item 'Chery' (automobile brand by Chery Group), reviewed on 2026-09-20 from its label and description"
     },
     "CHEVROLET": {
       "id": "Q29570",
@@ -60,6 +80,16 @@
       "label": "Dallara",
       "reason": "Wikidata item 'Dallara' (automobile chassis manufacturer), reviewed on 2026-09-20 from its label and description"
     },
+    "DONGFENG": {
+      "id": "Q1138452",
+      "label": "Dongfeng Motor Corporation",
+      "reason": "Wikidata item 'Dongfeng Motor Corporation' (Chinese state-owned automobile manufacturer), reviewed on 2026-09-20 from its label and description"
+    },
+    "DS": {
+      "id": "Q16040593",
+      "label": "DS Automobiles",
+      "reason": "Wikidata item 'DS Automobiles' (French premium car marque of Stellantis), reviewed on 2026-09-20 from its label and description"
+    },
     "FERRARI": {
       "id": "Q27586",
       "label": "Ferrari",
@@ -85,6 +115,11 @@
       "label": "Geely",
       "reason": "Wikidata item 'Geely' (Chinese automotive manufacturing company), reviewed on 2026-09-20 from its label and description"
     },
+    "GENESIS": {
+      "id": "Q21451523",
+      "label": "Genesis Motor",
+      "reason": "Wikidata item 'Genesis Motor' (South Korean luxury brand), reviewed on 2026-09-20 from its label and description"
+    },
     "HONDA": {
       "id": "Q124966298",
       "label": "Honda",
@@ -95,10 +130,20 @@
       "label": "Hyundai",
       "reason": "Wikidata item 'Hyundai' (brand of cars), reviewed on 2026-09-20 from its label and description"
     },
+    "INEOS GRENADIER": {
+      "id": "Q108757682",
+      "label": "Ineos Automotive",
+      "reason": "Wikidata item 'Ineos Automotive' (British car manufacturer), reviewed on 2026-09-20 from its label and description"
+    },
     "INFINITI": {
       "id": "Q29714",
       "label": "Infiniti",
       "reason": "Wikidata item 'Infiniti' (Japanese luxury vehicle brand owned by Nissan), reviewed on 2026-09-20 from its label and description"
+    },
+    "JAECOO": {
+      "id": "Q124255702",
+      "label": "Jaecoo",
+      "reason": "Wikidata item 'Jaecoo' (marque of vehicle manufacturer Chery), reviewed on 2026-09-20 from its label and description"
     },
     "JAGUAR": {
       "id": "Q21170490",
@@ -150,6 +195,16 @@
       "label": "Lexus",
       "reason": "Wikidata item 'Lexus' (Japanese brand of luxury vehicle owned by Toyota M), reviewed on 2026-09-20 from its label and description"
     },
+    "LOTUS": {
+      "id": "Q35935",
+      "label": "Lotus Cars",
+      "reason": "Wikidata item 'Lotus Cars' (British manufacturer of sports and racing cars), reviewed on 2026-09-20 from its label and description"
+    },
+    "LYNK&CO": {
+      "id": "Q27555283",
+      "label": "Lynk & Co",
+      "reason": "Wikidata item 'Lynk & Co' (Chinese automobile brand), reviewed on 2026-09-20 from its label and description"
+    },
     "MAHINDRA": {
       "id": "Q848059",
       "label": "Mahindra & Mahindra",
@@ -185,10 +240,20 @@
       "label": "Mercedes-Benz",
       "reason": "Wikidata item 'Mercedes-Benz' (German automobile brand owned by Mercedes-Benz AG), reviewed on 2026-09-20 from its label and description"
     },
+    "MG": {
+      "id": "Q1881443",
+      "label": "MG Motor",
+      "reason": "Wikidata item 'MG Motor' (British origin-Chinese car company), reviewed on 2026-09-20 from its label and description"
+    },
     "MITSUBISHI": {
       "id": "Q36033",
       "label": "Mitsubishi Motors",
       "reason": "Wikidata item 'Mitsubishi Motors' (Japanese automotive manufacturer), reviewed on 2026-09-20 from its label and description"
+    },
+    "MORGAN": {
+      "id": "Q1165625",
+      "label": "Morgan Motor Company",
+      "reason": "Wikidata item 'Morgan Motor Company' (British motor vehicle manufacturer), reviewed on 2026-09-20 from its label and description"
     },
     "NISSAN": {
       "id": "Q20165",
@@ -254,6 +319,11 @@
       "id": "Q125214266",
       "label": "Subaru",
       "reason": "Wikidata item 'Subaru' (Japanese car brand), reviewed on 2026-09-20 from its label and description"
+    },
+    "SUZUKI": {
+      "id": "Q181642",
+      "label": "Suzuki Motor Corporation",
+      "reason": "Wikidata item 'Suzuki Motor Corporation' (Japanese multinational automotive corporation), reviewed on 2026-09-20 from its label and description"
     },
     "TESLA": {
       "id": "Q478214",

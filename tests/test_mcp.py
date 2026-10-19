@@ -468,3 +468,33 @@ def test_mcp_rejects_a_malformed_type_approval(m, s):
 def test_mcp_type_approval_is_described(m):
     props = next(t for t in asyncio.run(m.list_tools()) if t.name == "list_variants").input_schema["properties"]
     assert "carta di circolazione" in props["type_approval"]["description"]
+
+
+def test_mcp_variants_by_codes(mta):
+    m2, ids3 = mta
+    v = call(m2, "get_variant", variant_id=ids3[0])
+    j = call(m2, "list_variants", type_approval="e3*2007/46*0064", type_code=v["type_code"], variant_code=v["variant_code"], version_code=f" {v['version_code']} ")
+    assert [i["id"] for i in j["items"]] == [ids3[0]]
+    assert call(m2, "list_variants", version_code="nope")["total"] == 0
+
+
+@pytest.mark.parametrize("k", ["type_code", "variant_code", "version_code"])
+def test_mcp_rejects_empty_codes_and_describes_them(m, k):
+    with pytest.raises(ToolError):
+        call(m, "list_variants", **{k: ""})
+    props = next(t for t in asyncio.run(m.list_tools()) if t.name == "list_variants").input_schema["properties"]
+    assert "D.2" in props[k]["description"]
+
+
+def test_mcp_year_filter_uses_the_observed_years(tmp_path):
+    p = tmp_path / "g.db"
+    with Store(p) as st:
+        eea.load_years({2019: ROWS[:3], 2025: ROWS[:3]}, st, date(2026, 9, 19))
+    g = build_mcp(p)
+    assert call(g, "list_variants", year=2019)["total"] > 0 and call(g, "list_variants", year=2022)["total"] == 0
+
+
+def test_mcp_search_with_several_words(m):
+    j = call(m, "search_catalog", q="Tesla  Model 3")
+    assert [x["id"] for x in j["models"]] == ["model_tesla-model-3"]
+    assert [x["id"] for x in call(m, "list_models", q="tesla model y")["items"]] == ["model_tesla-model-y"]

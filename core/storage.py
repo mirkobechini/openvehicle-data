@@ -1,10 +1,12 @@
 import json
 import sqlite3
+import unicodedata
 from pathlib import Path
 
 from core.models import Brand, CarModel, Engine, Family, Generation, Variant
 from core.provenance import FieldProvenance, Source
 
+SCHEMA_VERSION = 2
 TB = {
     Brand: "brands",
     CarModel: "models",
@@ -15,6 +17,8 @@ TB = {
     Source: "sources",
 }
 
+JS = {"aliases", "years"}
+OPS = {"__gte": (">=", lambda v: v), "__lte": ("<=", lambda v: v), "__has": ("LIKE", lambda v: f"%{v}%")}
 DDL = """
 CREATE TABLE IF NOT EXISTS brands (
     id TEXT PRIMARY KEY, name TEXT NOT NULL, aliases TEXT NOT NULL, wikidata_id TEXT);
@@ -39,7 +43,9 @@ CREATE TABLE IF NOT EXISTS variants (
     name TEXT NOT NULL, aliases TEXT NOT NULL,
     year_from INTEGER NOT NULL, year_to INTEGER,
     mass_kg REAL, wheelbase_mm INTEGER, track_width_mm INTEGER,
-    co2_wltp_g_km REAL, registrations INTEGER, type_approval TEXT);
+    co2_wltp_g_km REAL, registrations INTEGER, type_approval TEXT,
+    type_code TEXT, variant_code TEXT, version_code TEXT,
+    seats INTEGER, max_mass_kg REAL, environmental_class TEXT, years TEXT NOT NULL DEFAULT '[]');
 CREATE TABLE IF NOT EXISTS sources (
     id TEXT PRIMARY KEY, name TEXT NOT NULL, license TEXT NOT NULL,
     license_url TEXT NOT NULL, license_checked TEXT);
@@ -53,7 +59,27 @@ CREATE INDEX IF NOT EXISTS ix_models_family ON models(family_id);
 CREATE INDEX IF NOT EXISTS ix_families_brand ON families(brand_id);
 CREATE INDEX IF NOT EXISTS ix_gens_model ON generations(model_id);
 CREATE INDEX IF NOT EXISTS ix_vars_gen ON variants(generation_id);
+CREATE INDEX IF NOT EXISTS ix_vars_ta ON variants(type_approval);
+CREATE INDEX IF NOT EXISTS ix_vars_eng ON variants(engine_id);
+CREATE INDEX IF NOT EXISTS ix_vars_reg ON variants(registrations);
+CREATE INDEX IF NOT EXISTS ix_vars_codes ON variants(type_code, variant_code, version_code);
+CREATE INDEX IF NOT EXISTS ix_models_reg ON models(registrations);
+CREATE INDEX IF NOT EXISTS ix_fam_reg ON families(registrations);
+CREATE INDEX IF NOT EXISTS ix_engines_fuel ON engines(fuel);
 """
+
+
+def fold(s):
+    return "".join(c for c in unicodedata.normalize("NFKD", s) if not unicodedata.combining(c))
+
+
+def _op(k):
+    o = next((o for o in OPS if k.endswith(o)), None)
+    return (k[: -len(o)], o) if o else (k, None)
+
+
+class SchemaError(Exception):
+    pass
 
 
 class Store:
@@ -65,7 +91,13 @@ class Store:
         self.c.row_factory = sqlite3.Row
         self.c.execute("PRAGMA foreign_keys=ON")
         if not ro:
+            old = self.has(Variant)
             self.c.executescript(DDL)
+            v = self.get_meta("schema_version")
+            if (old and v is None) or v not in (None, str(SCHEMA_VERSION)):
+                self.c.close()
+                raise SchemaError(f"database schema is {v or 'unversioned'}, this code writes {SCHEMA_VERSION}: build a new dataset")
+            self.set_meta("schema_version", str(SCHEMA_VERSION))
 
     def close(self):
         self.c.close()
@@ -78,16 +110,16 @@ class Store:
 
     def _m(self, cls, r):
         d = {k: v for k, v in dict(r).items() if k in cls.model_fields}
-        if "aliases" in d:
-            d["aliases"] = json.loads(d["aliases"])
+        for k in JS & set(d):
+            d[k] = json.loads(d[k])
         return cls(**d)
 
     def put(self, *os):
         with self.c:
             for o in os:
                 d = o.model_dump(mode="json")
-                if "aliases" in d:
-                    d["aliases"] = json.dumps(d["aliases"], ensure_ascii=False)
+                for k in JS & set(d):
+                    d[k] = json.dumps(d[k], ensure_ascii=False)
                 cs = list(d)
                 self.c.execute(
                     f"INSERT INTO {TB[type(o)]} ({','.join(cs)}) VALUES ({','.join('?' * len(cs))}) "
@@ -100,17 +132,15 @@ class Store:
         return None if r is None else self._m(cls, r)
 
     def _w(self, cls, q, w):
-        bad = {k.removesuffix("__gte").removesuffix("__lte") for k in w} - set(cls.model_fields)
+        bad = {_op(k)[0] for k in w} - set(cls.model_fields)
         if bad:
             raise ValueError(f"unknown columns: {sorted(bad)}")
         cs, ps = [], []
         for k, v in w.items():
-            if k.endswith("__gte"):
-                cs.append(f"{k[:-5]}>=?")
-                ps.append(v)
-            elif k.endswith("__lte"):
-                cs.append(f"{k[:-5]}<=?")
-                ps.append(v)
+            c, o = _op(k)
+            if o:
+                cs.append(f"{c} {OPS[o][0]} ?")
+                ps.append(OPS[o][1](v))
             elif isinstance(v, (list, tuple, set)):
                 v = list(v)
                 cs.append(f"{k} IN ({','.join('?' * len(v))})")
@@ -121,9 +151,19 @@ class Store:
         if q is not None:
             if not {"name", "aliases"} <= set(cls.model_fields):
                 raise ValueError(f"{cls.__name__} is not searchable")
-            e = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-            cs.append("(name LIKE ? ESCAPE '\\' OR aliases LIKE ? ESCAPE '\\')")
-            ps += [f"%{e}%"] * 2
+            ws = fold(q).split()
+            if not ws:
+                cs.append("0")
+            br = "brand_id" in cls.model_fields
+            own = "(name LIKE ? ESCAPE '\\' OR aliases LIKE ? ESCAPE '\\')"
+            via = "brand_id IN (SELECT id FROM brands WHERE name LIKE ? ESCAPE '\\' OR aliases LIKE ? ESCAPE '\\')"
+            es = [f"%{t.replace(chr(92), chr(92) * 2).replace('%', chr(92) + '%').replace('_', chr(92) + '_')}%" for t in ws]
+            for e in es:
+                cs.append(f"({own} OR {via})" if br else own)
+                ps += [e] * (4 if br else 2)
+            if br and ws:
+                cs.append("(" + " OR ".join([own] * len(es)) + ")")
+                ps += [e for e in es for _ in range(2)]
         return (" WHERE " + " AND ".join(cs) if cs else ""), ps
 
     def find(self, cls, *, q=None, limit=None, offset=0, sort="id", **w):
@@ -185,3 +225,20 @@ class Store:
             self.c.backup(d)
         finally:
             d.close()
+
+    def coverage(self, vf, ef, brand_id=None):
+        bad = (set(vf) - set(Variant.model_fields)) | (set(ef) - set(Engine.model_fields))
+        if bad:
+            raise ValueError(f"unknown columns: {sorted(bad)}")
+        cols = [*(f"v.{f}" for f in vf), *(f"e.{f}" for f in ef)]
+        sel = ",".join(f"SUM({c} IS NOT NULL), SUM(CASE WHEN {c} IS NOT NULL THEN COALESCE(v.registrations,0) ELSE 0 END)" for c in cols)
+        sql = (
+            f"SELECT m.brand_id, COUNT(*), COALESCE(SUM(v.registrations),0), {sel} FROM variants v "
+            "JOIN generations g ON g.id=v.generation_id JOIN models m ON m.id=g.model_id JOIN engines e ON e.id=v.engine_id"
+            f"{' WHERE m.brand_id=?' if brand_id else ''} GROUP BY m.brand_id ORDER BY m.brand_id"
+        )
+        fs = [*vf, *ef]
+        out = []
+        for r in self.c.execute(sql, [brand_id] if brand_id else []):
+            out.append({"brand_id": r[0], "n": r[1], "reg": r[2], "cn": {f: r[3 + 2 * i] for i, f in enumerate(fs)}, "cr": {f: r[4 + 2 * i] for i, f in enumerate(fs)}})
+        return out

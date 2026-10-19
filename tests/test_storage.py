@@ -358,11 +358,75 @@ def test_meta_of_a_database_without_the_table(tmp_path):
         assert s.get_meta("version") is None
 
 
-def test_variants_have_a_type_approval_column(st):
+def test_variants_have_the_approval_and_code_columns(st):
     cs = [r[1] for r in st.c.execute("PRAGMA table_info(variants)")]
-    assert cs[-1] == "type_approval"
+    assert {"type_approval", "type_code", "variant_code", "version_code"} <= set(cs)
 
 
 def test_brands_have_a_wikidata_id_column(st):
     cs = [r[1] for r in st.c.execute("PRAGMA table_info(brands)")]
     assert cs[-1] == "wikidata_id"
+
+
+def plan(st, sql, *a):
+    return " ".join(r[3] for r in st.c.execute("EXPLAIN QUERY PLAN " + sql, a))
+
+
+@pytest.mark.parametrize("sql,ix", [
+    ("SELECT * FROM variants WHERE type_approval=?", "ix_vars_ta"),
+    ("SELECT * FROM variants WHERE engine_id=?", "ix_vars_eng"),
+    ("SELECT * FROM variants WHERE type_code=? AND variant_code=? AND version_code=?", "ix_vars_codes"),
+    ("SELECT * FROM variants ORDER BY registrations DESC LIMIT 5", "ix_vars_reg"),
+    ("SELECT * FROM models ORDER BY registrations DESC LIMIT 5", "ix_models_reg"),
+    ("SELECT * FROM families ORDER BY registrations DESC LIMIT 5", "ix_fam_reg"),
+    ("SELECT * FROM engines WHERE fuel=?", "ix_engines_fuel"),
+])
+def test_hot_queries_use_an_index(st, sql, ix):
+    assert ix in plan(st, sql, *("x",) * sql.count("?"))
+
+
+def test_years_roundtrip_and_has_filter(st):
+    st.put(V.model_copy(update={"id": "var_y1", "name": "y1", "years": [2019, 2025]}), V.model_copy(update={"id": "var_y2", "name": "y2", "years": [2021]}))
+    assert st.get(Variant, "var_y1").years == [2019, 2025]
+    assert [v.id for v in st.find(Variant, years__has=2025)] == ["var_y1"]
+    assert [v.id for v in st.find(Variant, years__has=2021)] == ["var_y2"]
+    assert st.count(Variant, years__has=2022) == 0
+    assert st.get(Variant, V.id).years == []
+
+
+def test_has_rejects_unknown_columns(st):
+    with pytest.raises(ValueError):
+        st.find(Variant, nope__has=1)
+
+
+def test_a_new_database_records_its_schema_version(tmp_path):
+    from core.storage import SCHEMA_VERSION
+
+    with Store(tmp_path / "n.db") as s:
+        assert s.get_meta("schema_version") == str(SCHEMA_VERSION)
+    with Store(tmp_path / "n.db") as s:
+        assert s.get_meta("schema_version") == str(SCHEMA_VERSION)
+
+
+def test_writing_to_a_database_of_another_schema_is_refused(tmp_path):
+    from core.storage import SchemaError
+
+    p = tmp_path / "o.db"
+    with Store(p) as s:
+        s.set_meta("schema_version", "1")
+    with pytest.raises(SchemaError, match="schema is 1"):
+        Store(p)
+
+
+def test_writing_to_an_unversioned_database_is_refused_but_reading_works(tmp_path):
+    from core.storage import SchemaError
+
+    p = tmp_path / "l.db"
+    with Store(p) as s:
+        s.put(B)
+        s.c.execute("DELETE FROM meta WHERE key='schema_version'")
+        s.c.commit()
+    with pytest.raises(SchemaError, match="unversioned"):
+        Store(p)
+    with Store(p, ro=True) as s:
+        assert s.get(Brand, B.id) == B and s.get_meta("schema_version") is None

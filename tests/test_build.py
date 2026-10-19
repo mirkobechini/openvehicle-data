@@ -9,6 +9,7 @@ from core.models import Brand, Variant
 from core.provenance import Source
 from core.storage import Store
 from pipeline import build as bd
+from pipeline.importers import eea
 from pipeline.export import DB, FILES
 
 TODAY = date(2026, 9, 19)
@@ -40,8 +41,8 @@ def test_build_with_previous_export(tmp_path):
 
 def test_temporary_database_is_removed(tmp_path, monkeypatch):
     seen = []
-    real = bd.eea.run
-    monkeypatch.setattr(bd.eea, "run", lambda db, *a: seen.append(Path(db)) or real(db, *a))
+    real = eea.run
+    monkeypatch.setattr(eea, "run", lambda db, *a: seen.append(Path(db)) or real(db, *a))
     bd.build(tmp_path / "o", "0.1.0", "2025", client=client(), today=TODAY)
     assert seen and not seen[0].exists()
 
@@ -134,3 +135,36 @@ def test_the_wikidata_ids_do_not_need_the_network(tmp_path):
     h = lambda req: seen.append(req.url.host) or httpx.Response(200, json={"results": ROWS})
     r = bd.build(tmp_path / "o", "0.1.0", "2025", client=httpx.Client(transport=httpx.MockTransport(h)), today=TODAY, check=False)
     assert r["import"]["wikidata"]["brands"] >= 1 and not any("wikidata" in x for x in seen)
+
+
+def test_build_reports_the_overall_coverage(tmp_path):
+    c = bd.build(tmp_path / "o", "0.1.0", "2025", client=client(), today=TODAY)["import"]["coverage"]
+    assert c["variants"] == 14 and c["fields"]["mass_kg"]["variants"] == 14 and c["fields"]["type_approval"]["variants"] == 0
+
+
+def test_registry_order_and_optional_rdw():
+    from pipeline.importers import Ctx, stages
+
+    names = lambda c: [s.name for s in stages() if s.enabled(c)]
+    assert names(Ctx("2025")) == ["eea", "rdw", "wikidata"]
+    assert names(Ctx("2025", check=False)) == ["eea", "wikidata"]
+
+
+def test_a_custom_stage_runs_in_order_and_reports_under_its_name(tmp_path):
+    from pipeline.importers import Stage, stages
+
+    calls = []
+
+    def extra():
+        return [*stages(), Stage("extra", lambda db, c: calls.append((c.years, c.ms)) or {"ok": 1})]
+
+    r = bd.build(tmp_path / "o", "0.1.0", "2025", client=client(), today=TODAY, stages=extra)
+    assert r["import"]["extra"] == {"ok": 1} and calls == [("2025", "IT")] and "wikidata" in r["import"]
+
+
+def test_only_the_stages_given_are_run(tmp_path):
+    from pipeline.importers import Stage, stages
+
+    only = lambda: [s for s in stages() if s.name == "eea"] + [Stage("off", lambda db, c: 1 / 0, lambda c: False)]
+    r = bd.build(tmp_path / "o", "0.1.0", "2025", client=client(), today=TODAY, stages=only)
+    assert "rdw" not in r["import"] and "off" not in r["import"] and r["import"]["variants"] == 14

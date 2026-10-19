@@ -5,16 +5,18 @@ from pathlib import Path
 from typing import Annotated, Literal
 
 from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from mcp.server.transport_security import TransportSecuritySettings
 from starlette.routing import Route
 
+from core.coverage import Coverage
 from core.enums import Fuel
 from core.models import Brand, CarModel, Engine, Family, Generation, Variant
 from core.provenance import Source
-from core.storage import Store
+from core.storage import SCHEMA_VERSION, SchemaError, Store
 from service import queries as qs
-from service.headers import Headers
+from service.headers import Cache, Headers, RateLimit
 from service.mcp_server import build_mcp
 from service.queries import ATTR, Found, Meta, Page, VariantDetail
 
@@ -23,6 +25,9 @@ Sort = Annotated[Literal["id", "registrations"], Query(description="'registratio
 Yr = Annotated[int | None, Query(ge=1900, le=2100, description="Only variants registered in this year")]
 Ta = Annotated[str | None, Query(pattern=r"^\s*[eE]\d{1,3}\*[^*\s]+\*[^*\s]+(\*[^*\s]+)?\s*$", description="EU type-approval number as on the registration document, e.g. e3*2007/46*0064*05 or without the last part")]
 MinReg = Annotated[int | None, Query(ge=0, description="Only entries with at least this many registrations")]
+
+
+SITE = Path(__file__).with_name("site")
 
 
 def _pg(limit: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0)):
@@ -39,10 +44,14 @@ def _get(fn, *a):
         raise HTTPException(404, str(e)) from None
 
 
-def create_app(db=None):
+def create_app(db=None, rate=None):
     p = Path(db or os.environ.get("OVD_DB", "openvehicle-data.db"))
     if not p.is_file():
         raise FileNotFoundError(p)
+    with Store(p, ro=True) as st:
+        v = st.get_meta("schema_version")
+    if v != str(SCHEMA_VERSION):
+        raise SchemaError(f"dataset schema is {v or 'unversioned'}, this service needs {SCHEMA_VERSION}: use a newer dataset release")
     mcp = build_mcp(p)
     mcp_app = mcp.streamable_http_app(
         streamable_http_path="/mcp",
@@ -79,6 +88,11 @@ def create_app(db=None):
     def meta():
         with rd() as st:
             return qs.meta(st, app.version)
+
+    @app.get("/api/v1/coverage", response_model=Coverage)
+    def cover(brand_id: str | None = None):
+        with rd() as st:
+            return _get(qs.coverage_of, st, brand_id)
 
     @app.get("/api/v1/brands", response_model=Page[Brand])
     def brands(pg: Pg, q: Q = None):
@@ -139,9 +153,13 @@ def create_app(db=None):
         min_registrations: MinReg = None,
         year: Yr = None,
         type_approval: Ta = None,
+        type_code: Annotated[str | None, Query(min_length=1, max_length=40, description="Vehicle type, first part of field D.2 of the registration document, e.g. 312")] = None,
+        variant_code: Annotated[str | None, Query(min_length=1, max_length=40, description="Variant, second part of D.2, e.g. PYD1B")] = None,
+        version_code: Annotated[str | None, Query(min_length=1, max_length=40, description="Version, third part of D.2, e.g. AA4")] = None,
     ):
         with rd() as st:
-            return _get(qs.variants_page, st, pg, q, model_id, generation_id, engine_id, fuel, sort, min_registrations, brand_id, family_id, year, type_approval)
+            f = qs.VariantQuery(q=q, brand_id=brand_id, family_id=family_id, model_id=model_id, generation_id=generation_id, engine_id=engine_id, fuel=fuel, sort=sort, min_registrations=min_registrations, year=year, type_approval=type_approval, type_code=type_code, variant_code=variant_code, version_code=version_code)
+            return _get(qs.variants_page, st, pg, f)
 
     @app.get("/api/v1/variants/{i}", response_model=VariantDetail)
     def variant(i: str):
@@ -158,6 +176,25 @@ def create_app(db=None):
         with rd() as st:
             return qs.search(st, q)
 
+    def asset(name, kind):
+        return FileResponse(SITE / name, media_type=kind, headers={"cache-control": "public, max-age=3600"})
+
+    @app.get("/", include_in_schema=False)
+    def home():
+        return asset("index.html", "text/html; charset=utf-8")
+
+    @app.get("/static/site.css", include_in_schema=False)
+    def css():
+        return asset("site.css", "text/css; charset=utf-8")
+
+    @app.get("/static/site.js", include_in_schema=False)
+    def js():
+        return asset("site.js", "text/javascript; charset=utf-8")
+
     app.router.routes.append(Route("/mcp", endpoint=mcp_app))
+    with rd() as st:
+        tag = f"{st.get_meta('version')}|{st.get_meta('generated')}|{app.version}"
+    app.add_middleware(Cache, tag=tag)
+    app.add_middleware(RateLimit, limit=int(os.environ.get("OVD_RATE_LIMIT", 120)) if rate is None else rate)
     app.add_middleware(Headers)
     return app

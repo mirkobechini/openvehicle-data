@@ -686,3 +686,107 @@ def test_separator_merge_is_applied_after_the_reviewed_merges(st):
 def test_a_plus_sign_keeps_models_apart(st):
     eea.load([row(Mk="MERCEDES-BENZ", Cn="EQA 250+", Va="A"), row(Mk="MERCEDES-BENZ", Cn="EQA 250", Va="B"), row(Mk="LEXUS", Cn="RX450H+", Va="C"), row(Mk="LEXUS", Cn="RX450H", Va="D")], st, 2025, TODAY)
     assert sorted(models(st)) == ["EQA 250", "EQA 250+", "RX450H", "RX450H+"]
+
+
+def ta(st, i="var_fiat-panda-312-a-b"):
+    v = st.get(Variant, i)
+    return v, next((p for p in st.prov(v.id) if p.field == "type_approval"), None)
+
+
+def test_query_asks_for_the_type_approval():
+    q = eea.query("t")
+    assert "TAN AS ta" in q and "GROUP BY Mk, Cn, T, Va, Ve, TAN," in q
+
+
+def test_type_approval_is_stored_as_base_with_the_eea_source(st):
+    eea.load([row(ta="E3*2007/46*0064*69")], st, 2025, TODAY)
+    v, p = ta(st)
+    assert v.type_approval == "e3*2007/46*0064"
+    assert [(e.source_id, e.value, e.retrieved) for e in p.evidence] == [("eea-co2", "e3*2007/46*0064", TODAY)]
+    assert validate(st) == []
+
+
+def test_extensions_of_the_same_approval_count_together(st):
+    eea.load([row(ta="E3*2007/46*0064*69", n=2), row(ta="E3*2007/46*0064*70", n=2), row(ta="E3*2007/46*0001*01", n=3)], st, 2025, TODAY)
+    assert ta(st)[0].type_approval == "e3*2007/46*0064"
+
+
+def test_type_approval_tie_takes_the_lowest(st):
+    eea.load([row(ta="E3*2007/46*0064*69"), row(ta="E3*2007/46*0001*01")], st, 2025, TODAY)
+    assert ta(st)[0].type_approval == "e3*2007/46*0001"
+
+
+@pytest.mark.parametrize("x", [None, "", "garbage", "E3*2007"])
+def test_missing_or_odd_type_approval_is_left_empty(st, x):
+    eea.load([row(ta=x), row()], st, 2025, TODAY)
+    v, p = ta(st)
+    assert v.type_approval is None and p is None
+
+
+def test_rows_without_the_ta_key_still_load(st):
+    eea.load([row()], st, 2025, TODAY)
+    assert ta(st)[0].type_approval is None
+
+
+def test_type_approval_comes_from_the_latest_year_that_has_one(st):
+    eea.load_years({2024: [row(ta="E3*2007/46*0001*01")], 2025: [row()]}, st, TODAY)
+    v, p = ta(st)
+    assert v.type_approval == "e3*2007/46*0001" and p.evidence[0].url == DATASETS[2024].url
+    st2 = Store()
+    eea.load_years({2024: [row(ta="E3*2007/46*0001*01")], 2025: [row(ta="E3*2007/46*0002*01")]}, st2, TODAY)
+    assert ta(st2)[0].type_approval == "e3*2007/46*0002"
+    st2.close()
+
+
+def test_splitting_rows_by_approval_does_not_change_the_measured_values(st):
+    a = row(ta="E3*2007/46*0064*69", n=2, m=1100)
+    b = row(ta="E3*2007/46*0064*70", n=2, m=1100)
+    c = row(ta="E3*2007/46*0064*70", n=3, m=1000)
+    eea.load([a, b, c], st, 2025, TODAY)
+    v, _ = ta(st)
+    assert v.mass_kg == 1100 and v.registrations == 7
+
+
+def test_codes_come_from_type_variant_and_version(st):
+    eea.load([row(T=" 312 ", Va="PYD1B", Ve="AA4")], st, 2025, TODAY)
+    v = st.get(Variant, "var_fiat-panda-312-pyd1b-aa4")
+    assert (v.type_code, v.variant_code, v.version_code) == ("312", "PYD1B", "AA4")
+
+
+@pytest.mark.parametrize("va,ve", [(None, "B"), ("", "B"), ("  ", None), ("A", None)])
+def test_missing_parts_are_none_not_a_shifted_name(st, va, ve):
+    eea.load([row(Va=va, Ve=ve)], st, 2025, TODAY)
+    (v,) = st.find(Variant)
+    assert v.type_code == "312" and v.variant_code == (va.strip() or None if va else None) and v.version_code == ve
+    assert v.name.split() == [x for x in ("312", v.variant_code, v.version_code) if x]
+
+
+def test_years_are_the_registration_years_not_the_range(st):
+    eea.load_years({2019: [row()], 2022: [row(Va="X")], 2025: [row()]}, st, TODAY)
+    v = st.get(Variant, "var_fiat-panda-312-a-b")
+    assert (v.year_from, v.year_to, v.years) == (2019, 2025, [2019, 2025])
+    assert st.get(Variant, "var_fiat-panda-312-x-b").years == [2022]
+
+
+def r2(y, **k):
+    return {**row(**k), "y": y}
+
+
+def test_yearly_picks_the_winning_engine_per_year_and_counts_the_losers():
+    by, tas, wins, reg, conf = eea._yearly([r2(2024, n=3), r2(2024, ec=1200, n=1), r2(2025, ta="E3*2007/46*0064*01", n=2)])
+    assert sorted(by) == [2024, 2025] and wins[2024][2] == 999 and reg == 5 and conf == 1
+    assert tas == {2024: None, 2025: "e3*2007/46*0064"}
+
+
+def test_values_take_each_field_from_the_latest_year_that_has_it():
+    by, tas, *_ = eea._yearly([r2(2024, w=2300, m=1000), r2(2025, w=None, m=1100)])
+    vals, src = eea._values(by, tas, {2024: "u24", 2025: "u25"})
+    assert (vals["mass_kg"], src["mass_kg"]) == (1100, "u25") and (vals["wheelbase_mm"], src["wheelbase_mm"]) == (2300, "u24")
+    assert "type_approval" not in vals
+
+
+def test_names_count_skipped_and_excluded_rows():
+    from pipeline.importers.corrections import load_corrections
+
+    pre, skip, excl = eea._names([r2(2025, Mk=" "), r2(2025, Cn=None), r2(2025)], load_corrections())
+    assert (len(pre), skip, excl) == (1, 2, 0)

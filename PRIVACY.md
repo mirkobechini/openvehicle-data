@@ -1,6 +1,6 @@
 # Privacy notice
 
-Last updated: 2026-09-20
+Last updated: 2026-10-19
 
 This notice covers the public services of the openvehicle-data project: the REST
 API and the MCP server.
@@ -27,11 +27,15 @@ that version's engine power; plates are never stored, published or logged.
 
 The requests pass through:
 
-- **Cloudflare**, which the hosting network uses in front of the services to filter
-  abuse (see the [Cloudflare privacy policy](https://www.cloudflare.com/privacypolicy/)).
-  The project does not limit request rates yet.
 - **Render**, which hosts the services and keeps their logs
   (see the [Render privacy policy](https://render.com/privacy)).
+
+No other service sits in front of them today (in particular, no Cloudflare). If one
+is added, this notice will say so before it goes live.
+
+To stop abuse, the application limits each client to 120 requests per minute. For
+that it keeps your IP address and the time of your recent requests in its own memory
+for about a minute. It is never written to disk and never logged by the application.
 
 We use this only to run and protect the service: to find errors and to stop
 abuse. We do not sell it, share it for advertising or build profiles from it.

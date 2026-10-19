@@ -1,0 +1,91 @@
+import re
+import tomllib
+from html.parser import HTMLParser
+from pathlib import Path
+
+from fastapi.testclient import TestClient
+
+from service.app import SITE
+from service.headers import CSP, SITE as SITE_CSP, csp
+from tests.test_api import B, cl, db  # noqa: F401
+
+
+def test_home_serves_the_page_with_its_own_csp_and_a_cache(cl):
+    r = cl.get("/")
+    assert r.status_code == 200 and r.headers["content-type"].startswith("text/html")
+    assert r.headers["cache-control"] == "public, max-age=3600"
+    assert r.headers["content-security-policy"] == SITE_CSP[1].decode()
+    assert "script-src 'self'" in r.headers["content-security-policy"] and "unsafe-inline" not in r.headers["content-security-policy"]
+    assert 'name="viewport"' in r.text and '<html lang="en">' in r.text
+
+
+def test_assets_are_served_with_the_right_types(cl):
+    c = cl.get("/static/site.css")
+    j = cl.get("/static/site.js")
+    assert c.headers["content-type"].startswith("text/css") and "prefers-color-scheme" in c.text
+    assert j.headers["content-type"].startswith("text/javascript") and "textContent" in j.text
+    assert j.headers["content-security-policy"] == SITE_CSP[1].decode()
+
+
+def test_unknown_static_paths_and_the_api_keep_the_strict_policy(cl):
+    assert cl.get("/static/other.js").status_code == 404
+    assert cl.get(f"{B}/brands").headers["content-security-policy"] == CSP[1].decode()
+    assert csp("/docs") == () and csp("/redoc") == () and csp("/") == (SITE_CSP,) and csp("/static/x") == (SITE_CSP,) and csp("/mcp") == (CSP,)
+
+
+def test_the_page_is_not_in_the_openapi(cl):
+    assert "/" not in cl.get("/openapi.json").json()["paths"] and "/static/site.js" not in cl.get("/openapi.json").json()["paths"]
+
+
+class Scan(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.ids, self.fors, self.inputs, self.external, self.inline = set(), set(), [], [], 0
+
+    def handle_starttag(self, tag, a):
+        a = dict(a)
+        if "id" in a:
+            self.ids.add(a["id"])
+        if tag == "label":
+            self.fors.add(a.get("for"))
+        if tag == "input":
+            self.inputs.append(a)
+        for k in ("src", "href"):
+            if a.get(k, "").startswith(("http://", "https://")) and tag in ("script", "link", "img"):
+                self.external.append(a[k])
+        if tag == "script" and "src" not in a:
+            self.inline += 1
+
+
+def test_page_markup_is_accessible_and_self_contained():
+    s = Scan()
+    s.feed((SITE / "index.html").read_text(encoding="utf-8"))
+    assert all(i["id"] in s.fors for i in s.inputs), "every input needs a label"
+    assert {"main", "q", "ta", "tc", "vc", "nc", "r-search", "r-doc", "meta"} <= s.ids
+    assert s.external == [] and s.inline == 0
+    html = (SITE / "index.html").read_text(encoding="utf-8")
+    assert 'href="#main"' in html and html.count("aria-live=\"polite\"") == 2 and "<h1>" in html
+
+
+def test_script_never_writes_html_and_uses_relative_urls():
+    js = (SITE / "site.js").read_text(encoding="utf-8")
+    assert not re.search(r"innerHTML|outerHTML|insertAdjacentHTML|document\.write|eval\(", js)
+    assert "https://" not in js and 'const API = "/api/v1"' in js
+
+
+def test_css_has_the_accessibility_basics():
+    css = (SITE / "site.css").read_text(encoding="utf-8")
+    assert "prefers-color-scheme: dark" in css and "prefers-reduced-motion" in css and ":focus-visible" in css and "min-height: 2.75rem" in css
+
+
+def test_site_files_are_packaged():
+    p = tomllib.loads((Path(__file__).parent.parent / "pyproject.toml").read_text(encoding="utf-8"))
+    assert "site/*" in p["tool"]["setuptools"]["package-data"]["service"]
+    assert {f.name for f in SITE.iterdir()} == {"index.html", "site.css", "site.js"}
+
+
+def test_the_rate_limit_applies_to_the_page_too(db):
+    from service.app import create_app
+
+    c = TestClient(create_app(db, rate=2))
+    assert [c.get("/").status_code for _ in range(3)] == [200, 200, 429]

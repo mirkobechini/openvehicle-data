@@ -80,3 +80,15 @@ class Variant(Named, Period):
     co2_wltp_g_km: float | None = Field(default=None, ge=0, le=1000)
     registrations: int | None = Field(default=None, ge=0)
     type_approval: str | None = Field(default=None, pattern=r"^e\d{1,3}\*[^*\s]+\*[^*\s]+$")
+    type_code: str | None = Field(default=None, min_length=1)
+    variant_code: str | None = Field(default=None, min_length=1)
+    version_code: str | None = Field(default=None, min_length=1)
+    seats: int | None = Field(default=None, ge=1, le=9)
+    max_mass_kg: float | None = Field(default=None, gt=0, le=10000)
+    environmental_class: str | None = Field(default=None, pattern=r"^Euro [0-6]$")
+    years: list[Year] = []
+
+    @field_validator("years")
+    @classmethod
+    def _ys(cls, v):
+        return sorted(set(v))

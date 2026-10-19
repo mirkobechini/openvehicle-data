@@ -221,54 +221,56 @@ def test_fetch_pages_the_plate_query(monkeypatch):
     assert len(sel) == 2 and all("min(kenteken)" in s for s in sel)
 
 
-def test_fetch_power_in_batches_keeping_only_power(monkeypatch):
+def test_fetch_fuel_in_batches_keeping_power_and_euro(monkeypatch):
     monkeypatch.setattr(rdw, "BATCH", 2)
     seen = []
 
     def h(req):
         seen.append((str(req.url).split("?")[0], req.url.params["$select"], req.url.params["$where"]))
         ks = [x.strip("'") for x in req.url.params["$where"][len("kenteken in("):-1].split(",")]
-        return httpx.Response(200, json=[{"kenteken": k, "nettomaximumvermogen": "51.50"} for k in ks] + [{"kenteken": ks[0], "nettomaximumvermogen": "62.00"}, {"kenteken": ks[0]}, {"kenteken": ks[0], "nettomaximumvermogen": "0"}])
+        return httpx.Response(200, json=[{"kenteken": k, "nettomaximumvermogen": "51.50"} for k in ks] + [{"kenteken": ks[0], "nettomaximumvermogen": "62.00", "emissiecode_omschrijving": "6"}, {"kenteken": ks[0], "emissiecode_omschrijving": "Z"}, {"kenteken": ks[0]}, {"kenteken": ks[0], "nettomaximumvermogen": "0"}])
 
-    r = rdw.fetch_power(["A1", "B2", "C3"], client(h))
-    assert r == {"A1": [51.5, 62.0], "B2": [51.5], "C3": [51.5, 62.0]}
-    assert len(seen) == 2 and seen[0][0] == rdw.FUEL and seen[0][1] == "kenteken,nettomaximumvermogen"
+    r = rdw.fetch_fuel(["A1", "B2", "C3"], client(h))
+    P = lambda *p, e=(): {"power": list(p), "euro": list(e)}
+    assert r == {"A1": P(51.5, 62.0, e=["6"]), "B2": P(51.5), "C3": P(51.5, 62.0, e=["6"])}
+    assert len(seen) == 2 and seen[0][0] == rdw.FUEL and seen[0][1] == "kenteken,nettomaximumvermogen,emissiecode_omschrijving"
     assert seen[0][2] == "kenteken in('A1','B2')" and seen[1][2] == "kenteken in('C3')"
 
 
-def test_fetch_power_ignores_odd_plates():
+def test_fetch_fuel_ignores_odd_plates():
     seen = []
 
     def h(req):
         seen.append(req.url.params["$where"])
         return httpx.Response(200, json=[])
 
-    assert rdw.fetch_power(["OK1", "a'b", "", None, "X" * 9, "1) OR (1=1"], client(h)) == {}
+    assert rdw.fetch_fuel(["OK1", "a'b", "", None, "X" * 9, "1) OR (1=1"], client(h)) == {}
     assert seen == ["kenteken in('OK1')"]
     seen.clear()
-    assert rdw.fetch_power([], client(h)) == {} and seen == []
+    assert rdw.fetch_fuel([], client(h)) == {} and seen == []
 
 
 @pytest.mark.parametrize("h", [lambda r: httpx.Response(500), lambda r: (_ for _ in ()).throw(httpx.ConnectError("boom"))])
-def test_fetch_power_errors_never_show_the_plates(h):
+def test_fetch_fuel_errors_never_show_the_plates(h):
     with pytest.raises(RuntimeError) as e:
-        rdw.fetch_power(["SECRET1"], client(h))
+        rdw.fetch_fuel(["SECRET1"], client(h))
     assert "SECRET1" not in str(e.value) and "SECRET1" not in repr(e.value.__cause__) and e.value.__suppress_context__
 
 
-def test_fetch_power_closes_only_its_own_client(monkeypatch):
+def test_fetch_fuel_closes_only_its_own_client(monkeypatch):
     c = client(lambda r: httpx.Response(200, json=[]))
-    rdw.fetch_power(["A1"], c)
+    rdw.fetch_fuel(["A1"], c)
     assert not c.is_closed
     own = client(lambda r: httpx.Response(200, json=[]))
     monkeypatch.setattr(rdw.httpx, "Client", lambda **k: own)
-    rdw.fetch_power(["A1"])
+    rdw.fetch_fuel(["A1"])
     assert own.is_closed
 
 
-def test_fold_power_joins_plates_back_to_variants():
+def test_fold_fuel_joins_plates_back_to_variants():
     pl = [{"merk": "MERCEDES-BENZ", "type": "1", "variant": "2", "uitvoering": "3", "k": "A1"}, {"merk": "FIAT", "type": "4", "variant": "5", "uitvoering": "6", "k": "B2"}, {"merk": None, "type": "7", "variant": "8", "uitvoering": "9", "k": "C3"}]
-    assert rdw.fold_power(pl, {"A1": [62.0, 51.5, 62.0], "C3": [40.0]}) == {("mercedesbenz", "1", "2", "3"): [51.5, 62.0], ("", "7", "8", "9"): [40.0]}
+    fu = {"A1": {"power": [62.0, 51.5, 62.0], "euro": ["5", "6"]}, "C3": {"power": [40.0], "euro": []}}
+    assert rdw.fold_fuel(pl, fu) == {("mercedesbenz", "1", "2", "3"): {"power_kw": [51.5, 62.0], "environmental_class": "Euro 6"}, ("", "7", "8", "9"): {"power_kw": [40.0], "environmental_class": None}}
 
 
 def pw(*v, **k):
@@ -386,3 +388,95 @@ def test_run_stores_the_type_approval(tmp_path):
     rdw.run(db, 2019, rclient([rrow(**{TA: "e3*2007/46*0064*05"})]), TODAY)
     with Store(db, ro=True) as s:
         assert ta(s)[0].type_approval == "e3*2007/46*0064"
+
+
+def eea_ta(st, value, src="eea-co2"):
+    v, _ = ta(st)
+    st.put(v.model_copy(update={"type_approval": value}))
+    st.put_prov(FieldProvenance(entity_id=v.id, field="type_approval", evidence=[Evidence(source_id=src, value=value, retrieved=TODAY)], last_verified=TODAY))
+
+
+def test_verify_confirms_an_eea_type_approval(st):
+    eea_ta(st, "e3*2007/46*0064")
+    s = rdw.verify(st, {("fiat", "312", "A", "B"): {"type_approval": "e3*2007/46*0064"}}, TODAY)
+    v, p = ta(st)
+    assert p.status is Status.CONFIRMED and [e.source_id for e in p.evidence] == ["eea-co2", "rdw-nl"]
+    assert v.type_approval == "e3*2007/46*0064" and s["confirmed"] == 1 and s["conflicts"] == 0
+    assert validate(st) == []
+
+
+def test_verify_flags_an_eea_type_approval_the_rdw_disagrees_with(st):
+    eea_ta(st, "e3*2007/46*0001")
+    s = rdw.verify(st, {("fiat", "312", "A", "B"): {"type_approval": "e3*2007/46*0064"}}, TODAY)
+    v, p = ta(st)
+    assert p.status is Status.CONFLICT and v.type_approval == "e3*2007/46*0001" and s["conflicts"] == 1
+    assert [x.rule for x in validate(st)] == ["source_conflict"]
+
+
+def test_verify_without_an_rdw_type_approval_keeps_the_eea_one_single(st):
+    eea_ta(st, "e3*2007/46*0064")
+    rdw.verify(st, {("fiat", "312", "A", "B"): {"mass_kg": 1000.0}}, TODAY)
+    assert ta(st)[1].status is Status.SINGLE
+
+
+@pytest.mark.parametrize("ek,rk", [({"Va": None}, {"variant": None}), ({"Ve": ""}, {"uitvoering": None}), ({"Va": "A", "Ve": None}, {"uitvoering": None})])
+def test_verify_matches_variants_that_lack_a_part(tmp_path, ek, rk):
+    with Store(tmp_path / "w.db") as s:
+        eea.load([erow(**ek)], s, 2025, TODAY)
+        fo = rdw.fold([rrow(**rk)])
+        r = rdw.verify(s, fo, TODAY)
+        assert r["matched"] == 1 and r["variants"] == 1
+
+
+def test_verify_does_not_match_a_variant_with_a_different_part_missing(tmp_path):
+    with Store(tmp_path / "w.db") as s:
+        eea.load([erow(Va=None)], s, 2025, TODAY)
+        assert rdw.verify(s, rdw.fold([rrow(uitvoering=None)]), TODAY)["matched"] == 0
+
+
+def test_verify_matches_codes_that_contain_spaces(tmp_path):
+    with Store(tmp_path / "w.db") as s:
+        eea.load([erow(Va="A 1", Ve="B")], s, 2025, TODAY)
+        assert rdw.verify(s, rdw.fold([rrow(variant="A 1")]), TODAY)["matched"] == 1
+
+
+def test_fold_takes_the_most_common_seats_and_permitted_mass():
+    r = rdw.fold([rrow(aantal_zitplaatsen="5", toegestane_maximum_massa_voertuig="1455", n="3"), rrow(aantal_zitplaatsen="4", toegestane_maximum_massa_voertuig="1500", n="1"), rrow(aantal_zitplaatsen="x", toegestane_maximum_massa_voertuig="0", n="9")])
+    assert r[("fiat", "312", "A", "B")]["seats"] == 5 and r[("fiat", "312", "A", "B")]["max_mass_kg"] == 1455.0
+
+
+def newf(st, name="312 A B"):
+    v = next(x for x in st.find(Variant) if x.name == name)
+    return v, {p.field: p for p in st.prov(v.id)}
+
+
+def test_verify_sets_seats_mass_and_euro_class_with_one_rdw_source(st):
+    fo = {("fiat", "312", "A", "B"): {"seats": 5, "max_mass_kg": 1455.0, "environmental_class": "Euro 6"}}
+    rdw.verify(st, fo, TODAY)
+    v, ps = newf(st)
+    assert (v.seats, v.max_mass_kg, v.environmental_class) == (5, 1455.0, "Euro 6")
+    for f in ("seats", "max_mass_kg", "environmental_class"):
+        assert ps[f].status is Status.SINGLE and [(e.source_id, e.url) for e in ps[f].evidence] == [("rdw-nl", rdw.PAGE)]
+    assert validate(st) == []
+
+
+def test_verify_keeps_existing_values_and_skips_missing_ones(st):
+    v, _ = newf(st)
+    st.put(v.model_copy(update={"seats": 4}))
+    st.put_prov(FieldProvenance(entity_id=v.id, field="seats", evidence=[Evidence(source_id="rdw-nl", value=4, retrieved=TODAY)], last_verified=TODAY))
+    rdw.verify(st, {("fiat", "312", "A", "B"): {"seats": 5, "environmental_class": None}}, TODAY)
+    v, ps = newf(st)
+    assert v.seats == 4 and v.environmental_class is None and "environmental_class" not in ps and ps["seats"].evidence[0].value == 4
+
+
+def test_run_brings_seats_mass_and_the_euro_class_from_the_plates(tmp_path):
+    db = tmp_path / "r.db"
+    with Store(db) as s:
+        eea.load([erow()], s, 2025, TODAY)
+    plates = [{"merk": "FIAT", "type": "312", "variant": "A", "uitvoering": "B", "k": "AB123C"}]
+    fuel = [{"kenteken": "AB123C", "nettomaximumvermogen": "52.00", "emissiecode_omschrijving": "5"}, {"kenteken": "AB123C", "emissiecode_omschrijving": "Z"}]
+    main = [rrow(aantal_zitplaatsen="4", toegestane_maximum_massa_voertuig="1455")]
+    rdw.run(db, 2019, rclient(main, plates, fuel), TODAY)
+    with Store(db, ro=True) as s:
+        v = next(iter(s.find(Variant)))
+        assert (v.seats, v.max_mass_kg, v.environmental_class) == (4, 1455.0, "Euro 5") and validate(s) == []

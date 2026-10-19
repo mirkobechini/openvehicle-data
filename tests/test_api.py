@@ -546,3 +546,95 @@ def test_malformed_type_approval_is_rejected(cla, s):
 def test_variant_shows_its_type_approval(cla):
     c, ids3 = cla
     assert c.get(f"{B}/variants/{ids3[0]}").json()["type_approval"] == "e3*2007/46*0064"
+
+
+def test_variants_by_codes(cl):
+    r = cl.get(f"{B}/variants", params={"type_code": "312", "variant_code": "PYD1B", "version_code": "S5G"}).json()
+    assert [i["id"] for i in r["items"]] == [PANDA] and r["total"] == 1
+    assert r["items"][0]["version_code"] == "S5G"
+
+
+def test_codes_trim_spaces_and_match_exactly(cl):
+    assert cl.get(f"{B}/variants", params={"version_code": " S5G "}).json()["items"][0]["id"] == PANDA
+    assert cl.get(f"{B}/variants", params={"version_code": "S5"}).json()["total"] == 0
+    assert cl.get(f"{B}/variants", params={"type_code": "999"}).json()["total"] == 0
+
+
+def test_a_type_approval_plus_the_codes_pins_one_variant(cla):
+    c, ids3 = cla
+    v = c.get(f"{B}/variants/{ids3[0]}").json()
+    r = c.get(f"{B}/variants", params={"type_approval": "e3*2007/46*0064", "type_code": v["type_code"], "variant_code": v["variant_code"], "version_code": v["version_code"]}).json()
+    assert [i["id"] for i in r["items"]] == [ids3[0]]
+
+
+@pytest.mark.parametrize("k", ["type_code", "variant_code", "version_code"])
+def test_empty_or_long_codes_are_rejected(cl, k):
+    assert cl.get(f"{B}/variants", params={k: ""}).status_code == 422
+    assert cl.get(f"{B}/variants", params={k: "x" * 41}).status_code == 422
+
+
+def test_year_filter_skips_the_years_without_registrations(db, tmp_path):
+    from fastapi.testclient import TestClient
+
+    p = tmp_path / "g.db"
+    with Store(p) as st:
+        eea.load_years({2019: ROWS[:3], 2025: ROWS[:3]}, st, date(2026, 9, 19))
+    c = TestClient(create_app(p))
+    n = c.get(f"{B}/variants", params={"year": 2019}).json()["total"]
+    assert n > 0 and c.get(f"{B}/variants", params={"year": 2025}).json()["total"] == n
+    assert c.get(f"{B}/variants", params={"year": 2022}).json()["total"] == 0
+    assert c.get(f"{B}/variants", params={"year": 2019}).json()["items"][0]["years"] == [2019, 2025]
+
+
+def test_search_with_several_words_and_the_brand(cl):
+    j = cl.get(f"{B}/search", params={"q": "tesla model 3"}).json()
+    assert [m["id"] for m in j["models"]] == ["model_tesla-model-3"] and j["did_you_mean"] == []
+    assert [m["id"] for m in cl.get(f"{B}/search", params={"q": "model tesla"}).json()["models"]] == ["model_tesla-model-3", "model_tesla-model-y"]
+    assert cl.get(f"{B}/search", params={"q": "tesla panda"}).json()["models"] == []
+
+
+def test_a_brand_word_alone_does_not_list_its_models(cl):
+    assert cl.get(f"{B}/search", params={"q": "tesla"}).json()["models"] == []
+    assert cl.get(f"{B}/models", params={"q": "tesla"}).json()["total"] == 0
+
+
+def test_search_ignores_accents_and_case_in_the_query(cl):
+    assert [b["id"] for b in cl.get(f"{B}/search", params={"q": "FÍAT"}).json()["brands"]] == ["brand_fiat"]
+    assert [m["id"] for m in cl.get(f"{B}/search", params={"q": "Pàndä"}).json()["models"]] == ["model_fiat-panda"]
+
+
+def test_list_filters_use_the_same_word_search(cl):
+    assert ids(cl.get(f"{B}/models", params={"q": "tesla model y"})) == ["model_tesla-model-y"]
+    assert ids(cl.get(f"{B}/families", params={"q": "fiat panda"})) == ["family_fiat-panda"]
+    assert cl.get(f"{B}/variants", params={"q": "312 pyd1b"}).json()["total"] > 0
+
+
+def test_blank_search_matches_nothing_and_wildcards_stay_literal(cl):
+    assert cl.get(f"{B}/search", params={"q": "   "}).json()["brands"] == []
+    assert cl.get(f"{B}/brands", params={"q": "%"}).json()["total"] == 0
+    assert cl.get(f"{B}/brands", params={"q": "f_at"}).json()["total"] == 0
+
+
+def test_meta_shows_the_schema_version(cl):
+    from core.storage import SCHEMA_VERSION
+
+    assert cl.get(f"{B}/meta").json()["schema_version"] == SCHEMA_VERSION
+
+
+@pytest.mark.parametrize("v", [None, "1", "99"])
+def test_the_service_refuses_a_dataset_of_another_schema(db, tmp_path, v):
+    import shutil
+
+    from core.storage import SchemaError
+
+    p = tmp_path / "s.db"
+    shutil.copy(db, p)
+    with Store(p) as s:
+        if v is None:
+            s.c.execute("DELETE FROM meta WHERE key='schema_version'")
+            s.c.commit()
+        else:
+            s.c.execute("UPDATE meta SET value=? WHERE key='schema_version'", (v,))
+            s.c.commit()
+    with pytest.raises(SchemaError, match="newer dataset"):
+        create_app(p)

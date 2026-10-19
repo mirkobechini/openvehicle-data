@@ -258,3 +258,9 @@ def test_exported_database_knows_its_version(v1):
     _, out = v1
     with Store(out / DB, ro=True) as s:
         assert (s.get_meta("version"), s.get_meta("generated")) == ("0.1.0", "2026-09-19")
+
+
+def test_years_column(tmp_path):
+    with store([row(), row(Cn="PANDA")]) as st:
+        export(st, tmp_path, "0.1.0", TODAY)
+    assert read_csv(tmp_path / "variants.csv")[0]["years"] == "2025"

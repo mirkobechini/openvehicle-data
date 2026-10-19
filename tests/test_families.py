@@ -86,7 +86,7 @@ SHIPPED = load_family_rules()
 
 
 def test_the_shipped_rules_are_valid_and_each_brand_has_a_reason():
-    assert len(SHIPPED.brands) >= 48
+    assert len(SHIPPED.brands) >= 50
     assert all(len(b.reason) >= 10 and b.rules for b in SHIPPED.brands.values())
 
 
@@ -188,4 +188,13 @@ def test_shipped_rules_for_the_second_group_of_brands(brand, name, family):
     ("MORGAN", "PLUS SIX SUPERSPORT", "PLUS SIX"), ("MORGAN", "PLUS FOUR 1909", "PLUS FOUR"), ("MORGAN", "MIDSUMMER", "MIDSUMMER"),
 ])
 def test_shipped_rules_for_the_smaller_brands(brand, name, family):
+    assert family_of(SHIPPED, brand, name) == family
+
+
+@pytest.mark.parametrize("brand,name,family", [
+    ("MCLAREN", "570S SPIDER", "570S"), ("MCLAREN", "570S COUPE", "570S"), ("MCLAREN", "750S COUPE'", "750S"), ("MCLAREN", "ARTURA SPIDE", "ARTURA"),
+    ("MCLAREN", "ARTURA", "ARTURA"), ("MCLAREN", "570GT", "570GT"), ("MCLAREN", "GTS", "GTS"),
+    ("CATERHAM", "SEVEN SV", "SEVEN"), ("CATERHAM", "SEVEN CSR", "SEVEN"), ("CATERHAM", "SEVEN S3", "SEVEN"),
+])
+def test_shipped_rules_for_mclaren_and_caterham(brand, name, family):
     assert family_of(SHIPPED, brand, name) == family
