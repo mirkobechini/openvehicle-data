@@ -546,3 +546,28 @@ def test_malformed_type_approval_is_rejected(cla, s):
 def test_variant_shows_its_type_approval(cla):
     c, ids3 = cla
     assert c.get(f"{B}/variants/{ids3[0]}").json()["type_approval"] == "e3*2007/46*0064"
+
+
+def test_variants_by_codes(cl):
+    r = cl.get(f"{B}/variants", params={"type_code": "312", "variant_code": "PYD1B", "version_code": "S5G"}).json()
+    assert [i["id"] for i in r["items"]] == [PANDA] and r["total"] == 1
+    assert r["items"][0]["version_code"] == "S5G"
+
+
+def test_codes_trim_spaces_and_match_exactly(cl):
+    assert cl.get(f"{B}/variants", params={"version_code": " S5G "}).json()["items"][0]["id"] == PANDA
+    assert cl.get(f"{B}/variants", params={"version_code": "S5"}).json()["total"] == 0
+    assert cl.get(f"{B}/variants", params={"type_code": "999"}).json()["total"] == 0
+
+
+def test_a_type_approval_plus_the_codes_pins_one_variant(cla):
+    c, ids3 = cla
+    v = c.get(f"{B}/variants/{ids3[0]}").json()
+    r = c.get(f"{B}/variants", params={"type_approval": "e3*2007/46*0064", "type_code": v["type_code"], "variant_code": v["variant_code"], "version_code": v["version_code"]}).json()
+    assert [i["id"] for i in r["items"]] == [ids3[0]]
+
+
+@pytest.mark.parametrize("k", ["type_code", "variant_code", "version_code"])
+def test_empty_or_long_codes_are_rejected(cl, k):
+    assert cl.get(f"{B}/variants", params={k: ""}).status_code == 422
+    assert cl.get(f"{B}/variants", params={k: "x" * 41}).status_code == 422
