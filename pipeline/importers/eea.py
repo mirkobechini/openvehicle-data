@@ -11,6 +11,7 @@ from core.ids import make_id, slug
 from core.models import Brand, CarModel, Engine, Family, Generation, Variant
 from core.provenance import Evidence, FieldProvenance
 from core.storage import Store
+from pipeline import http
 from pipeline.cli import cli
 from pipeline.importers.corrections import load_corrections, norm
 from pipeline.importers.eea_datasets import COMBINED, DATASETS, parse_years
@@ -54,7 +55,7 @@ def query(table, ms="IT", year=None, status=None):
 def fetch(table, ms="IT", client=None, year=None, status=None):
     c = client or httpx.Client(timeout=300)
     try:
-        r = c.get(URL, params={"query": query(table, ms, year, status)}, headers={"Accept": "application/json", "User-Agent": UA})
+        r = http.get(c, URL, params={"query": query(table, ms, year, status)}, headers={"Accept": "application/json", "User-Agent": UA})
     finally:
         if client is None:
             c.close()
