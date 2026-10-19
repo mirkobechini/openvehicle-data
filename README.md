@@ -5,9 +5,21 @@
 ![Code: Apache-2.0](https://img.shields.io/badge/code-Apache--2.0-green)
 ![Data: CC BY 4.0](https://img.shields.io/badge/data-CC%20BY%204.0-green)
 
-Open, verified data on passenger cars: brands, models, versions and technical
-specifications, for the cars registered in **Italy from 2019 to 2025** (EU category
-M1), with Europe and the world to follow.
+A free, open catalogue of the passenger cars registered in **Italy from 2019 to 2025**:
+makes, models, versions and their technical data (engine, power, mass, CO2, seats,
+emission class, type-approval number), each value with its source.
+
+## What it is for
+
+- **Check a vehicle against its registration document** (*carta di circolazione*): from
+  the type-approval number and the type/variant/version codes you get the exact
+  version, with its engine, mass, seats and emission class. Useful for fleet and
+  insurance software that wants to fill a form from the document.
+- **Look up a car**: which versions of a model exist, with which engines, how many
+  were registered, what they emit.
+- **Give an AI assistant a reliable source**: it can query the catalogue itself instead
+  of guessing.
+- **Analyse the data**: download it as a spreadsheet-friendly file or a database.
 
 It is published three ways, all read-only and free:
 
@@ -16,39 +28,121 @@ It is published three ways, all read-only and free:
 - an **MCP server**, so AI agents can look vehicles up themselves.
 
 Every technical value says where it comes from, and where two sources agree it says
-so. There is no personal data: no owners, no plates, no VIN lookups.
+so. There is no personal data: no owners, no plates, no VIN lookups. It does not tell
+you anything about one particular car on the road; it describes versions of cars.
 
 > **Status: early development.** Datasets are pre-releases (`data-v*` tags) and the
 > schema can still change. See [Limits](#limits) before relying on it.
 
 ## Contents
 
-[Try it](#try-it) · [The data](#the-data) · [REST API](#rest-api) · [MCP server](#mcp-server) ·
-[Run it yourself](#run-it-yourself) · [Limits](#limits) · [Contributing](#contributing) ·
-[Documentation](#documentation) · [Licenses](#licenses-and-attribution)
+[What it is for](#what-it-is-for) · [How to use it](#how-to-use-it) · [The data](#the-data) ·
+[How far to trust a value](#how-far-to-trust-a-value) · [REST API](#rest-api) ·
+[MCP server](#mcp-server) · [Run it yourself](#run-it-yourself) · [Limits](#limits) ·
+[Contributing](#contributing) · [Documentation](#documentation) · [Licenses](#licenses-and-attribution)
 
-## Try it
+## How to use it
 
-With a server running (see [Run it yourself](#run-it-yourself)), on its default local
-address:
+You need nothing installed: every request is a web address. In the examples `$U` stands
+for the address of the service you use followed by `/api/v1` (for a server you run
+yourself, see [Run it yourself](#run-it-yourself); then `U=http://localhost:8000/api/v1`).
+Every service also has a page with buttons to try each request in the browser, at `/docs`.
+
+### 1. Find a car
 
 ```bash
-U=http://localhost:8000/api/v1
-
-# find a model by name (typos get a "did_you_mean")
-curl "$U/search?q=panda"
-
-# the most registered Toyota variants seen in 2023
-curl "$U/variants?brand_id=brand_toyota&year=2023&sort=registrations&limit=5"
-
-# one variant, with its engine and the source of every field
-curl "$U/variants/var_fiat-panda-312-pyd1b-s5g"
-
-# match the number on an Italian registration document (carta di circolazione)
-curl "$U/variants?type_approval=e3*2007/46*0064*05"
+curl "$U/search?q=panda"                 # makes, families and models called Panda
+curl "$U/search?q=tesla model 3"         # several words work; accents and capitals do not matter
 ```
 
-Interactive documentation is at `/docs` on the same host.
+Results carry an `id` (for example `model_fiat-panda`) that you pass to other requests. If
+you misspell a name, the answer suggests close ones (`did_you_mean`).
+
+### 2. See its versions
+
+```bash
+curl "$U/variants?model_id=model_fiat-panda&sort=registrations&limit=5"
+curl "$U/variants?brand_id=brand_toyota&year=2023&fuel=hybrid"
+```
+
+`sort=registrations` puts the most registered first. Other filters: `fuel`, `year` (a year
+in which the version was really registered) and `min_registrations`. Long lists come in
+pages: use `offset` and `next_offset`.
+
+### 3. Match a registration document
+
+On the Italian *carta di circolazione* you need two things:
+
+| On the document | Request parameter |
+| --- | --- |
+| **K**: type-approval number, e.g. `e3*2007/46*0064*05` | `type_approval` |
+| **D.2**: type, variant, version, e.g. `312` / `PYD1B` / `AA4` | `type_code`, `variant_code`, `version_code` |
+
+```bash
+curl "$U/variants?type_approval=e3*2007/46*0064*05&type_code=312&variant_code=PYD1B&version_code=AA4"
+```
+
+The type-approval number alone is not enough: it names a whole type, which can have many
+versions. With the three codes added you normally get one result (`total: 1`). If you get
+several, they differ only in the model name: add `model_id` or `q`. If you get none, the
+version is not in the catalogue (see [Limits](#limits)).
+
+What the answer gives, and where it sits on the document:
+
+| Field | Document | Notes |
+| --- | --- | --- |
+| `seats` | S.1 | seats including the driver |
+| `max_mass_kg` | F.2 | maximum permissible mass |
+| `mass_kg` | near G | mass in running order, **not** F.2 |
+| `environmental_class` | V.9 | `Euro 0` to `Euro 6`; none for electric cars |
+| `engine.displacement_cc`, `engine.power_kw`, `engine.fuel` | P.1, P.2, P.3 | |
+| `co2_wltp_g_km` | V.7 | WLTP combined |
+
+Seats, F.2 and the emission class are known only for versions that were also sold in the
+Netherlands (about half of the versions, 80% of the cars registered): `null` means "not
+known", not "none".
+
+### 4. See where a value comes from
+
+```bash
+curl "$U/variants/var_fiat-panda-312-pyd1b-s5g"
+```
+
+Besides the data, this returns for each technical field the source, its licence, the link to
+the evidence, the date it was checked and whether another source agrees (see
+[How far to trust a value](#how-far-to-trust-a-value)).
+
+### 5. Ask an AI assistant
+
+The service speaks MCP, the standard way for assistants to use tools. Add it to your
+assistant (for Claude Code: `claude mcp add --transport http openvehicle <address>/mcp`),
+then ask in plain words: *"Which diesel Peugeot 3008 versions were registered in 2022, and
+where does their CO2 figure come from?"*
+
+### 6. Download everything
+
+Every [release](https://github.com/mirkobechini/openvehicle-data/releases) has the whole
+catalogue as one SQLite database, one CSV file per table (opens in Excel or LibreOffice), a
+JSON file, and a list of what changed since the previous release.
+
+### 7. Check how complete it is
+
+```bash
+curl "$U/coverage"                        # share of versions that have each field, overall and per make
+curl "$U/coverage?brand_id=brand_fiat"
+```
+
+The `weighted` figures count each version by the cars registered, so rare versions weigh
+less. Use them to decide whether a field is reliable enough for your purpose.
+
+### Good to know
+
+- Your program may keep an answer for an hour (`Cache-Control`, `ETag`).
+- Each client may make 120 requests per minute; above that the service answers `429` and
+  says how many seconds to wait.
+- A free hosting plan puts the service to sleep when idle: the first request after a pause
+  can take about a minute. A program that calls it live should keep its own copy of earlier
+  answers.
 
 ## The data
 
@@ -92,7 +186,7 @@ mistyped entries.
 
 Brands also carry a `wikidata_id` where a reliable match was reviewed.
 
-### Where each value comes from
+### How far to trust a value
 
 Every technical field (mass, CO2, wheelbase, track width, engine size and power, type
 approval, Wikidata id) has its own record: source, licence, evidence link,
@@ -109,8 +203,8 @@ measurement: both sources derive from the manufacturer's type-approval data.
 
 | Source | Provides | Licence |
 | --- | --- | --- |
-| [EEA](https://www.eea.europa.eu/data-and-maps/data/co2-cars-emission-22) CO2 monitoring, Regulation (EU) 2019/631 | the catalogue itself: makes, models, versions, engines, mass, CO2, registrations (2019-2024 final, 2025 provisional) | CC BY 4.0 |
-| [RDW](https://opendata.rdw.nl) open data (Netherlands) | second source for mass, wheelbase, engine size and power; the type-approval number | Public Domain |
+| [EEA](https://www.eea.europa.eu/data-and-maps/data/co2-cars-emission-22) CO2 monitoring, Regulation (EU) 2019/631 | the catalogue itself: makes, models, versions, engines, mass, CO2, type-approval number, registrations (2019-2024 final, 2025 provisional) | CC BY 4.0 |
+| [RDW](https://opendata.rdw.nl) open data (Netherlands) | second source for mass, wheelbase, engine size, power and the type-approval number; seats, maximum mass and emission class | Public Domain |
 | [Wikidata](https://www.wikidata.org) | brand identifiers, from a reviewed list | CC0 |
 
 RDW rows are one per licence plate, so they are grouped on the RDW server: no plate
@@ -125,7 +219,7 @@ previous release.
 
 ## REST API
 
-Base path `/api/v1`. Everything is `GET`.
+*For developers.* Base path `/api/v1`. Everything is `GET`.
 
 | Path | Filters |
 | --- | --- |
@@ -134,9 +228,9 @@ Base path `/api/v1`. Everything is `GET`.
 | `/models`, `/models/{id}` | `q`, `brand_id`, `family_id`, `sort`, `min_registrations` |
 | `/generations` | `model_id` |
 | `/engines`, `/engines/{id}` | `fuel` |
-| `/variants` | `q`, `brand_id`, `family_id`, `model_id`, `generation_id`, `engine_id`, `fuel`, `year`, `type_approval`, `sort`, `min_registrations` |
+| `/variants` | `q`, `brand_id`, `family_id`, `model_id`, `generation_id`, `engine_id`, `fuel`, `year`, `type_approval`, `type_code`, `variant_code`, `version_code`, `sort`, `min_registrations` |
 | `/variants/{id}` | the variant, its engine and the provenance of every field |
-| `/search?q=` | brands, families and models by name or alias |
+| `/search?q=` | brands, families and models by name or alias (several words, accents ignored) |
 | `/coverage` | how many variants have each field, overall and per brand (`brand_id`), also weighted by registrations |
 | `/sources`, `/meta`, `/health` | sources and licences; version, counts and attribution; liveness |
 
@@ -174,7 +268,7 @@ Ask an agent, for instance: *"Which diesel Peugeot 3008 variants were registered
 
 ## Run it yourself
 
-Python 3.12 or newer.
+*For developers.* Python 3.12 or newer.
 
 ```bash
 python -m venv .venv
@@ -217,7 +311,7 @@ domain) is described in [DEPLOY.md](DEPLOY.md).
 - Family rules cover 50 brands; the other brands keep one family per model.
 - Wheelbase and track width exist only for 2019-2022 (the EEA stopped reporting them).
 - RDW covers about half of the variants (cars sold in the Netherlands), so the rest
-  stay `single_source`. CO2 is single-source everywhere: RDW's per-plate values vary
+  stay `single_source`, and seats, F.2 mass and emission class are missing for them. CO2 is single-source everywhere: RDW's per-plate values vary
   too much between cars of one variant to serve as a check.
 - Wikidata ids exist for 70 of 90 brands; models are not linked (Wikidata has
   duplicate and mixed items for them).
@@ -240,6 +334,7 @@ releases. Keep the 100% test coverage. Please do not put personal data in issues
 
 ## Documentation
 
+- [CHANGELOG.md](CHANGELOG.md): what changed in the software, version by version
 - [ADR.md](ADR.md): architecture decisions and the measurements behind them (in Italian)
 - [DEPLOY.md](DEPLOY.md): data releases, Render, domain and rate limiting
 - [PRIVACY.md](PRIVACY.md): what the public service processes
