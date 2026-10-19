@@ -2,7 +2,7 @@ from pydantic import BaseModel
 
 from core.models import Brand
 
-VF = ("mass_kg", "wheelbase_mm", "track_width_mm", "co2_wltp_g_km", "type_approval", "type_code", "variant_code", "version_code")
+VF = ("mass_kg", "wheelbase_mm", "track_width_mm", "co2_wltp_g_km", "type_approval", "type_code", "variant_code", "version_code", "seats", "max_mass_kg", "environmental_class")
 EF = ("displacement_cc", "power_kw")
 
 

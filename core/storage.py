@@ -42,7 +42,8 @@ CREATE TABLE IF NOT EXISTS variants (
     year_from INTEGER NOT NULL, year_to INTEGER,
     mass_kg REAL, wheelbase_mm INTEGER, track_width_mm INTEGER,
     co2_wltp_g_km REAL, registrations INTEGER, type_approval TEXT,
-    type_code TEXT, variant_code TEXT, version_code TEXT, years TEXT NOT NULL DEFAULT '[]');
+    type_code TEXT, variant_code TEXT, version_code TEXT,
+    seats INTEGER, max_mass_kg REAL, environmental_class TEXT, years TEXT NOT NULL DEFAULT '[]');
 CREATE TABLE IF NOT EXISTS sources (
     id TEXT PRIMARY KEY, name TEXT NOT NULL, license TEXT NOT NULL,
     license_url TEXT NOT NULL, license_checked TEXT);
