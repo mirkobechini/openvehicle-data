@@ -134,3 +134,8 @@ def test_the_wikidata_ids_do_not_need_the_network(tmp_path):
     h = lambda req: seen.append(req.url.host) or httpx.Response(200, json={"results": ROWS})
     r = bd.build(tmp_path / "o", "0.1.0", "2025", client=httpx.Client(transport=httpx.MockTransport(h)), today=TODAY, check=False)
     assert r["import"]["wikidata"]["brands"] >= 1 and not any("wikidata" in x for x in seen)
+
+
+def test_build_reports_the_overall_coverage(tmp_path):
+    c = bd.build(tmp_path / "o", "0.1.0", "2025", client=client(), today=TODAY)["import"]["coverage"]
+    assert c["variants"] == 14 and c["fields"]["mass_kg"]["variants"] == 14 and c["fields"]["type_approval"]["variants"] == 0
