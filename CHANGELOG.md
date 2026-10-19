@@ -32,6 +32,8 @@ with a dataset of another schema, so this software needs a dataset built with it
 - Search by several words, ignoring accents; a word may match the brand of a model (#151).
 - `schema_version` in the dataset and `/meta`, checked at startup (#153).
 - Indexes for the type-approval, code, engine, registrations and fuel queries (#129).
+- Hashed lock files (`requirements.lock`, `requirements-dev.lock`), version bounds in `pyproject.toml`,
+  base image pinned by digest, and a workflow to refresh the locks (#157).
 - Importer stage registry and a shared CLI helper for new data sources (#149).
 
 ### Changed
