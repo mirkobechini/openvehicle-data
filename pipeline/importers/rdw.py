@@ -16,11 +16,13 @@ URL = "https://opendata.rdw.nl/resource/m9d7-ebf2.json"
 PAGE = "https://opendata.rdw.nl/Voertuigen/Open-Data-RDW-Gekentekende_voertuigen/m9d7-ebf2"
 FUEL = "https://opendata.rdw.nl/resource/8ys7-d773.json"
 UA = "openvehicle-data/0.0 (+https://github.com/mirkobechini/openvehicle-data)"
+EURO = set("0123456")
 STEP = 50000
 BATCH = 400
 KEY = ("merk", "type", "variant", "uitvoering")
-CV = {"massa_rijklaar": ("mass_kg", float), "cilinderinhoud": ("displacement_cc", int), "wielbasis": ("wheelbase_mm", lambda v: int(v) * 10), "typegoedkeuringsnummer": ("type_approval", base)}
+CV = {"massa_rijklaar": ("mass_kg", float), "cilinderinhoud": ("displacement_cc", int), "wielbasis": ("wheelbase_mm", lambda v: int(v) * 10), "typegoedkeuringsnummer": ("type_approval", base), "aantal_zitplaatsen": ("seats", int), "toegestane_maximum_massa_voertuig": ("max_mass_kg", float)}
 COLS = (*KEY, *CV)
+NEW = ("type_approval", "seats", "max_mass_kg", "environmental_class")
 
 
 def _q(since, cols, sel, limit, offset):
@@ -60,30 +62,32 @@ def fetch(since, client=None, q=query):
             c.close()
 
 
-def fetch_power(plates, client=None):
+def fetch_fuel(plates, client=None):
     c = client or httpx.Client(timeout=300)
-    out = defaultdict(list)
+    out = defaultdict(lambda: {"power": [], "euro": []})
     ok = [x for x in plates if re.fullmatch(r"[A-Z0-9]{1,8}", x or "")]
     try:
         for i in range(0, len(ok), BATCH):
             b = ",".join(f"'{x}'" for x in ok[i:i + BATCH])
             try:
-                r = c.get(FUEL, params={"$select": "kenteken,nettomaximumvermogen", "$where": f"kenteken in({b})", "$limit": 5000}, headers={"Accept": "application/json", "User-Agent": UA})
+                r = c.get(FUEL, params={"$select": "kenteken,nettomaximumvermogen,emissiecode_omschrijving", "$where": f"kenteken in({b})", "$limit": 5000}, headers={"Accept": "application/json", "User-Agent": UA})
                 r.raise_for_status()
             except httpx.HTTPError as e:
                 raise RuntimeError(f"RDW fuel request failed: {type(e).__name__}") from None
             for x in r.json():
                 w = _num(x.get("nettomaximumvermogen"), float)
                 if w is not None:
-                    out[x["kenteken"]].append(w)
+                    out[x["kenteken"]]["power"].append(w)
+                if x.get("emissiecode_omschrijving") in EURO:
+                    out[x["kenteken"]]["euro"].append(x["emissiecode_omschrijving"])
     finally:
         if client is None:
             c.close()
     return out
 
 
-def fold_power(pl, pw):
-    return {(norm(r["merk"] or ""), *(r.get(x) for x in KEY[1:])): sorted(set(pw[r["k"]])) for r in pl if r["k"] in pw}
+def fold_fuel(pl, fu):
+    return {(norm(r["merk"] or ""), *(r.get(x) for x in KEY[1:])): {"power_kw": sorted(set(fu[r["k"]]["power"])), "environmental_class": f"Euro {max(fu[r['k']]['euro'])}" if fu[r["k"]]["euro"] else None} for r in pl if r["k"] in fu}
 
 
 def _num(v, f):
@@ -137,9 +141,10 @@ def verify(st, fo, today=None):
             _add(st, v.engine_id, "displacement_cc", r.get("displacement_cc"), today, seen, out)
         if v.type_approval is not None:
             _add(st, v.id, "type_approval", r.get("type_approval"), today, seen, out)
-        elif r.get("type_approval"):
-            nv[v.id] = v.model_copy(update={"type_approval": r["type_approval"]})
-            out[(v.id, "type_approval")] = FieldProvenance(entity_id=v.id, field="type_approval", evidence=[Evidence(source_id=RDW.id, value=r["type_approval"], url=PAGE, retrieved=today)], last_verified=today)
+        for f in NEW:
+            if r.get(f) is not None and getattr(v, f) is None:
+                nv[v.id] = nv.get(v.id, v).model_copy(update={f: r[f]})
+                out[(v.id, f)] = FieldProvenance(entity_id=v.id, field=f, evidence=[Evidence(source_id=RDW.id, value=r[f], url=PAGE, retrieved=today)], last_verified=today)
         ep = en[v.engine_id].power_kw
         if r.get("power_kw") and ep is not None:
             _add(st, v.engine_id, "power_kw", min(r["power_kw"], key=lambda x: abs(x - ep)), today, seen, out)
@@ -152,8 +157,8 @@ def verify(st, fo, today=None):
 def run(db, since, client=None, today=None):
     fo = fold(fetch(since, client))
     pl = fetch(since, client, query_plates)
-    for k, ps in fold_power(pl, fetch_power([x["k"] for x in pl], client)).items():
-        fo.setdefault(k, {})["power_kw"] = ps
+    for k, v in fold_fuel(pl, fetch_fuel([x["k"] for x in pl], client)).items():
+        fo.setdefault(k, {}).update(v)
     with Store(db) as st:
         return verify(st, fo, today)
 

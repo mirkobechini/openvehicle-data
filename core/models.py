@@ -83,6 +83,9 @@ class Variant(Named, Period):
     type_code: str | None = Field(default=None, min_length=1)
     variant_code: str | None = Field(default=None, min_length=1)
     version_code: str | None = Field(default=None, min_length=1)
+    seats: int | None = Field(default=None, ge=1, le=9)
+    max_mass_kg: float | None = Field(default=None, gt=0, le=10000)
+    environmental_class: str | None = Field(default=None, pattern=r"^Euro [0-6]$")
     years: list[Year] = []
 
     @field_validator("years")
