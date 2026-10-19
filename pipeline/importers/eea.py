@@ -6,6 +6,7 @@ from datetime import date
 import httpx
 from pydantic import ValidationError
 
+from core.approval import base
 from core.enums import Fuel
 from core.ids import make_id, slug
 from core.models import Brand, CarModel, Engine, Family, Generation, Variant
@@ -42,10 +43,10 @@ def query(table, ms="IT", year=None, status=None):
             raise ValueError("bad year or status")
         extra = f" AND [Year]={year} AND Status='{status}'"
     return (
-        "SELECT Mk, Cn, T, Va, Ve, Ft, Fm, [Ec (cm3)] AS ec, [Ep (KW)] AS ep, [M (kg)] AS m, "
+        "SELECT Mk, Cn, T, Va, Ve, TAN AS ta, Ft, Fm, [Ec (cm3)] AS ec, [Ep (KW)] AS ep, [M (kg)] AS m, "
         "[W (mm)] AS w, [At1 (mm)] AS at1, [Ewltp (g/km)] AS co2, COUNT(*) AS n "
         f"FROM [CO2Emission].[latest].[{table}] WHERE MS='{ms}' AND Ct='M1' AND Cr='M1'{extra} "
-        "GROUP BY Mk, Cn, T, Va, Ve, Ft, Fm, [Ec (cm3)], [Ep (KW)], [M (kg)], [W (mm)], "
+        "GROUP BY Mk, Cn, T, Va, Ve, TAN, Ft, Fm, [Ec (cm3)], [Ep (KW)], [M (kg)], [W (mm)], "
         "[At1 (mm)], [Ewltp (g/km)]"
     )
 
@@ -89,7 +90,19 @@ def _mk(cls, drops, **kw):
 
 
 def _best(rs):
-    return min(rs, key=lambda r: (-r["n"], *(1e18 if r[k] is None else r[k] for k in VF)))
+    c = Counter()
+    for r in rs:
+        c[tuple(r[k] for k in VF)] += r["n"]
+    k = min(c, key=lambda t: (-c[t], *(1e18 if x is None else x for x in t)))
+    return {**max((r for r in rs if tuple(r[x] for x in VF) == k), key=lambda r: r["n"]), "n": c[k]}
+
+
+def _ta(rs):
+    c = Counter()
+    for r in rs:
+        if b := base(r.get("ta")):
+            c[b] += r["n"]
+    return min(c, key=lambda b: (-c[b], b)) if c else None
 
 
 def _key(s):
@@ -160,7 +173,7 @@ def _load(rows, st, today, corr, fam, urls):
         gr[(b, m, make_id("var", mk, cn, r["T"], r["Va"], r["Ve"]))].append(r)
     ms, gs, gy, es, eyr, vs, pv, drops, conf, mreg = {}, {}, {}, {}, {}, {}, [], Counter(), 0, Counter()
     for (b, m, vid), rs in sorted(gr.items()):
-        by, wins, reg = {}, {}, 0
+        by, tas, wins, reg = {}, {}, {}, 0
         for y in sorted({x["y"] for x in rs}):
             yr = [x for x in rs if x["y"] == y]
             ek = Counter()
@@ -171,6 +184,7 @@ def _load(rows, st, today, corr, fam, urls):
             conf += len(yr) - len(kept)
             reg += sum(x["n"] for x in kept)
             by[y] = _best(kept)
+            tas[y] = _ta(kept)
         ys = sorted(by)
         win = wins[ys[-1]]
         vals, src = {}, {}
@@ -178,6 +192,9 @@ def _load(rows, st, today, corr, fam, urls):
             for c, f in VF.items():
                 if f not in vals and by[y][c] is not None:
                     vals[f], src[f] = by[y][c], urls[y]
+        ty = next((y for y in reversed(ys) if tas[y]), None)
+        if ty is not None:
+            vals["type_approval"], src["type_approval"] = tas[ty], urls[ty]
         r = by[ys[-1]]
         mreg[m] += reg
         ft, fm, ec, ep = win
@@ -194,9 +211,9 @@ def _load(rows, st, today, corr, fam, urls):
         vs[vid] = _mk(
             Variant, drops, id=vid, generation_id=gid, engine_id=eid,
             name=" ".join(str(p).strip() for p in (r["T"], r["Va"], r["Ve"]) if p and str(p).strip()) or "unknown",
-            year_from=ys[0], year_to=ys[-1], registrations=reg, **{f: vals.get(f) for f in VF.values()},
+            year_from=ys[0], year_to=ys[-1], registrations=reg, **{f: vals.get(f) for f in (*VF.values(), "type_approval")},
         )
-        _pv(vs[vid], VF.values(), src, today, pv)
+        _pv(vs[vid], (*VF.values(), "type_approval"), src, today, pv)
     for eid, e in es.items():
         _pv(e, EF.values(), dict.fromkeys(EF.values(), urls[eyr[eid]]), today, pv)
     bs = []
