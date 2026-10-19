@@ -613,3 +613,28 @@ def test_blank_search_matches_nothing_and_wildcards_stay_literal(cl):
     assert cl.get(f"{B}/search", params={"q": "   "}).json()["brands"] == []
     assert cl.get(f"{B}/brands", params={"q": "%"}).json()["total"] == 0
     assert cl.get(f"{B}/brands", params={"q": "f_at"}).json()["total"] == 0
+
+
+def test_meta_shows_the_schema_version(cl):
+    from core.storage import SCHEMA_VERSION
+
+    assert cl.get(f"{B}/meta").json()["schema_version"] == SCHEMA_VERSION
+
+
+@pytest.mark.parametrize("v", [None, "1", "99"])
+def test_the_service_refuses_a_dataset_of_another_schema(db, tmp_path, v):
+    import shutil
+
+    from core.storage import SchemaError
+
+    p = tmp_path / "s.db"
+    shutil.copy(db, p)
+    with Store(p) as s:
+        if v is None:
+            s.c.execute("DELETE FROM meta WHERE key='schema_version'")
+            s.c.commit()
+        else:
+            s.c.execute("UPDATE meta SET value=? WHERE key='schema_version'", (v,))
+            s.c.commit()
+    with pytest.raises(SchemaError, match="newer dataset"):
+        create_app(p)
