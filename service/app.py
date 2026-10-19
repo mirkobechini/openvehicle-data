@@ -150,7 +150,8 @@ def create_app(db=None):
         version_code: Annotated[str | None, Query(min_length=1, max_length=40, description="Version, third part of D.2, e.g. AA4")] = None,
     ):
         with rd() as st:
-            return _get(qs.variants_page, st, pg, q, model_id, generation_id, engine_id, fuel, sort, min_registrations, brand_id, family_id, year, type_approval, type_code, variant_code, version_code)
+            f = qs.VariantQuery(q=q, brand_id=brand_id, family_id=family_id, model_id=model_id, generation_id=generation_id, engine_id=engine_id, fuel=fuel, sort=sort, min_registrations=min_registrations, year=year, type_approval=type_approval, type_code=type_code, variant_code=variant_code, version_code=version_code)
+            return _get(qs.variants_page, st, pg, f)
 
     @app.get("/api/v1/variants/{i}", response_model=VariantDetail)
     def variant(i: str):
