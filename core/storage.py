@@ -16,6 +16,7 @@ TB = {
 }
 
 JS = {"aliases", "years"}
+OPS = {"__gte": (">=", lambda v: v), "__lte": ("<=", lambda v: v), "__has": ("LIKE", lambda v: f"%{v}%")}
 DDL = """
 CREATE TABLE IF NOT EXISTS brands (
     id TEXT PRIMARY KEY, name TEXT NOT NULL, aliases TEXT NOT NULL, wikidata_id TEXT);
@@ -65,6 +66,11 @@ CREATE INDEX IF NOT EXISTS ix_engines_fuel ON engines(fuel);
 """
 
 
+def _op(k):
+    o = next((o for o in OPS if k.endswith(o)), None)
+    return (k[: -len(o)], o) if o else (k, None)
+
+
 class Store:
     def __init__(self, path=":memory:", ro=False):
         if ro:
@@ -109,20 +115,15 @@ class Store:
         return None if r is None else self._m(cls, r)
 
     def _w(self, cls, q, w):
-        bad = {k.removesuffix("__gte").removesuffix("__lte").removesuffix("__has") for k in w} - set(cls.model_fields)
+        bad = {_op(k)[0] for k in w} - set(cls.model_fields)
         if bad:
             raise ValueError(f"unknown columns: {sorted(bad)}")
         cs, ps = [], []
         for k, v in w.items():
-            if k.endswith("__gte"):
-                cs.append(f"{k[:-5]}>=?")
-                ps.append(v)
-            elif k.endswith("__lte"):
-                cs.append(f"{k[:-5]}<=?")
-                ps.append(v)
-            elif k.endswith("__has"):
-                cs.append(f"{k[:-5]} LIKE ?")
-                ps.append(f"%{v}%")
+            c, o = _op(k)
+            if o:
+                cs.append(f"{c} {OPS[o][0]} ?")
+                ps.append(OPS[o][1](v))
             elif isinstance(v, (list, tuple, set)):
                 v = list(v)
                 cs.append(f"{k} IN ({','.join('?' * len(v))})")
