@@ -686,3 +686,62 @@ def test_separator_merge_is_applied_after_the_reviewed_merges(st):
 def test_a_plus_sign_keeps_models_apart(st):
     eea.load([row(Mk="MERCEDES-BENZ", Cn="EQA 250+", Va="A"), row(Mk="MERCEDES-BENZ", Cn="EQA 250", Va="B"), row(Mk="LEXUS", Cn="RX450H+", Va="C"), row(Mk="LEXUS", Cn="RX450H", Va="D")], st, 2025, TODAY)
     assert sorted(models(st)) == ["EQA 250", "EQA 250+", "RX450H", "RX450H+"]
+
+
+def ta(st, i="var_fiat-panda-312-a-b"):
+    v = st.get(Variant, i)
+    return v, next((p for p in st.prov(v.id) if p.field == "type_approval"), None)
+
+
+def test_query_asks_for_the_type_approval():
+    q = eea.query("t")
+    assert "TAN AS ta" in q and "GROUP BY Mk, Cn, T, Va, Ve, TAN," in q
+
+
+def test_type_approval_is_stored_as_base_with_the_eea_source(st):
+    eea.load([row(ta="E3*2007/46*0064*69")], st, 2025, TODAY)
+    v, p = ta(st)
+    assert v.type_approval == "e3*2007/46*0064"
+    assert [(e.source_id, e.value, e.retrieved) for e in p.evidence] == [("eea-co2", "e3*2007/46*0064", TODAY)]
+    assert validate(st) == []
+
+
+def test_extensions_of_the_same_approval_count_together(st):
+    eea.load([row(ta="E3*2007/46*0064*69", n=2), row(ta="E3*2007/46*0064*70", n=2), row(ta="E3*2007/46*0001*01", n=3)], st, 2025, TODAY)
+    assert ta(st)[0].type_approval == "e3*2007/46*0064"
+
+
+def test_type_approval_tie_takes_the_lowest(st):
+    eea.load([row(ta="E3*2007/46*0064*69"), row(ta="E3*2007/46*0001*01")], st, 2025, TODAY)
+    assert ta(st)[0].type_approval == "e3*2007/46*0001"
+
+
+@pytest.mark.parametrize("x", [None, "", "garbage", "E3*2007"])
+def test_missing_or_odd_type_approval_is_left_empty(st, x):
+    eea.load([row(ta=x), row()], st, 2025, TODAY)
+    v, p = ta(st)
+    assert v.type_approval is None and p is None
+
+
+def test_rows_without_the_ta_key_still_load(st):
+    eea.load([row()], st, 2025, TODAY)
+    assert ta(st)[0].type_approval is None
+
+
+def test_type_approval_comes_from_the_latest_year_that_has_one(st):
+    eea.load_years({2024: [row(ta="E3*2007/46*0001*01")], 2025: [row()]}, st, TODAY)
+    v, p = ta(st)
+    assert v.type_approval == "e3*2007/46*0001" and p.evidence[0].url == DATASETS[2024].url
+    st2 = Store()
+    eea.load_years({2024: [row(ta="E3*2007/46*0001*01")], 2025: [row(ta="E3*2007/46*0002*01")]}, st2, TODAY)
+    assert ta(st2)[0].type_approval == "e3*2007/46*0002"
+    st2.close()
+
+
+def test_splitting_rows_by_approval_does_not_change_the_measured_values(st):
+    a = row(ta="E3*2007/46*0064*69", n=2, m=1100)
+    b = row(ta="E3*2007/46*0064*70", n=2, m=1100)
+    c = row(ta="E3*2007/46*0064*70", n=3, m=1000)
+    eea.load([a, b, c], st, 2025, TODAY)
+    v, _ = ta(st)
+    assert v.mass_kg == 1100 and v.registrations == 7

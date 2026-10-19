@@ -386,3 +386,32 @@ def test_run_stores_the_type_approval(tmp_path):
     rdw.run(db, 2019, rclient([rrow(**{TA: "e3*2007/46*0064*05"})]), TODAY)
     with Store(db, ro=True) as s:
         assert ta(s)[0].type_approval == "e3*2007/46*0064"
+
+
+def eea_ta(st, value, src="eea-co2"):
+    v, _ = ta(st)
+    st.put(v.model_copy(update={"type_approval": value}))
+    st.put_prov(FieldProvenance(entity_id=v.id, field="type_approval", evidence=[Evidence(source_id=src, value=value, retrieved=TODAY)], last_verified=TODAY))
+
+
+def test_verify_confirms_an_eea_type_approval(st):
+    eea_ta(st, "e3*2007/46*0064")
+    s = rdw.verify(st, {("fiat", "312", "A", "B"): {"type_approval": "e3*2007/46*0064"}}, TODAY)
+    v, p = ta(st)
+    assert p.status is Status.CONFIRMED and [e.source_id for e in p.evidence] == ["eea-co2", "rdw-nl"]
+    assert v.type_approval == "e3*2007/46*0064" and s["confirmed"] == 1 and s["conflicts"] == 0
+    assert validate(st) == []
+
+
+def test_verify_flags_an_eea_type_approval_the_rdw_disagrees_with(st):
+    eea_ta(st, "e3*2007/46*0001")
+    s = rdw.verify(st, {("fiat", "312", "A", "B"): {"type_approval": "e3*2007/46*0064"}}, TODAY)
+    v, p = ta(st)
+    assert p.status is Status.CONFLICT and v.type_approval == "e3*2007/46*0001" and s["conflicts"] == 1
+    assert [x.rule for x in validate(st)] == ["source_conflict"]
+
+
+def test_verify_without_an_rdw_type_approval_keeps_the_eea_one_single(st):
+    eea_ta(st, "e3*2007/46*0064")
+    rdw.verify(st, {("fiat", "312", "A", "B"): {"mass_kg": 1000.0}}, TODAY)
+    assert ta(st)[1].status is Status.SINGLE

@@ -135,7 +135,9 @@ def verify(st, fo, today=None):
                 _add(st, v.id, f, r.get(f), today, seen, out)
         if en[v.engine_id].displacement_cc is not None:
             _add(st, v.engine_id, "displacement_cc", r.get("displacement_cc"), today, seen, out)
-        if r.get("type_approval") and v.type_approval is None:
+        if v.type_approval is not None:
+            _add(st, v.id, "type_approval", r.get("type_approval"), today, seen, out)
+        elif r.get("type_approval"):
             nv[v.id] = v.model_copy(update={"type_approval": r["type_approval"]})
             out[(v.id, "type_approval")] = FieldProvenance(entity_id=v.id, field="type_approval", evidence=[Evidence(source_id=RDW.id, value=r["type_approval"], url=PAGE, retrieved=today)], last_verified=today)
         ep = en[v.engine_id].power_kw
