@@ -264,3 +264,21 @@ def test_years_column(tmp_path):
     with store([row(), row(Cn="PANDA")]) as st:
         export(st, tmp_path, "0.1.0", TODAY)
     assert read_csv(tmp_path / "variants.csv")[0]["years"] == "2025"
+
+
+def test_case_only_alias_differences_are_not_changes():
+    from pipeline.export import _cmp, _diff
+
+    m = lambda al: {"id": "model_a", "name": "A", "aliases": al}
+    assert _cmp("models", m(["Countryman One", "X"])) == _cmp("models", m(["COUNTRYMAN ONE", "x"]))
+    old, new = {"models": [m(["Panda"])]}, {"models": [m(["PANDA"])]}
+    assert _diff(old, new)["models"] == {"added": [], "removed": [], "changed": []}
+    assert _diff(old, {"models": [m(["Panda", "Pandina"])]})["models"]["changed"] == ["model_a"]
+    assert _diff(old, {"models": [{**m(["Panda"]), "name": "B"}]})["models"]["changed"] == ["model_a"]
+
+
+def test_rows_without_aliases_compare_as_they_are():
+    from pipeline.export import _cmp
+
+    e = {"id": "eng_x", "fuel": "petrol"}
+    assert _cmp("engines", e) is e
