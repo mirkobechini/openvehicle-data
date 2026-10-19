@@ -80,3 +80,6 @@ class Variant(Named, Period):
     co2_wltp_g_km: float | None = Field(default=None, ge=0, le=1000)
     registrations: int | None = Field(default=None, ge=0)
     type_approval: str | None = Field(default=None, pattern=r"^e\d{1,3}\*[^*\s]+\*[^*\s]+$")
+    type_code: str | None = Field(default=None, min_length=1)
+    variant_code: str | None = Field(default=None, min_length=1)
+    version_code: str | None = Field(default=None, min_length=1)
