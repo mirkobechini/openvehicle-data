@@ -142,6 +142,9 @@ only its base. To find the variant of a registration document add `type_code`,
 `variant_code` and `version_code` (the three parts of field D.2). An unknown id gives a 404 with a "Did you mean" suggestion; a
 malformed value gives a 422.
 
+Answers are cacheable: they carry `Cache-Control: public, max-age=3600` and an `ETag`;
+send it back as `If-None-Match` to get an empty `304` while the dataset has not changed.
+
 ## MCP server
 
 Endpoint `/mcp` (Streamable HTTP, stateless, no authentication). Add your server to
