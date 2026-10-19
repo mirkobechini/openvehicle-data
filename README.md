@@ -46,7 +46,8 @@ you anything about one particular car on the road; it describes versions of cars
 You need nothing installed: every request is a web address. In the examples `$U` stands
 for the address of the service you use followed by `/api/v1` (for a server you run
 yourself, see [Run it yourself](#run-it-yourself); then `U=http://localhost:8000/api/v1`).
-Every service also has a page with buttons to try each request in the browser, at `/docs`.
+The home page of every service (`/`) has a search and a registration-document lookup you can use
+without writing anything; `/docs` has buttons to try each request in the browser.
 
 ### 1. Find a car
 

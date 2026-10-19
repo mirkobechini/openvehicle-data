@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>openvehicle-data</title>
+<meta name="description" content="Free, open catalogue of the passenger cars registered in Italy: versions, engines, mass, CO2, seats and emission class, each value with its source.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/static/site.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="wrap">
+  <h1>openvehicle-data</h1>
+  <p class="lead">A free, open catalogue of the passenger cars registered in Italy from 2019 to 2025: versions, engines, mass, CO2, seats and emission class. Every value says where it comes from.</p>
+</header>
+
+<main id="main" class="wrap">
+  <section aria-labelledby="h-search">
+    <h2 id="h-search">Find a car</h2>
+    <form id="f-search" role="search">
+      <label for="q">Make or model</label>
+      <div class="row">
+        <input id="q" name="q" type="search" required maxlength="100" autocomplete="off" placeholder="for example: tesla model 3">
+        <button type="submit">Search</button>
+      </div>
+    </form>
+    <div id="r-search" class="result" aria-live="polite"></div>
+  </section>
+
+  <section aria-labelledby="h-doc">
+    <h2 id="h-doc">Match a registration document</h2>
+    <p>Copy the values from the Italian <em>carta di circolazione</em>. The approval number alone names a whole type; adding type, variant and version points to one version.</p>
+    <form id="f-doc">
+      <div class="field">
+        <label for="ta">Type-approval number <span class="hint">(field K)</span></label>
+        <input id="ta" name="type_approval" type="text" required maxlength="60" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="e3*2007/46*0064*05">
+      </div>
+      <fieldset>
+        <legend>Type, variant, version <span class="hint">(field D.2, optional)</span></legend>
+        <div class="grid3">
+          <div class="field">
+            <label for="tc">Type</label>
+            <input id="tc" name="type_code" type="text" maxlength="40" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="312">
+          </div>
+          <div class="field">
+            <label for="vc">Variant</label>
+            <input id="vc" name="variant_code" type="text" maxlength="40" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="PYD1B">
+          </div>
+          <div class="field">
+            <label for="nc">Version</label>
+            <input id="nc" name="version_code" type="text" maxlength="40" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="AA4">
+          </div>
+        </div>
+      </fieldset>
+      <button type="submit">Look up</button>
+    </form>
+    <div id="r-doc" class="result" aria-live="polite"></div>
+  </section>
+
+  <section aria-labelledby="h-dev">
+    <h2 id="h-dev">Use it from your own program or assistant</h2>
+    <ul class="links">
+      <li><a href="/docs">Interactive API documentation</a>: try every request in the browser.</li>
+      <li><a href="/api/v1/coverage">Coverage</a>: how many versions have each field.</li>
+      <li><strong>MCP server</strong> at <code>/mcp</code>: lets AI assistants query the catalogue.</li>
+      <li><a href="https://github.com/mirkobechini/openvehicle-data/releases">Download the dataset</a> (SQLite, CSV, JSON).</li>
+      <li><a href="https://github.com/mirkobechini/openvehicle-data#readme">Manual and source code</a>.</li>
+    </ul>
+  </section>
+</main>
+
+<footer class="wrap">
+  <p id="meta">&nbsp;</p>
+  <p>Data from openvehicle-data, <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>, built from EEA, RDW and Wikidata open data. The data is provided as is, without warranty. No cookies, no accounts; <a href="https://github.com/mirkobechini/openvehicle-data/blob/main/PRIVACY.md">privacy notice</a>.</p>
+</footer>
+
+<script src="/static/site.js" defer></script>
+</body>
+</html>
