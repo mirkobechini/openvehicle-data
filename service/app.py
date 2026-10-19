@@ -14,7 +14,7 @@ from core.models import Brand, CarModel, Engine, Family, Generation, Variant
 from core.provenance import Source
 from core.storage import Store
 from service import queries as qs
-from service.headers import Headers
+from service.headers import Cache, Headers
 from service.mcp_server import build_mcp
 from service.queries import ATTR, Found, Meta, Page, VariantDetail
 
@@ -162,5 +162,8 @@ def create_app(db=None):
             return qs.search(st, q)
 
     app.router.routes.append(Route("/mcp", endpoint=mcp_app))
+    with rd() as st:
+        tag = f"{st.get_meta('version')}|{st.get_meta('generated')}|{app.version}"
+    app.add_middleware(Cache, tag=tag)
     app.add_middleware(Headers)
     return app
