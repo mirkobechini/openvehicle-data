@@ -13,6 +13,13 @@ H = [
 ]
 CSP = (b"content-security-policy", b"default-src 'none'; frame-ancestors 'none'")
 DOCS = ("/docs", "/redoc")
+SITE = (b"content-security-policy", b"default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'")
+
+
+def csp(path):
+    if path.startswith(DOCS):
+        return ()
+    return (SITE,) if path == "/" or path.startswith("/static/") else (CSP,)
 
 
 class Headers:
@@ -22,7 +29,7 @@ class Headers:
     async def __call__(self, scope, receive, send):
         async def snd(m):
             if m["type"] == "http.response.start":
-                m["headers"] = [*m.get("headers", []), *H, *(() if scope.get("path", "").startswith(DOCS) else (CSP,))]
+                m["headers"] = [*m.get("headers", []), *H, *csp(scope.get("path", ""))]
             await send(m)
 
         await self.app(scope, receive, snd)

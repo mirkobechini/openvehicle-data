@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Annotated, Literal
 
 from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from mcp.server.transport_security import TransportSecuritySettings
 from starlette.routing import Route
@@ -24,6 +25,9 @@ Sort = Annotated[Literal["id", "registrations"], Query(description="'registratio
 Yr = Annotated[int | None, Query(ge=1900, le=2100, description="Only variants registered in this year")]
 Ta = Annotated[str | None, Query(pattern=r"^\s*[eE]\d{1,3}\*[^*\s]+\*[^*\s]+(\*[^*\s]+)?\s*$", description="EU type-approval number as on the registration document, e.g. e3*2007/46*0064*05 or without the last part")]
 MinReg = Annotated[int | None, Query(ge=0, description="Only entries with at least this many registrations")]
+
+
+SITE = Path(__file__).with_name("site")
 
 
 def _pg(limit: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0)):
@@ -171,6 +175,21 @@ def create_app(db=None, rate=None):
     def search(q: Annotated[str, Query(min_length=1, max_length=100)]):
         with rd() as st:
             return qs.search(st, q)
+
+    def asset(name, kind):
+        return FileResponse(SITE / name, media_type=kind, headers={"cache-control": "public, max-age=3600"})
+
+    @app.get("/", include_in_schema=False)
+    def home():
+        return asset("index.html", "text/html; charset=utf-8")
+
+    @app.get("/static/site.css", include_in_schema=False)
+    def css():
+        return asset("site.css", "text/css; charset=utf-8")
+
+    @app.get("/static/site.js", include_in_schema=False)
+    def js():
+        return asset("site.js", "text/javascript; charset=utf-8")
 
     app.router.routes.append(Route("/mcp", endpoint=mcp_app))
     with rd() as st:

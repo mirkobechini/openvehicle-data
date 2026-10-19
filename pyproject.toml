@@ -19,6 +19,7 @@ packages = ["core", "pipeline", "pipeline.importers", "service"]
 
 [tool.setuptools.package-data]
 "pipeline.importers" = ["*.json"]
+"service" = ["site/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
