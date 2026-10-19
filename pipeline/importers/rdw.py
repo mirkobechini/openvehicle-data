@@ -8,6 +8,7 @@ from core.approval import base
 from core.models import Brand, CarModel, Engine, Generation, Variant
 from core.provenance import Evidence, FieldProvenance
 from core.storage import Store
+from pipeline import http
 from pipeline.cli import cli
 from pipeline.importers.corrections import norm
 from pipeline.sources import RDW
@@ -51,7 +52,7 @@ def fetch(since, client=None, q=query):
     rows = []
     try:
         while True:
-            r = c.get(URL, params=q(since, STEP, len(rows)), headers={"Accept": "application/json", "User-Agent": UA})
+            r = http.get(c, URL, params=q(since, STEP, len(rows)), headers={"Accept": "application/json", "User-Agent": UA})
             r.raise_for_status()
             p = r.json()
             rows += p
@@ -70,7 +71,7 @@ def fetch_fuel(plates, client=None):
         for i in range(0, len(ok), BATCH):
             b = ",".join(f"'{x}'" for x in ok[i:i + BATCH])
             try:
-                r = c.get(FUEL, params={"$select": "kenteken,nettomaximumvermogen,emissiecode_omschrijving", "$where": f"kenteken in({b})", "$limit": 5000}, headers={"Accept": "application/json", "User-Agent": UA})
+                r = http.get(c, FUEL, params={"$select": "kenteken,nettomaximumvermogen,emissiecode_omschrijving", "$where": f"kenteken in({b})", "$limit": 5000}, headers={"Accept": "application/json", "User-Agent": UA})
                 r.raise_for_status()
             except httpx.HTTPError as e:
                 raise RuntimeError(f"RDW fuel request failed: {type(e).__name__}") from None
