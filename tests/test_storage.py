@@ -397,3 +397,36 @@ def test_years_roundtrip_and_has_filter(st):
 def test_has_rejects_unknown_columns(st):
     with pytest.raises(ValueError):
         st.find(Variant, nope__has=1)
+
+
+def test_a_new_database_records_its_schema_version(tmp_path):
+    from core.storage import SCHEMA_VERSION
+
+    with Store(tmp_path / "n.db") as s:
+        assert s.get_meta("schema_version") == str(SCHEMA_VERSION)
+    with Store(tmp_path / "n.db") as s:
+        assert s.get_meta("schema_version") == str(SCHEMA_VERSION)
+
+
+def test_writing_to_a_database_of_another_schema_is_refused(tmp_path):
+    from core.storage import SchemaError
+
+    p = tmp_path / "o.db"
+    with Store(p) as s:
+        s.set_meta("schema_version", "1")
+    with pytest.raises(SchemaError, match="schema is 1"):
+        Store(p)
+
+
+def test_writing_to_an_unversioned_database_is_refused_but_reading_works(tmp_path):
+    from core.storage import SchemaError
+
+    p = tmp_path / "l.db"
+    with Store(p) as s:
+        s.put(B)
+        s.c.execute("DELETE FROM meta WHERE key='schema_version'")
+        s.c.commit()
+    with pytest.raises(SchemaError, match="unversioned"):
+        Store(p)
+    with Store(p, ro=True) as s:
+        assert s.get(Brand, B.id) == B and s.get_meta("schema_version") is None
