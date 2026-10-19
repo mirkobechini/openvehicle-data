@@ -1,11 +1,12 @@
 import difflib
 from datetime import date
-from typing import Generic, TypeVar
+from typing import Generic, Literal, TypeVar
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from core.approval import base
 from core.coverage import Cov, coverage
+from core.enums import Fuel
 from core.models import Base, Brand, CarModel, Engine, Family, Generation, Variant
 from core.provenance import Evidence, Source, Status
 
@@ -114,41 +115,43 @@ def generations_page(st, lo, model_id=None):
     return page(st, Generation, lo, **({"model_id": model_id} if model_id else {}))
 
 
-def _ix(cur, ids):
-    ids = set(ids)
-    return ids if cur is None else cur & ids
+class VariantQuery(BaseModel):
+    q: str | None = Field(None, min_length=1, max_length=100, description="Case-insensitive search in name and aliases")
+    brand_id: str | None = None
+    family_id: str | None = None
+    model_id: str | None = None
+    generation_id: str | None = None
+    engine_id: str | None = None
+    fuel: Fuel | None = None
+    sort: Literal["id", "registrations"] = Field("id", description="'registrations' lists the most registered first")
+    min_registrations: int | None = Field(None, ge=0, description="Only entries with at least this many registrations")
+    year: int | None = Field(None, ge=1900, le=2100, description="Only variants registered in this year")
+    type_approval: str | None = Field(None, pattern=r"^\s*[eE]\d{1,3}\*[^*\s]+\*[^*\s]+(\*[^*\s]+)?\s*$", description="EU type-approval number as on the registration document, e.g. e3*2007/46*0064*05 or without the last part")
+    type_code: str | None = Field(None, min_length=1, max_length=40, description="Vehicle type, first part of field D.2 of the registration document, e.g. 312")
+    variant_code: str | None = Field(None, min_length=1, max_length=40, description="Variant, second part of D.2, e.g. PYD1B")
+    version_code: str | None = Field(None, min_length=1, max_length=40, description="Version, third part of D.2, e.g. AA4")
 
 
-def variants_page(st, lo, q=None, model_id=None, generation_id=None, engine_id=None, fuel=None, sort="id", min_reg=None, brand_id=None, family_id=None, year=None, type_approval=None, type_code=None, variant_code=None, version_code=None):
-    for c, i in ((Brand, brand_id), (Family, family_id), (CarModel, model_id), (Generation, generation_id), (Engine, engine_id)):
+def variants_page(st, lo, f):
+    for c, i in ((Brand, f.brand_id), (Family, f.family_id), (CarModel, f.model_id), (Generation, f.generation_id), (Engine, f.engine_id)):
         need(st, c, i)
-    w, g, e = {}, None, None
-    if family_id:
-        ms = [x.id for x in st.find(CarModel, family_id=family_id)]
-        g = _ix(g, (x.id for x in st.find(Generation, model_id=ms)))
-    if brand_id:
-        ms = [x.id for x in st.find(CarModel, brand_id=brand_id)]
-        g = _ix(g, (x.id for x in st.find(Generation, model_id=ms)))
-    if model_id:
-        g = _ix(g, (x.id for x in st.find(Generation, model_id=model_id)))
-    if generation_id:
-        g = _ix(g, [generation_id])
-    if fuel:
-        e = _ix(e, (x.id for x in st.find(Engine, fuel=fuel)))
-    if engine_id:
-        e = _ix(e, [engine_id])
-    if g is not None:
-        w["generation_id"] = sorted(g)
-    if e is not None:
-        w["engine_id"] = sorted(e)
-    if type_approval is not None:
-        w["type_approval"] = base(type_approval)
-    for k, v in (("type_code", type_code), ("variant_code", variant_code), ("version_code", version_code)):
-        if v is not None:
-            w[k] = v.strip()
-    if year is not None:
-        w["years__has"] = year
-    return page(st, Variant, lo, q, sort, min_reg, **w)
+    gs = [{x.id for x in st.find(Generation, model_id=[m.id for m in st.find(CarModel, **{k: v})])} for k, v in (("family_id", f.family_id), ("brand_id", f.brand_id)) if v]
+    if f.model_id:
+        gs.append({x.id for x in st.find(Generation, model_id=f.model_id)})
+    if f.generation_id:
+        gs.append({f.generation_id})
+    es = []
+    if f.fuel:
+        es.append({x.id for x in st.find(Engine, fuel=f.fuel)})
+    if f.engine_id:
+        es.append({f.engine_id})
+    w = {k: sorted(set.intersection(*ss)) for k, ss in (("generation_id", gs), ("engine_id", es)) if ss}
+    w.update({k: v.strip() for k in ("type_code", "variant_code", "version_code") if (v := getattr(f, k)) is not None})
+    if f.type_approval is not None:
+        w["type_approval"] = base(f.type_approval)
+    if f.year is not None:
+        w["years__has"] = f.year
+    return page(st, Variant, lo, f.q, f.sort, f.min_registrations, **w)
 
 
 def variant_detail(st, i):

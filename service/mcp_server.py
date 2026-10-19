@@ -118,7 +118,8 @@ def build_mcp(p):
     ) -> qs.Page[Variant]:
         """List variants (type-approval versions) filtered by brand, model, generation, engine, fuel or text, most registered first. To identify the variant of a registration document combine type_approval with type_code, variant_code and version_code (field D.2)."""
         with Store(p, ro=True) as st:
-            return _run(qs.variants_page, st, (limit, offset), q, model_id, generation_id, engine_id, fuel, sort, min_registrations, brand_id, family_id, year, type_approval, type_code, variant_code, version_code)
+            f = qs.VariantQuery(q=q, brand_id=brand_id, family_id=family_id, model_id=model_id, generation_id=generation_id, engine_id=engine_id, fuel=fuel, sort=sort, min_registrations=min_registrations, year=year, type_approval=type_approval, type_code=type_code, variant_code=variant_code, version_code=version_code)
+            return _run(qs.variants_page, st, (limit, offset), f)
 
     @m.tool(annotations=RO)
     def get_variant(variant_id: Annotated[str, Field(description="Variant id, e.g. var_fiat-panda-312-pyd1b-s5g")]) -> qs.VariantDetail:
