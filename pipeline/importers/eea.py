@@ -109,6 +109,10 @@ def _key(s):
     return re.sub(r"(?<!\d)\.|\.(?!\d)", "", re.sub(r"[^A-Z0-9.+]", "", s.upper()))
 
 
+def _c(v):
+    return (str(v).strip() or None) if v is not None else None
+
+
 def _x(v):
     return "x" if v is None else v
 
@@ -211,7 +215,8 @@ def _load(rows, st, today, corr, fam, urls):
         vs[vid] = _mk(
             Variant, drops, id=vid, generation_id=gid, engine_id=eid,
             name=" ".join(str(p).strip() for p in (r["T"], r["Va"], r["Ve"]) if p and str(p).strip()) or "unknown",
-            year_from=ys[0], year_to=ys[-1], registrations=reg, **{f: vals.get(f) for f in (*VF.values(), "type_approval")},
+            year_from=ys[0], year_to=ys[-1], registrations=reg,
+            type_code=_c(r["T"]), variant_code=_c(r["Va"]), version_code=_c(r["Ve"]),**{f: vals.get(f) for f in (*VF.values(), "type_approval")},
         )
         _pv(vs[vid], (*VF.values(), "type_approval"), src, today, pv)
     for eid, e in es.items():
