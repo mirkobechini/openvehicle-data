@@ -6,7 +6,7 @@ All notable changes to the **software** (API, MCP server, pipeline). The format 
 Two version numbers exist and are independent:
 
 - **Software**: the number in `pyproject.toml`, reported by `/api/v1/meta` as `software_version`.
-  Released: `0.1.0`, `0.1.1` and `0.1.2` (2026-10-19), `0.1.3` (2026-10-20).
+  Released: `0.1.0`, `0.1.1` and `0.1.2` (2026-10-19), `0.1.3` and `0.1.4` (2026-10-20).
 - **Dataset**: tags `data-vX.Y.Z`, reported as `version`. Each data release carries its own
   `CHANGELOG.md` listing ids added, removed and changed.
 
@@ -14,6 +14,19 @@ The dataset schema has its own number, `schema_version` (now 2). The service ref
 with a dataset of another schema, so this software needs a dataset built with it.
 
 ## [Unreleased]
+
+## [0.1.4] - 2026-10-20
+
+### Added
+- Finland (Traficom) vehicle register as a third cross-check source (CC BY 4.0): confirms
+  mass, engine size and power, and fills in seats and maximum permissible mass (F.2) where
+  missing. Real data: seats/F.2 mass coverage rose from 48%/82% (RDW only) to 54%/85%
+  (share/weighted by registrations) (#182).
+- `pipeline.build` CLI: `--skip rdw,traficom` replaces `--skip-rdw`.
+
+### Fixed
+- The Traficom download failed with `406 Not Acceptable`: the server rejects an
+  `Accept: application/zip` header (#188).
 
 ## [0.1.3] - 2026-10-20
 
