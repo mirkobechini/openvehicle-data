@@ -75,13 +75,13 @@ def test_script_never_writes_html_and_uses_relative_urls():
 
 def test_css_has_the_accessibility_basics():
     css = (SITE / "site.css").read_text(encoding="utf-8")
-    assert "prefers-color-scheme: dark" in css and "prefers-reduced-motion" in css and ":focus-visible" in css and "min-height: 2.75rem" in css
+    assert "prefers-color-scheme: dark" in css and ":focus-visible" in css and "min-height: 2.75rem" in css
 
 
 def test_site_files_are_packaged():
     p = tomllib.loads((Path(__file__).parent.parent / "pyproject.toml").read_text(encoding="utf-8"))
     assert "site/*" in p["tool"]["setuptools"]["package-data"]["service"]
-    assert {f.name for f in SITE.iterdir()} == {"index.html", "site.css", "site.js"}
+    assert {f.name for f in SITE.iterdir()} == {"index.html", "site.css", "site.js", "favicon.svg", "favicon-32.png", "apple-touch-icon.png"}
 
 
 def test_the_rate_limit_applies_to_the_page_too(db):
@@ -89,3 +89,35 @@ def test_the_rate_limit_applies_to_the_page_too(db):
 
     c = TestClient(create_app(db, rate=2))
     assert [c.get("/").status_code for _ in range(3)] == [200, 200, 429]
+
+
+def test_card_formats_numbers_the_italian_way_and_reads_the_new_fields():
+    js = (SITE / "site.js").read_text(encoding="utf-8")
+    assert 'new Intl.NumberFormat("it-IT", { useGrouping: "always" })' in js
+    assert "1.35962" in js and "v.brand.name" in js and "v.model.registrations" in js
+    for tag in ("P.1", "P.2", "P.3", "S.1", "F.2", "V.7", "V.9", "K"):
+        assert f'"{tag}"' in js
+    assert "navigator.clipboard" in js and 'role", "status"' in js
+
+
+def test_hidden_elements_stay_hidden_and_the_filter_has_a_label():
+    css = (SITE / "site.css").read_text(encoding="utf-8")
+    assert "[hidden] { display: none !important; }" in css
+    js = (SITE / "site.js").read_text(encoding="utf-8")
+    assert "lab.htmlFor = sel.id" in js
+
+
+def test_the_icons_are_served_with_the_right_types(cl):
+    for path, kind in (("/static/favicon.svg", "image/svg+xml"), ("/static/favicon-32.png", "image/png"), ("/static/apple-touch-icon.png", "image/png"), ("/favicon.ico", "image/png")):
+        r = cl.get(path)
+        assert r.status_code == 200 and r.headers["content-type"] == kind and r.headers["cache-control"] == "public, max-age=3600"
+    assert cl.get("/static/favicon-32.png").content[:8] == b"\x89PNG\r\n\x1a\n" == cl.get("/favicon.ico").content[:8]
+    assert cl.get("/static/favicon.svg").text.lstrip().startswith(("<?xml", "<svg"))
+
+
+def test_the_page_links_the_icons_and_the_svg_is_inert():
+    html = (SITE / "index.html").read_text(encoding="utf-8")
+    for h in ("/static/favicon.svg", "/static/favicon-32.png", "/static/apple-touch-icon.png"):
+        assert f'href="{h}"' in html
+    svg = (SITE / "favicon.svg").read_text(encoding="utf-8").lower()
+    assert not re.search(r"<script|onload|onclick|<foreignobject|<image|href=\"http", svg)

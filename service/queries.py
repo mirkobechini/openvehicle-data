@@ -34,6 +34,8 @@ class ProvenanceOut(Base):
 
 class VariantDetail(Variant):
     engine: Engine
+    brand: Brand
+    model: CarModel
     provenance: list[ProvenanceOut]
 
 
@@ -158,8 +160,9 @@ def variants_page(st, lo, f):
 def variant_detail(st, i):
     v = one(st, Variant, i)
     e = st.get(Engine, v.engine_id)
+    m = st.get(CarModel, st.get(Generation, v.generation_id).model_id)
     ps = [ProvenanceOut(**p.model_dump()) for p in (*st.prov(v.id), *st.prov(e.id))]
-    return VariantDetail(**v.model_dump(), engine=e, provenance=ps)
+    return VariantDetail(**v.model_dump(), engine=e, brand=st.get(Brand, m.brand_id), model=m, provenance=ps)
 
 
 def _suggest(st, q):

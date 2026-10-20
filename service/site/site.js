@@ -1,6 +1,8 @@
 (() => {
   const API = "/api/v1";
+  const PAGE = 5;
   const $ = (id) => document.getElementById(id);
+  const nf = new Intl.NumberFormat("it-IT", { useGrouping: "always" });
 
   const node = (tag, text, cls) => {
     const e = document.createElement(tag);
@@ -32,40 +34,170 @@
     form.setAttribute("aria-busy", String(on));
   };
 
-  const num = (v, unit) => (v === null || v === undefined ? "unknown" : unit ? `${v} ${unit}` : String(v));
+  const FUELS = {
+    petrol: "Petrol",
+    diesel: "Diesel",
+    hybrid: "Hybrid",
+    phev: "Plug-in hybrid",
+    electric: "Electric",
+    lpg: "LPG",
+    cng: "CNG / methane",
+    hydrogen: "Hydrogen",
+    other: "Other",
+  };
+
+  const has = (v) => v !== null && v !== undefined;
+  const n = (v, unit) => (unit ? `${nf.format(v)} ${unit}` : nf.format(v));
+
+  const years = (ys) => {
+    if (!ys.length) return null;
+    const run = ys.every((y, i) => i === 0 || y === ys[i - 1] + 1);
+    return run && ys.length > 1 ? `${ys[0]}–${ys[ys.length - 1]}` : ys.join(", ");
+  };
+
+  const share = (v, total) => {
+    if (!has(v) || !total) return "";
+    const p = (100 * v) / total;
+    return p < 1 ? " (under 1% of the model)" : ` (${Math.round(p)}% of the model)`;
+  };
+
+  const power = (kw) => (has(kw) ? `${n(kw, "kW")} · ${nf.format(Math.round(kw * 1.35962))} CV` : null);
+  const litres = (cc) => (cc ? (cc / 1000).toFixed(1) : null);
+
+  const summary = (e) => [FUELS[e.fuel] || e.fuel, litres(e.displacement_cc), has(e.power_kw) ? `${nf.format(Math.round(e.power_kw))} kW (${nf.format(Math.round(e.power_kw * 1.35962))} CV)` : null].filter(Boolean).join(" · ");
+
+  const row = (dl, label, tag, value) => {
+    const dt = node("dt", label);
+    if (tag) dt.append(" ", node("span", tag, "tag"));
+    dl.append(dt, has(value) ? node("dd", value) : node("dd", "not known", "unk"));
+  };
+
+  const section = (card, title, rows) => {
+    if (rows.every((r) => !has(r[2]))) return;
+    const s = node("section", undefined, "part");
+    s.append(node("h4", title));
+    const dl = node("dl");
+    for (const [label, tag, value] of rows) row(dl, label, tag, value);
+    s.append(dl);
+    card.append(s);
+  };
+
+  const copy = (text) => {
+    if (!navigator.clipboard) return null;
+    const wrap = node("span", undefined, "copy");
+    const b = node("button", "Copy codes", "ghost");
+    b.type = "button";
+    const st = node("span", "", "sr");
+    st.setAttribute("role", "status");
+    b.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(text);
+        st.textContent = "Copied";
+        b.textContent = "Copied";
+      } catch {
+        st.textContent = "Copy failed";
+      }
+      setTimeout(() => {
+        b.textContent = "Copy codes";
+        st.textContent = "";
+      }, 2000);
+    });
+    wrap.append(b, st);
+    return wrap;
+  };
 
   const card = (v) => {
     const c = node("article", undefined, "card");
-    c.append(node("h3", v.name));
-    const dl = node("dl");
-    const e = v.engine;
-    const rows = [
-      ["Fuel", e.fuel],
-      ["Engine", e.displacement_cc ? `${e.displacement_cc} cc, ${num(e.power_kw, "kW")}` : num(e.power_kw, "kW")],
-      ["Seats", num(v.seats)],
-      ["Max. mass (F.2)", num(v.max_mass_kg, "kg")],
-      ["Mass in running order", num(v.mass_kg, "kg")],
-      ["Emission class", num(v.environmental_class)],
-      ["CO2 (WLTP)", num(v.co2_wltp_g_km, "g/km")],
-      ["Registered in", v.years.length ? v.years.join(", ") : "unknown"],
-      ["Cars registered", num(v.registrations)],
-    ];
-    for (const [k, val] of rows) {
-      dl.append(node("dt", k), node("dd", val));
+    const h = node("header");
+    h.append(node("h3", `${v.brand.name} ${v.model.name}`));
+    h.append(node("p", summary(v.engine), "sum"));
+    const codes = [v.type_code, v.variant_code, v.version_code];
+    if (codes.every(Boolean)) {
+      const p = node("p", undefined, "codes");
+      p.append(node("span", "Type "), node("strong", v.type_code), node("span", " · Variant "), node("strong", v.variant_code), node("span", " · Version "), node("strong", v.version_code));
+      const cp = copy(codes.join(" "));
+      if (cp) p.append(cp);
+      h.append(p);
+    } else {
+      h.append(node("p", v.name, "codes"));
     }
-    c.append(dl);
+    c.append(h);
+    const e = v.engine;
+    const zero = e.fuel === "electric" || e.fuel === "hydrogen";
+    section(c, "Engine", [
+      ["Fuel", "P.3", FUELS[e.fuel] || e.fuel],
+      ...(zero ? [] : [["Displacement", "P.1", e.displacement_cc ? n(e.displacement_cc, "cc") : null]]),
+      ["Power", "P.2", power(e.power_kw)],
+    ]);
+    section(c, "Mass and seats", [
+      ["Seats", "S.1", v.seats],
+      ["Maximum mass", "F.2", has(v.max_mass_kg) ? n(v.max_mass_kg, "kg") : null],
+      ["Mass in running order", "≈ G", has(v.mass_kg) ? n(v.mass_kg, "kg") : null],
+    ]);
+    section(c, "Emissions", [
+      ["Emission class", "V.9", v.environmental_class || (zero ? "Zero emission" : null)],
+      ["CO2 (WLTP)", "V.7", has(v.co2_wltp_g_km) ? n(v.co2_wltp_g_km, "g/km") : null],
+    ]);
+    section(c, "Registration document and sales", [
+      ["Type-approval number", "K", v.type_approval],
+      ["Registered in", null, years(v.years)],
+      ["Cars registered", null, has(v.registrations) ? `${n(v.registrations)}${share(v.registrations, v.model.registrations)}` : null],
+    ]);
     return c;
   };
 
   const variants = async (box, params, label) => {
-    const page = await get("/variants", { ...params, sort: "registrations", limit: 5 });
-    if (!page.total) {
-      show(box, msg("No version found. It may not be in the catalogue (cars registered in Italy 2019-2025, M1 category only)."));
-      return;
-    }
-    const details = await Promise.all(page.items.map((v) => get(`/variants/${encodeURIComponent(v.id)}`)));
-    const head = msg(page.total === 1 ? `${label}1 version found.` : `${label}${page.total} versions found${page.total > page.count ? `, showing the ${page.count} most registered` : ""}.`);
-    show(box, head, ...details.map(card));
+    const state = { fuel: "", shown: 0 };
+    const head = node("p", "Loading…", "msg");
+    const filter = node("div", undefined, "filter");
+    const sel = node("select");
+    sel.id = "fuel-filter";
+    sel.append(new Option("All fuels", ""), ...Object.entries(FUELS).map(([k, t]) => new Option(t, k)));
+    const lab = node("label", "Fuel");
+    lab.htmlFor = sel.id;
+    filter.append(lab, sel);
+    const list = node("div");
+    const more = node("button", "Show more", "more");
+    more.type = "button";
+    more.hidden = true;
+    const note = node("p", undefined, "msg");
+    note.setAttribute("role", "status");
+
+    const load = async (reset) => {
+      if (reset) {
+        state.shown = 0;
+        list.replaceChildren();
+      }
+      more.disabled = true;
+      try {
+        const page = await get("/variants", { ...params, fuel: state.fuel, sort: "registrations", limit: PAGE, offset: state.shown });
+        const details = await Promise.all(page.items.map((v) => get(`/variants/${encodeURIComponent(v.id)}`)));
+        list.append(...details.map(card));
+        state.shown += page.count;
+        head.textContent = !page.total
+          ? "No version found. It may not be in the catalogue (cars registered in Italy 2019-2025, M1 category only)."
+          : `${label}${page.total === 1 ? "1 version found." : `${nf.format(page.total)} versions found, showing ${state.shown}.`}`;
+        if (page.total > PAGE || state.fuel) filter.hidden = false;
+        more.hidden = !page.has_more;
+        more.textContent = `Show more (${page.total - state.shown} left)`;
+        note.textContent = "";
+      } catch (err) {
+        note.textContent = err.message;
+        note.className = "msg err";
+      } finally {
+        more.disabled = false;
+      }
+    };
+
+    sel.addEventListener("change", () => {
+      state.fuel = sel.value;
+      load(true);
+    });
+    more.addEventListener("click", () => load(false));
+
+    show(box, head, filter, list, more, note);
+    filter.hidden = true;
+    await load(true);
   };
 
   $("f-doc").addEventListener("submit", async (ev) => {
@@ -90,7 +222,7 @@
     const ul = node("ul", undefined, "list");
     for (const m of items) {
       const li = node("li");
-      const b = node("button", `${m.name}${m.registrations ? ` · ${m.registrations} registered` : ""}`);
+      const b = node("button", `${m.name}${m.registrations ? ` · ${nf.format(m.registrations)} registered` : ""}`);
       b.type = "button";
       b.addEventListener("click", async () => {
         show(box, msg("Loading versions…"));
@@ -133,7 +265,7 @@
 
   get("/meta")
     .then((m) => {
-      $("meta").textContent = `Dataset ${m.version} · ${m.counts.Variant} versions · ${m.counts.Brand} makes`;
+      $("meta").textContent = `Dataset ${m.version} · ${nf.format(m.counts.Variant)} versions · ${m.counts.Brand} makes`;
     })
     .catch(() => {
       $("meta").textContent = "";
