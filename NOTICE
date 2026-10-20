@@ -26,6 +26,13 @@ source and license):
   is stored (a plate is held in memory during the build to look up its power, then
   discarded).
 
+- Traficom (Finnish Transport and Communications Agency), "Ajoneuvojen avoin data"
+  (https://www.avoindata.fi/data/en/dataset/ajoneuvojen-avoin-data) - CC BY 4.0;
+  license checked on 2026-10-20. Used only to verify mass, engine size and engine
+  power and to fill in seats and maximum permitted mass where missing, aggregated
+  by brand, type-approval number, variant and version: the dataset itself carries
+  no licence plate or owner information.
+
 This project is not affiliated with, endorsed by or sponsored by any vehicle
 manufacturer. Brand and model names are trademarks of their respective owners
 and are used only to identify vehicles.
