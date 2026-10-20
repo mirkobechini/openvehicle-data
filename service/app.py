@@ -28,6 +28,15 @@ MinReg = Annotated[int | None, Query(ge=0, description="Only entries with at lea
 
 
 SITE = Path(__file__).with_name("site")
+ASSETS = {
+    "/": ("index.html", "text/html; charset=utf-8"),
+    "/static/site.css": ("site.css", "text/css; charset=utf-8"),
+    "/static/site.js": ("site.js", "text/javascript; charset=utf-8"),
+    "/static/favicon.svg": ("favicon.svg", "image/svg+xml"),
+    "/static/favicon-32.png": ("favicon-32.png", "image/png"),
+    "/static/apple-touch-icon.png": ("apple-touch-icon.png", "image/png"),
+    "/favicon.ico": ("favicon-32.png", "image/png"),
+}
 
 
 def _pg(limit: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0)):
@@ -179,17 +188,8 @@ def create_app(db=None, rate=None):
     def asset(name, kind):
         return FileResponse(SITE / name, media_type=kind, headers={"cache-control": "public, max-age=3600"})
 
-    @app.get("/", include_in_schema=False)
-    def home():
-        return asset("index.html", "text/html; charset=utf-8")
-
-    @app.get("/static/site.css", include_in_schema=False)
-    def css():
-        return asset("site.css", "text/css; charset=utf-8")
-
-    @app.get("/static/site.js", include_in_schema=False)
-    def js():
-        return asset("site.js", "text/javascript; charset=utf-8")
+    for path, (name, kind) in ASSETS.items():
+        app.get(path, include_in_schema=False)(lambda name=name, kind=kind: asset(name, kind))
 
     app.router.routes.append(Route("/mcp", endpoint=mcp_app))
     with rd() as st:
