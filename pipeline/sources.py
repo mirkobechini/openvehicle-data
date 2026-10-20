@@ -18,6 +18,14 @@ RDW = Source(
     license_checked=date(2026, 9, 20),
 )
 
+TRAFICOM = Source(
+    id="traficom-fi",
+    name="Traficom - Ajoneuvojen avoin data (Finland vehicle register)",
+    license="CC-BY-4.0",
+    license_url="https://creativecommons.org/licenses/by/4.0/",
+    license_checked=date(2026, 10, 20),
+)
+
 WIKIDATA = Source(
     id="wikidata",
     name="Wikidata",
@@ -26,4 +34,4 @@ WIKIDATA = Source(
     license_checked=date(2026, 9, 20),
 )
 
-SOURCES = {s.id: s for s in (EEA, RDW, WIKIDATA)}
+SOURCES = {s.id: s for s in (EEA, RDW, TRAFICOM, WIKIDATA)}
