@@ -638,3 +638,9 @@ def test_the_service_refuses_a_dataset_of_another_schema(db, tmp_path, v):
             s.c.commit()
     with pytest.raises(SchemaError, match="newer dataset"):
         create_app(p)
+
+
+def test_variant_detail_carries_brand_and_model(cl):
+    j = cl.get(f"{B}/variants/{PANDA}").json()
+    assert j["brand"]["id"] == "brand_fiat" and j["model"]["id"] == "model_fiat-panda"
+    assert j["model"]["name"] == "PANDA" and j["model"]["registrations"] >= j["registrations"]

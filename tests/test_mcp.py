@@ -498,3 +498,8 @@ def test_mcp_search_with_several_words(m):
     j = call(m, "search_catalog", q="Tesla  Model 3")
     assert [x["id"] for x in j["models"]] == ["model_tesla-model-3"]
     assert [x["id"] for x in call(m, "list_models", q="tesla model y")["items"]] == ["model_tesla-model-y"]
+
+
+def test_mcp_get_variant_carries_brand_and_model(m):
+    j = call(m, "get_variant", variant_id=PANDA)
+    assert (j["brand"]["id"], j["model"]["id"]) == ("brand_fiat", "model_fiat-panda")
