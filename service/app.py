@@ -32,6 +32,7 @@ ASSETS = {
     "/": ("index.html", "text/html; charset=utf-8"),
     "/static/site.css": ("site.css", "text/css; charset=utf-8"),
     "/static/site.js": ("site.js", "text/javascript; charset=utf-8"),
+    "/static/common.js": ("common.js", "text/javascript; charset=utf-8"),
     "/static/favicon.svg": ("favicon.svg", "image/svg+xml"),
     "/static/favicon-32.png": ("favicon-32.png", "image/png"),
     "/static/apple-touch-icon.png": ("apple-touch-icon.png", "image/png"),

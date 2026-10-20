@@ -4,7 +4,7 @@
   --muted: #4a5563;
   --line: #c9d1da;
   --card: #f4f6f8;
-  --accent: #0b5cad;
+  --accent: #f97316;
   --on-accent: #ffffff;
   --err: #a4161a;
 }
@@ -16,8 +16,8 @@
     --muted: #aab4bf;
     --line: #3a4552;
     --card: #1a222b;
-    --accent: #5aa9f0;
-    --on-accent: #08111a;
+    --accent: #fb923c;
+    --on-accent: #1b0d02;
     --err: #ff8a8d;
   }
 }
