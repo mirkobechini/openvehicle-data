@@ -344,6 +344,7 @@ releases. Keep the 100% test coverage. Please do not put personal data in issues
 - [ADR.md](ADR.md): architecture decisions and the measurements behind them (in Italian)
 - [DEPLOY.md](DEPLOY.md): data releases, Render, domain and rate limiting
 - [PRIVACY.md](PRIVACY.md): what the public service processes
+- [SECURITY.md](SECURITY.md): supported versions and how to report a vulnerability
 - [NOTICE](NOTICE): sources and their licences
 - Layout: `core/` models and storage · `pipeline/` import, validation and export · `service/` API and MCP server
 
