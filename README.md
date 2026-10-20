@@ -48,7 +48,8 @@ for the address of the service you use followed by `/api/v1` (for a server you r
 yourself, see [Run it yourself](#run-it-yourself); then `U=http://localhost:8000/api/v1`).
 The home page of every service (`/`) has a search and a registration-document lookup you can use
 without writing anything; `/browse` lets you go through every make, model and version without
-typing a thing; `/docs` has buttons to try each request in the browser.
+typing a thing; `/coverage` shows how complete each field is, overall and by make; `/docs` has
+buttons to try each request in the browser.
 
 ### 1. Find a car
 
@@ -128,6 +129,8 @@ catalogue as one SQLite database, one CSV file per table (opens in Excel or Libr
 JSON file, and a list of what changed since the previous release.
 
 ### 7. Check how complete it is
+
+The `/coverage` page shows this as meters and a sortable table. The same data as JSON:
 
 ```bash
 curl "$U/coverage"                        # share of versions that have each field, overall and per make

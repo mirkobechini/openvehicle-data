@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coverage &mdash; openvehicle-data</title>
+<meta name="description" content="How much of the openvehicle-data catalogue each field reaches, overall and by make.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/static/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+<link rel="stylesheet" href="/static/site.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="wrap wide">
+  <div class="topnav">
+    <a class="brand" href="/">
+      <img src="/static/favicon.svg" alt="" width="32" height="32">
+      <span>openvehicle&#8209;data</span>
+    </a>
+    <nav class="tabs" aria-label="Sections">
+      <a href="/">Search</a>
+      <a href="/browse">Browse</a>
+      <a href="/coverage" aria-current="page">Coverage</a>
+    </nav>
+  </div>
+  <h1>Data coverage</h1>
+  <p class="lead">How much of the catalogue each field reaches, and how many sources back it. The same figures <a href="/api/v1/coverage"><code>/api/v1/coverage</code></a> returns, read as a page instead of JSON.</p>
+</header>
+
+<main id="main" class="wrap wide">
+  <section id="r-overall" aria-label="Overall coverage" class="meters" aria-live="polite">
+    <p class="msg">Loading&hellip;</p>
+  </section>
+
+  <section aria-labelledby="h-by-make">
+    <div class="tablehead">
+      <h2 id="h-by-make">By make</h2>
+      <div role="group" aria-label="Sort by" id="sorters" class="sorters"></div>
+    </div>
+    <div id="r-table" class="tablewrap" tabindex="0" role="region" aria-label="Coverage by make, scrolls horizontally" aria-live="polite">
+      <p class="msg">Loading&hellip;</p>
+    </div>
+  </section>
+</main>
+
+<footer class="wrap wide">
+  <p id="meta">&nbsp;</p>
+  <p>Data from openvehicle-data, <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>, built from EEA, RDW and Wikidata open data. The data is provided as is, without warranty. No cookies, no accounts; <a href="https://github.com/mirkobechini/openvehicle-data/blob/main/PRIVACY.md">privacy notice</a>.</p>
+</footer>
+
+<script src="/static/common.js" defer></script>
+<script src="/static/coverage.js" defer></script>
+</body>
+</html>
