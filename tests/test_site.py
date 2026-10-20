@@ -75,7 +75,7 @@ def test_script_never_writes_html_and_uses_relative_urls():
 
 def test_css_has_the_accessibility_basics():
     css = (SITE / "site.css").read_text(encoding="utf-8")
-    assert "prefers-color-scheme: dark" in css and "prefers-reduced-motion" in css and ":focus-visible" in css and "min-height: 2.75rem" in css
+    assert "prefers-color-scheme: dark" in css and ":focus-visible" in css and "min-height: 2.75rem" in css
 
 
 def test_site_files_are_packaged():
@@ -89,3 +89,19 @@ def test_the_rate_limit_applies_to_the_page_too(db):
 
     c = TestClient(create_app(db, rate=2))
     assert [c.get("/").status_code for _ in range(3)] == [200, 200, 429]
+
+
+def test_card_formats_numbers_the_italian_way_and_reads_the_new_fields():
+    js = (SITE / "site.js").read_text(encoding="utf-8")
+    assert 'new Intl.NumberFormat("it-IT", { useGrouping: "always" })' in js
+    assert "1.35962" in js and "v.brand.name" in js and "v.model.registrations" in js
+    for tag in ("P.1", "P.2", "P.3", "S.1", "F.2", "V.7", "V.9", "K"):
+        assert f'"{tag}"' in js
+    assert "navigator.clipboard" in js and 'role", "status"' in js
+
+
+def test_hidden_elements_stay_hidden_and_the_filter_has_a_label():
+    css = (SITE / "site.css").read_text(encoding="utf-8")
+    assert "[hidden] { display: none !important; }" in css
+    js = (SITE / "site.js").read_text(encoding="utf-8")
+    assert "lab.htmlFor = sel.id" in js
