@@ -47,7 +47,8 @@ You need nothing installed: every request is a web address. In the examples `$U`
 for the address of the service you use followed by `/api/v1` (for a server you run
 yourself, see [Run it yourself](#run-it-yourself); then `U=http://localhost:8000/api/v1`).
 The home page of every service (`/`) has a search and a registration-document lookup you can use
-without writing anything; `/docs` has buttons to try each request in the browser.
+without writing anything; `/browse` lets you go through every make, model and version without
+typing a thing; `/docs` has buttons to try each request in the browser.
 
 ### 1. Find a car
 

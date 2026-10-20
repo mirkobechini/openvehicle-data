@@ -15,6 +15,17 @@ with a dataset of another schema, so this software needs a dataset built with it
 
 ## [Unreleased]
 
+### Added
+- `GET /browse`: a page to go through every make, model/family and version without
+  typing anything; a top nav (logo, Search/Browse/Coverage) on every page (#203).
+- `service/site/common.js`: the fetch/card/DOM helpers `index.html` already had, shared
+  with the new pages instead of duplicated.
+
+### Fixed
+- Orange text/links on a light background were below the WCAG AA contrast minimum
+  (2.8:1); the light theme now uses a darker orange for text while buttons and the dark
+  theme are unchanged (#203).
+
 ## [0.1.4] - 2026-10-20
 
 ### Added
