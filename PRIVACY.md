@@ -1,6 +1,6 @@
 # Privacy notice
 
-Last updated: 2026-10-19
+Last updated: 2026-10-20
 
 This notice covers the public services of the openvehicle-data project: the REST
 API and the MCP server.
@@ -21,7 +21,9 @@ When you call the API or the MCP server, the request reaches our servers with:
 The dataset itself contains no personal data: it describes vehicle models, not
 owners, plates or people. While building the dataset, one licence plate per vehicle
 version is read from the Dutch RDW open data and held in memory only, to look up
-that version's engine power; plates are never stored, published or logged.
+that version's engine power; plates are never stored, published or logged. The
+Finnish Traficom open data, the other source cross-checked against the catalogue,
+carries no licence plate or owner name to begin with.
 
 ## Who processes it and why
 

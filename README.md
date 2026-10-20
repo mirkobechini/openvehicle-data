@@ -47,7 +47,9 @@ You need nothing installed: every request is a web address. In the examples `$U`
 for the address of the service you use followed by `/api/v1` (for a server you run
 yourself, see [Run it yourself](#run-it-yourself); then `U=http://localhost:8000/api/v1`).
 The home page of every service (`/`) has a search and a registration-document lookup you can use
-without writing anything; `/docs` has buttons to try each request in the browser.
+without writing anything; `/browse` lets you go through every make, model and version without
+typing a thing; `/coverage` shows how complete each field is, overall and by make; `/docs` has
+buttons to try each request in the browser.
 
 ### 1. Find a car
 
@@ -127,6 +129,8 @@ catalogue as one SQLite database, one CSV file per table (opens in Excel or Libr
 JSON file, and a list of what changed since the previous release.
 
 ### 7. Check how complete it is
+
+The `/coverage` page shows this as meters and a sortable table. The same data as JSON:
 
 ```bash
 curl "$U/coverage"                        # share of versions that have each field, overall and per make
@@ -344,8 +348,9 @@ releases. Keep the 100% test coverage. Please do not put personal data in issues
 - [ADR.md](ADR.md): architecture decisions and the measurements behind them (in Italian)
 - [DEPLOY.md](DEPLOY.md): data releases, Render, domain and rate limiting
 - [PRIVACY.md](PRIVACY.md): what the public service processes
+- [SECURITY.md](SECURITY.md): supported versions and how to report a vulnerability
 - [NOTICE](NOTICE): sources and their licences
-- Layout: `core/` models and storage · `pipeline/` import, validation and export · `service/` API and MCP server
+- Layout: `core/` models and storage · `pipeline/` import, validation and export · `service/` API, MCP server and the web pages (`service/site/`)
 
 ## Licenses and attribution
 

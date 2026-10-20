@@ -178,6 +178,19 @@ def test_run_builds_the_dataset_and_cross_checks(tmp_path):
         assert validate(s) == []
 
 
+def test_fetch_rejects_a_response_over_the_size_cap(monkeypatch):
+    data = zipped(trow())
+    monkeypatch.setattr(traficom, "MAX_BYTES", len(data) - 1)
+    with pytest.raises(RuntimeError, match="over the"):
+        traficom.fetch(zclient(trow()))
+
+
+def test_fetch_accepts_a_response_at_the_size_cap(monkeypatch):
+    data = zipped(trow())
+    monkeypatch.setattr(traficom, "MAX_BYTES", len(data))
+    assert traficom.fetch(zclient(trow())) == data
+
+
 def test_fetch():
     data = zipped(trow())
     assert traficom.fetch(zclient(trow())) == data

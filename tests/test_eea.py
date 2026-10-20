@@ -309,7 +309,7 @@ def test_brand_spellings_merge_into_the_canonical_brand(st):
 def test_canonical_brand_name_is_not_the_alphabetical_first(st):
     eea.load([row(Mk="SSANGJONG", Cn="TORRES")], st, 2025, TODAY)
     b = st.find(Brand)[0]
-    assert (b.id, b.name, b.aliases) == ("brand_ssangyong", "SSANGYONG", ["SSANGJONG"])
+    assert (b.id, b.name, b.aliases) == ("brand_kg-mobility", "KG MOBILITY", ["SSANGJONG"])
 
 
 def test_brand_prefix_is_stripped_with_either_spelling(st):

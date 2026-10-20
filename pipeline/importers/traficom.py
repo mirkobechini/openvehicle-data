@@ -20,6 +20,7 @@ PAGE = "https://www.avoindata.fi/data/en/dataset/ajoneuvojen-avoin-data"
 UA = "openvehicle-data/0.0 (+https://github.com/mirkobechini/openvehicle-data)"
 ENCODING = "cp1252"
 CAT = "M1"
+MAX_BYTES = 1024**3  # the real file is ~208 MB; this caps it well above expected growth
 CV = {
     "omamassa": ("mass_kg", float),
     "teknSuurSallKokmassa": ("max_mass_kg", float),
@@ -35,6 +36,8 @@ def fetch(client=None):
     try:
         r = http.get(c, URL, headers={"User-Agent": UA})
         r.raise_for_status()
+        if len(r.content) > MAX_BYTES:
+            raise RuntimeError(f"Traficom response is {len(r.content)} bytes, over the {MAX_BYTES}-byte cap")
         return r.content
     finally:
         if client is None:
