@@ -10,10 +10,10 @@ from pipeline.importers import Ctx
 from pipeline.importers import stages as STAGES
 
 
-def build(out, version, years, ms="IT", prev=None, client=None, today=None, check=True, stages=None):
+def build(out, version, years, ms="IT", prev=None, client=None, today=None, skip=frozenset(), stages=None):
     with tempfile.TemporaryDirectory() as d:
         db = Path(d) / "build.db"
-        ctx = Ctx(years, ms, client, today, check)
+        ctx = Ctx(years, ms, client, today, skip)
         first, *rest = [s for s in (stages or STAGES)() if s.enabled(ctx)]
         stats = first.run(db, ctx)
         for s in rest:
@@ -30,9 +30,9 @@ def main(argv=None):
     a.add_argument("--out", required=True)
     a.add_argument("--country", default="IT")
     a.add_argument("--prev", help="folder of the previous export, for the changelog")
-    a.add_argument("--skip-rdw", action="store_true", help="do not cross-check with the RDW data")
+    a.add_argument("--skip", default="", help="comma-separated stage names to skip, e.g. rdw,traficom")
     n = a.parse_args(argv)
-    r = build(n.out, n.version, n.years, n.country, n.prev, check=not n.skip_rdw)
+    r = build(n.out, n.version, n.years, n.country, n.prev, skip=frozenset(n.skip.split(",")) if n.skip else frozenset())
     print(json.dumps({"import": r["import"], "counts": r["export"]["counts"], "warnings": r["export"]["warnings"]}, indent=1))
 
 
