@@ -15,6 +15,11 @@
       "label": "Alfa Romeo",
       "reason": "Wikidata item 'Alfa Romeo' (Italian car brand), reviewed on 2026-09-20 from its label and description"
     },
+    "ALPINE": {
+      "id": "Q26944",
+      "label": "Alpine",
+      "reason": "Wikidata item 'Alpine' (French car manufacturer), reviewed on 2026-10-20 from its label and description"
+    },
     "ASTON MARTIN": {
       "id": "Q63049904",
       "label": "Aston Martin",
@@ -84,6 +89,11 @@
       "id": "Q1138452",
       "label": "Dongfeng Motor Corporation",
       "reason": "Wikidata item 'Dongfeng Motor Corporation' (Chinese state-owned automobile manufacturer), reviewed on 2026-09-20 from its label and description"
+    },
+    "DR": {
+      "id": "Q474988",
+      "label": "DR Automobiles Groupe",
+      "reason": "Wikidata item 'DR Automobiles Groupe' (Italian automobile company), reviewed on 2026-10-20 from its label and description"
     },
     "DS": {
       "id": "Q16040593",
@@ -245,6 +255,11 @@
       "label": "MG Motor",
       "reason": "Wikidata item 'MG Motor' (British origin-Chinese car company), reviewed on 2026-09-20 from its label and description"
     },
+    "MINI": {
+      "id": "Q116232",
+      "label": "Mini",
+      "reason": "Wikidata item 'Mini' (British automotive marque), reviewed on 2026-10-20 from its label and description"
+    },
     "MITSUBISHI": {
       "id": "Q36033",
       "label": "Mitsubishi Motors",
@@ -290,6 +305,11 @@
       "label": "Porsche",
       "reason": "Wikidata item 'Porsche' (car brand), reviewed on 2026-09-20 from its label and description"
     },
+    "RENAULT": {
+      "id": "Q98584518",
+      "label": "Renault",
+      "reason": "Wikidata item 'Renault' (French automobile manufacturer), reviewed on 2026-10-20 from its label and description"
+    },
     "ROEWE": {
       "id": "Q1637227",
       "label": "Roewe",
@@ -305,10 +325,20 @@
       "label": "SEAT",
       "reason": "Wikidata item 'SEAT' (Spanish automotive company based in Martorell, sub), reviewed on 2026-09-20 from its label and description"
     },
+    "SERES": {
+      "id": "Q43401513",
+      "label": "Seres Auto",
+      "reason": "Wikidata item 'Seres Auto' (electric vehicle manufacturer), the car brand itself rather than the parent Seres Group (Q104907477), reviewed on 2026-10-20 from its label and description"
+    },
     "SKODA": {
       "id": "Q29637",
       "label": "Škoda Auto",
       "reason": "Wikidata item 'Škoda Auto' (automotive manufacturing subsidiary of Volkswagen ), reviewed on 2026-09-20 from its label and description"
+    },
+    "SMART": {
+      "id": "Q156490",
+      "label": "smart",
+      "reason": "Wikidata item 'smart' (German automotive manufacturer), reviewed on 2026-10-20 from its label and description"
     },
     "SPORTEQUIPE": {
       "id": "Q115287319",

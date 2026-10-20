@@ -34,8 +34,10 @@ def test_shipped_mapping_is_valid():
     m = wd.load_wikidata()
     assert len(m.brands) >= 70
     assert m.brands["FIAT"].id == "Q27597" and m.brands["VOLKSWAGEN"].id == "Q246" and m.brands["TOYOTA"].id == "Q53268"
+    assert m.brands["RENAULT"].id == "Q98584518" and m.brands["MINI"].id == "Q116232" and m.brands["SMART"].id == "Q156490"
+    assert m.brands["ALPINE"].id == "Q26944" and m.brands["DR"].id == "Q474988" and m.brands["SERES"].id == "Q43401513"
     assert all(len(e.reason) >= 10 and e.label for e in m.brands.values())
-    assert not {"EMC", "SMART", "MOKE", "SHINERAY", "RENAULT", "SSANGYONG", "SERES", "DFSK"} & set(m.brands)
+    assert not {"EMC", "MOKE", "SHINERAY", "SSANGYONG", "DFSK"} & set(m.brands)
 
 
 def test_shipped_mapping_is_next_to_the_module():
