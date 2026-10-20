@@ -9,7 +9,7 @@ class Ctx:
     ms: str = "IT"
     client: object = None
     today: date | None = None
-    check: bool = True
+    skip: frozenset = frozenset()
 
 
 class Importer(Protocol):
@@ -34,11 +34,12 @@ class Stage:
 
 
 def stages():
-    from pipeline.importers import eea, rdw, wikidata
+    from pipeline.importers import eea, rdw, traficom, wikidata
     from pipeline.importers.eea_datasets import parse_years
 
     return [
         Stage("eea", lambda db, c: eea.run(db, c.years, c.ms, c.client, c.today)),
-        Stage("rdw", lambda db, c: rdw.run(db, min(parse_years(c.years)), c.client, c.today), lambda c: c.check),
+        Stage("rdw", lambda db, c: rdw.run(db, min(parse_years(c.years)), c.client, c.today), lambda c: "rdw" not in c.skip),
+        Stage("traficom", lambda db, c: traficom.run(db, c.client, c.today), lambda c: "traficom" not in c.skip),
         Stage("wikidata", lambda db, c: wikidata.run(db, today=c.today)),
     ]
