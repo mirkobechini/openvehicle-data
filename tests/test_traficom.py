@@ -183,6 +183,18 @@ def test_fetch():
     assert traficom.fetch(zclient(trow())) == data
 
 
+def test_fetch_does_not_send_an_accept_header_the_server_rejects_with_406():
+    # opendata.traficom.fi returns 406 for "Accept: application/zip", found on the real file.
+    seen = {}
+
+    def h(r):
+        seen.update(r.headers)
+        return httpx.Response(200, content=zipped(trow()))
+
+    traficom.fetch(client(h))
+    assert seen["accept"] == "*/*" and seen["user-agent"] == traficom.UA
+
+
 def test_fetch_retries_a_server_error():
     data = zipped(trow())
     calls = []
