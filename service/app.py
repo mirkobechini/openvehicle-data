@@ -30,9 +30,11 @@ MinReg = Annotated[int | None, Query(ge=0, description="Only entries with at lea
 SITE = Path(__file__).with_name("site")
 ASSETS = {
     "/": ("index.html", "text/html; charset=utf-8"),
+    "/browse": ("browse.html", "text/html; charset=utf-8"),
     "/static/site.css": ("site.css", "text/css; charset=utf-8"),
     "/static/site.js": ("site.js", "text/javascript; charset=utf-8"),
     "/static/common.js": ("common.js", "text/javascript; charset=utf-8"),
+    "/static/browse.js": ("browse.js", "text/javascript; charset=utf-8"),
     "/static/favicon.svg": ("favicon.svg", "image/svg+xml"),
     "/static/favicon-32.png": ("favicon-32.png", "image/png"),
     "/static/apple-touch-icon.png": ("apple-touch-icon.png", "image/png"),
