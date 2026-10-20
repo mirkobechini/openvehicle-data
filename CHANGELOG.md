@@ -6,7 +6,7 @@ All notable changes to the **software** (API, MCP server, pipeline). The format 
 Two version numbers exist and are independent:
 
 - **Software**: the number in `pyproject.toml`, reported by `/api/v1/meta` as `software_version`.
-  Released: `0.1.0`, `0.1.1` and `0.1.2` (2026-10-19), `0.1.3` and `0.1.4` (2026-10-20).
+  Released: `0.1.0`, `0.1.1` and `0.1.2` (2026-10-19), `0.1.3` to `0.1.5` (2026-10-20).
 - **Dataset**: tags `data-vX.Y.Z`, reported as `version`. Each data release carries its own
   `CHANGELOG.md` listing ids added, removed and changed.
 
@@ -15,9 +15,13 @@ with a dataset of another schema, so this software needs a dataset built with it
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-10-20
+
 ### Added
 - `GET /browse`: a page to go through every make, model/family and version without
   typing anything; a top nav (logo, Search/Browse/Coverage) on every page (#203).
+- `GET /coverage`: overall meters and a per-make table (sortable) for the same data
+  `/api/v1/coverage` already returned as JSON (#205).
 - `service/site/common.js`: the fetch/card/DOM helpers `index.html` already had, shared
   with the new pages instead of duplicated.
 
@@ -25,6 +29,8 @@ with a dataset of another schema, so this software needs a dataset built with it
 - Orange text/links on a light background were below the WCAG AA contrast minimum
   (2.8:1); the light theme now uses a darker orange for text while buttons and the dark
   theme are unchanged (#203).
+- The coverage table scrolled horizontally on narrow screens without being reachable by
+  keyboard; it is now a focusable region (#205).
 
 ## [0.1.4] - 2026-10-20
 
