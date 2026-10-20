@@ -14,7 +14,7 @@ Non esiste un catalogo aperto e affidabile di marchi e modelli con specifiche te
 
 ## Piattaforme scelte
 
-- Frontend: nessuno (solo API, server MCP e dataset)
+- Frontend: pagine statiche minime (`service/site/`, HTML/CSS/JS senza framework) per la ricerca, il lookup da libretto, la sfoglia del catalogo e la copertura dei dati; l'uso principale resta API, server MCP e dataset
 - Backend: Python 3.12+, FastAPI (con uvicorn come server ASGI), Pydantic, SDK MCP ufficiale Python; httpx e pandas per l'import, Playwright solo per siti brand che richiedono JavaScript
 - Database: SQLite (master, sola lettura in produzione) + export Parquet/JSON; accesso con il modulo standard `sqlite3`, senza ORM
 - Deploy: API e server MCP su Render (un solo servizio), indirizzo `onrender.com` del servizio per API e MCP; dominio proprio `openvehicle.mirkobechini.com` su Cloudflare rimandato; dataset su GitHub Releases; refresh pianificato con GitHub Actions
@@ -27,7 +27,7 @@ Struttura del repository: `core/` (modelli Pydantic e storage, condivisi), `pipe
 
 - **Schema/modelli**: Pydantic; marchio → modello → generazione → variante → motore, con ID stabili e alias, categoria e anni di validità.
 - **Storage**: unico modulo di accesso al database, per poter passare a Postgres senza toccare le API.
-- **Importer**: uno per fonte (EEA CO₂, Wikidata, cardata.wiki, siti dei marchi), ognuno con provenienza e licenza.
+- **Importer**: uno per fonte (EEA CO₂ come catalogo principale; RDW e Traficom come riscontro; Wikidata per gli ID marchio), ognuno con provenienza e licenza; cardata.wiki e i siti dei marchi restano rimandati (vedi Decisioni architetturali).
 - **Validazione/qualità**: controlli di range, unità, duplicati e conflitti tra fonti prima della pubblicazione.
 - **Verifica**: stato per campo (fonte singola vs confermato da due fonti indipendenti) e `last_verified`.
 - **Pipeline di refresh**: re-import pianificato, rilevamento cambiamenti e changelog tra versioni del dataset.
@@ -35,6 +35,7 @@ Struttura del repository: `core/` (modelli Pydantic e storage, condivisi), `pipe
 - **API REST**: sola lettura, ricerca e filtri, documentazione OpenAPI automatica.
 - **Server MCP**: trasporto Streamable HTTP, pubblico e in sola lettura, sugli stessi dati delle API.
 - **Export dataset**: file statici versionati con changelog.
+- **Pagine web** (`service/site/`): `/` (ricerca e lookup da libretto), `/browse` (sfoglia per marchio) e `/coverage` (copertura dei campi), con una barra di navigazione comune.
 
 ## Decisioni architetturali
 
@@ -169,7 +170,6 @@ Struttura del repository: `core/` (modelli Pydantic e storage, condivisi), `pipe
 - Nomi e descrizioni multilingua
 - SDK client (Python, TypeScript)
 - Migrazione a Postgres se il carico lo richiede
-- Interfaccia web per esplorare il catalogo
 
 Da decidere o da fare dopo i dati 0.9.0 (2026-09-20):
 

@@ -1,8 +1,9 @@
 flowchart LR
-  subgraph SRC[Fonti aperte v0.1]
+  subgraph SRC[Fonti aperte]
     WD[Wikidata CC0]
     EEA[EEA CO2 CC BY 4.0]
-    RDW[RDW CC0]
+    RDW[RDW NL Public Domain]
+    TRF[Traficom FI CC BY 4.0]
   end
   subgraph PIPE[pipeline - batch offline]
     IMP[Importer per fonte]
@@ -17,23 +18,27 @@ flowchart LR
   subgraph SVC[service - deploy Render]
     API[API REST FastAPI]
     MCP[Server MCP]
+    SITE[Pagine web: ricerca, sfoglia, copertura]
   end
   GH[GitHub Releases]
-  CF[Cloudflare mirkobechini.com]
-  USR[App agenti sviluppatori]
-  GA[GitHub Actions refresh]
+  USR[Persone, app, agenti, sviluppatori]
+  GA[GitHub Actions: refresh mensile]
 
   WD --> IMP
   EEA --> IMP
   RDW --> IMP
+  TRF --> IMP
   IMP --> VAL --> MRG --> STO
   MOD --- IMP
   MOD --- STO
   STO --> EXP --> GH
-  GH -->|dataset di ogni deploy| SVC
+  GH -->|dataset dell'immagine Docker| SVC
   STO -.-> API
   STO -.-> MCP
-  GA -->|pianifica| PIPE
-  USR --> CF --> API
-  USR --> CF --> MCP
+  API --- SITE
+  GA -->|costruisce e confronta| PIPE
+  GA -.->|pubblica e apre una PR| GH
+  USR --> API
+  USR --> MCP
+  USR --> SITE
   USR -->|scarica| GH
