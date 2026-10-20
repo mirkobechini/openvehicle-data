@@ -175,8 +175,8 @@ mistyped entries.
 | `year_from`, `year_to` | first and last registration year seen (2019-2025), not production years |
 | `years` | the years with registrations (the `year` filter matches these, not the range between first and last) |
 | `mass_kg` | mass in running order (closest to field G of the registration document, **not** the maximum mass F.2) |
-| `max_mass_kg` | maximum permissible mass, field F.2 (RDW only) |
-| `seats` | seats including the driver, field S.1 (RDW only) |
+| `max_mass_kg` | maximum permissible mass, field F.2 (RDW, Traficom) |
+| `seats` | seats including the driver, field S.1 (RDW, Traficom) |
 | `environmental_class` | `Euro 0` to `Euro 6` (RDW only; electric cars have none) |
 | `wheelbase_mm`, `track_width_mm` | only for vehicles registered in 2019-2022 |
 | `co2_wltp_g_km` | WLTP combined CO2 |
@@ -200,16 +200,18 @@ approval, Wikidata id) has its own record: source, licence, evidence link,
 | `conflict` | two sources disagree; the value shown is the EEA one and the difference stays visible |
 
 `confirmed` is a check against transcription and aggregation errors, not a second
-measurement: both sources derive from the manufacturer's type-approval data.
+measurement: every source derives from the manufacturer's type-approval data.
 
 | Source | Provides | Licence |
 | --- | --- | --- |
 | [EEA](https://www.eea.europa.eu/data-and-maps/data/co2-cars-emission-22) CO2 monitoring, Regulation (EU) 2019/631 | the catalogue itself: makes, models, versions, engines, mass, CO2, type-approval number, registrations (2019-2024 final, 2025 provisional) | CC BY 4.0 |
 | [RDW](https://opendata.rdw.nl) open data (Netherlands) | second source for mass, wheelbase, engine size, power and the type-approval number; seats, maximum mass and emission class | Public Domain |
+| [Traficom](https://www.avoindata.fi/data/en/dataset/ajoneuvojen-avoin-data) open data (Finland) | third source for mass, engine size and power; seats and maximum mass | CC BY 4.0 |
 | [Wikidata](https://www.wikidata.org) | brand identifiers, from a reviewed list | CC0 |
 
 RDW rows are one per licence plate, so they are grouped on the RDW server: no plate
-is stored, published or logged.
+is stored, published or logged. Traficom's file has neither a plate nor an owner
+name to begin with.
 
 ### Downloads
 
@@ -276,7 +278,7 @@ python -m venv .venv
 .venv/Scripts/pip install -e ".[dev]"      # Linux/macOS: .venv/bin/pip
 
 # build the dataset: downloads 2019-2025 from the EEA and the RDW (about 4 minutes),
-# validates, and exports to ./dist  (--skip-rdw skips the RDW cross-check)
+# validates, and exports to ./dist  (--skip rdw,traficom skips the cross-checks)
 python -m pipeline.build --years 2019-2025 --version 0.1.0 --out dist
 
 # serve the REST API (docs at /docs) and the MCP server (at /mcp)
@@ -311,9 +313,12 @@ domain) is described in [DEPLOY.md](DEPLOY.md).
   spaces, hyphens or case are merged; a few near-duplicates remain.
 - Family rules cover 50 brands; the other brands keep one family per model.
 - Wheelbase and track width exist only for 2019-2022 (the EEA stopped reporting them).
-- RDW covers about half of the variants (cars sold in the Netherlands), so the rest
-  stay `single_source`, and seats, F.2 mass and emission class are missing for them. CO2 is single-source everywhere: RDW's per-plate values vary
-  too much between cars of one variant to serve as a check.
+- RDW (Netherlands) cross-checks 48% of the variants (82% weighted by registrations);
+  Traficom (Finland) adds a cross-check on 27% more (its own match, overlapping RDW's
+  in part). Together they bring seats and F.2 mass to 54% of the variants (85%
+  weighted); emission class comes only from RDW, 44% (79% weighted). The rest stay
+  `single_source`. CO2 is single-source everywhere: per-plate values vary too much
+  between cars of one variant to serve as a check.
 - Wikidata ids exist for 70 of 90 brands; models are not linked (Wikidata has
   duplicate and mixed items for them).
 - The API has no authentication. It limits each client to 120 requests per minute

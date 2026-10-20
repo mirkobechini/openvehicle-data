@@ -1,8 +1,8 @@
-from pipeline.sources import EEA, RDW, SOURCES, WIKIDATA
+from pipeline.sources import EEA, RDW, SOURCES, TRAFICOM, WIKIDATA
 
 
 def test_registry():
-    assert SOURCES == {"eea-co2": EEA, "rdw-nl": RDW, "wikidata": WIKIDATA}
+    assert SOURCES == {"eea-co2": EEA, "rdw-nl": RDW, "traficom-fi": TRAFICOM, "wikidata": WIKIDATA}
 
 
 def test_eea_license_checked():
@@ -22,3 +22,10 @@ def test_wikidata_license_checked():
     assert WIKIDATA.license == "CC0-1.0"
     assert WIKIDATA.usable
     assert str(WIKIDATA.license_checked) == "2026-09-20"
+
+
+def test_traficom_license_checked():
+    assert TRAFICOM.license == "CC-BY-4.0"
+    assert TRAFICOM.usable
+    assert str(TRAFICOM.license_checked) == "2026-10-20"
+    assert "Finland" in TRAFICOM.name
