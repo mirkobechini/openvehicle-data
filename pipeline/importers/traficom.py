@@ -33,7 +33,7 @@ NEW = ("seats", "max_mass_kg")
 def fetch(client=None):
     c = client or httpx.Client(timeout=300)
     try:
-        r = http.get(c, URL, headers={"Accept": "application/zip", "User-Agent": UA})
+        r = http.get(c, URL, headers={"User-Agent": UA})
         r.raise_for_status()
         return r.content
     finally:
