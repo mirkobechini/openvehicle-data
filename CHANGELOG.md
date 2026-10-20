@@ -15,6 +15,10 @@ with a dataset of another schema, so this software needs a dataset built with it
 
 ## [Unreleased]
 
+### Changed
+- Landing page: clearer result card (model and summary in the header, labelled codes with a copy button, sections with the registration-document field of every value, Italian number format, share of the model, "Show more" and a fuel filter) (#177).
+- `GET /variants/{id}` and MCP `get_variant` also return `brand` and `model` (#177).
+
 ## [0.1.2] - 2026-10-19
 
 ### Fixed
