@@ -11,7 +11,8 @@ R = "a long enough reason for the entry"
 def test_shipped_file_is_valid():
     c = load_corrections()
     assert len(c.brands) >= 7 and len(c.exclude_models) >= 2
-    assert c.brands["VW"] == "VOLKSWAGEN" and c.brands["SSANGJONG"] == "SSANGYONG"
+    assert c.brands["VW"] == "VOLKSWAGEN" and c.brands["SSANGJONG"] == c.brands["SSANGYONG"] == "KG MOBILITY"
+    assert c.brands["JAGUAR LAND ROVER LIMITED"] == "LAND ROVER"
     assert {(x.brand, x.model) for x in c.exclude_models} >= {("FIAT", "GOLF"), ("FIAT", "AVENGER")}
     assert all(len(x.reason) >= 10 for x in c.exclude_models)
 
