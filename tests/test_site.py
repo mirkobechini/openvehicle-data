@@ -29,6 +29,16 @@ def test_browse_serves_the_page_with_its_own_csp_and_a_cache(cl):
     assert j.headers["content-type"].startswith("text/javascript") and j.headers["content-security-policy"] == SITE_CSP[1].decode()
 
 
+def test_coverage_serves_the_page_with_its_own_csp_and_a_cache(cl):
+    r = cl.get("/coverage")
+    assert r.status_code == 200 and r.headers["content-type"].startswith("text/html")
+    assert r.headers["cache-control"] == "public, max-age=3600"
+    assert r.headers["content-security-policy"] == SITE_CSP[1].decode()
+    assert 'name="viewport"' in r.text and '<html lang="en">' in r.text
+    j = cl.get("/static/coverage.js")
+    assert j.headers["content-type"].startswith("text/javascript") and j.headers["content-security-policy"] == SITE_CSP[1].decode()
+
+
 def test_assets_are_served_with_the_right_types(cl):
     c = cl.get("/static/site.css")
     j = cl.get("/static/site.js")
@@ -43,12 +53,12 @@ def test_unknown_static_paths_and_the_api_keep_the_strict_policy(cl):
     assert cl.get("/static/other.js").status_code == 404
     assert cl.get(f"{B}/brands").headers["content-security-policy"] == CSP[1].decode()
     assert csp("/docs") == () and csp("/redoc") == () and csp("/") == (SITE_CSP,) and csp("/static/x") == (SITE_CSP,) and csp("/mcp") == (CSP,)
-    assert csp("/browse") == (SITE_CSP,)
+    assert csp("/browse") == (SITE_CSP,) and csp("/coverage") == (SITE_CSP,)
 
 
 def test_the_page_is_not_in_the_openapi(cl):
     paths = cl.get("/openapi.json").json()["paths"]
-    assert "/" not in paths and "/browse" not in paths and "/static/site.js" not in paths and "/static/browse.js" not in paths
+    assert not {"/", "/browse", "/coverage", "/static/site.js", "/static/browse.js", "/static/coverage.js"} & set(paths)
 
 
 class Scan(HTMLParser):
@@ -82,7 +92,7 @@ def test_page_markup_is_accessible_and_self_contained():
 
 
 def test_every_page_links_the_same_three_sections():
-    for name in ("index.html", "browse.html"):
+    for name in ("index.html", "browse.html", "coverage.html"):
         html = (SITE / name).read_text(encoding="utf-8")
         assert 'href="/"' in html and 'href="/browse"' in html and 'href="/coverage"' in html
         assert html.count('aria-current="page"') == 1
@@ -97,8 +107,17 @@ def test_browse_page_markup_is_accessible_and_self_contained():
     assert 'href="#main"' in html and 'aria-live="polite"' in html and "<h1>" in html
 
 
+def test_coverage_page_markup_is_accessible_and_self_contained():
+    s = Scan()
+    s.feed((SITE / "coverage.html").read_text(encoding="utf-8"))
+    assert {"main", "r-overall", "sorters", "r-table", "meta"} <= s.ids
+    assert s.external == [] and s.inline == 0
+    html = (SITE / "coverage.html").read_text(encoding="utf-8")
+    assert 'href="#main"' in html and html.count('aria-live="polite"') == 2 and "<h1>" in html
+
+
 def test_script_never_writes_html_and_uses_relative_urls():
-    for name in ("common.js", "site.js", "browse.js"):
+    for name in ("common.js", "site.js", "browse.js", "coverage.js"):
         js = (SITE / name).read_text(encoding="utf-8")
         assert not re.search(r"innerHTML|outerHTML|insertAdjacentHTML|document\.write|eval\(", js)
         assert "https://" not in js
@@ -113,7 +132,7 @@ def test_css_has_the_accessibility_basics():
 def test_site_files_are_packaged():
     p = tomllib.loads((Path(__file__).parent.parent / "pyproject.toml").read_text(encoding="utf-8"))
     assert "site/*" in p["tool"]["setuptools"]["package-data"]["service"]
-    assert {f.name for f in SITE.iterdir()} == {"index.html", "browse.html", "site.css", "site.js", "common.js", "browse.js", "favicon.svg", "favicon-32.png", "apple-touch-icon.png"}
+    assert {f.name for f in SITE.iterdir()} == {"index.html", "browse.html", "coverage.html", "site.css", "site.js", "common.js", "browse.js", "coverage.js", "favicon.svg", "favicon-32.png", "apple-touch-icon.png"}
 
 
 def test_the_rate_limit_applies_to_the_page_too(db):
