@@ -13,13 +13,14 @@ H = [
 ]
 CSP = (b"content-security-policy", b"default-src 'none'; frame-ancestors 'none'")
 DOCS = ("/docs", "/redoc")
+PAGES = ("/", "/browse")
 SITE = (b"content-security-policy", b"default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'")
 
 
 def csp(path):
     if path.startswith(DOCS):
         return ()
-    return (SITE,) if path == "/" or path.startswith("/static/") else (CSP,)
+    return (SITE,) if path in PAGES or path.startswith("/static/") else (CSP,)
 
 
 class Headers:
