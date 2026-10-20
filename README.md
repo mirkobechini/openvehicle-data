@@ -276,7 +276,7 @@ python -m venv .venv
 .venv/Scripts/pip install -e ".[dev]"      # Linux/macOS: .venv/bin/pip
 
 # build the dataset: downloads 2019-2025 from the EEA and the RDW (about 4 minutes),
-# validates, and exports to ./dist  (--skip-rdw skips the RDW cross-check)
+# validates, and exports to ./dist  (--skip rdw,traficom skips the cross-checks)
 python -m pipeline.build --years 2019-2025 --version 0.1.0 --out dist
 
 # serve the REST API (docs at /docs) and the MCP server (at /mcp)
