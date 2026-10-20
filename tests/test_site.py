@@ -81,7 +81,7 @@ def test_css_has_the_accessibility_basics():
 def test_site_files_are_packaged():
     p = tomllib.loads((Path(__file__).parent.parent / "pyproject.toml").read_text(encoding="utf-8"))
     assert "site/*" in p["tool"]["setuptools"]["package-data"]["service"]
-    assert {f.name for f in SITE.iterdir()} == {"index.html", "site.css", "site.js"}
+    assert {f.name for f in SITE.iterdir()} == {"index.html", "site.css", "site.js", "favicon.svg", "favicon-32.png", "apple-touch-icon.png"}
 
 
 def test_the_rate_limit_applies_to_the_page_too(db):
@@ -105,3 +105,19 @@ def test_hidden_elements_stay_hidden_and_the_filter_has_a_label():
     assert "[hidden] { display: none !important; }" in css
     js = (SITE / "site.js").read_text(encoding="utf-8")
     assert "lab.htmlFor = sel.id" in js
+
+
+def test_the_icons_are_served_with_the_right_types(cl):
+    for path, kind in (("/static/favicon.svg", "image/svg+xml"), ("/static/favicon-32.png", "image/png"), ("/static/apple-touch-icon.png", "image/png"), ("/favicon.ico", "image/png")):
+        r = cl.get(path)
+        assert r.status_code == 200 and r.headers["content-type"] == kind and r.headers["cache-control"] == "public, max-age=3600"
+    assert cl.get("/static/favicon-32.png").content[:8] == b"\x89PNG\r\n\x1a\n" == cl.get("/favicon.ico").content[:8]
+    assert cl.get("/static/favicon.svg").text.lstrip().startswith(("<?xml", "<svg"))
+
+
+def test_the_page_links_the_icons_and_the_svg_is_inert():
+    html = (SITE / "index.html").read_text(encoding="utf-8")
+    for h in ("/static/favicon.svg", "/static/favicon-32.png", "/static/apple-touch-icon.png"):
+        assert f'href="{h}"' in html
+    svg = (SITE / "favicon.svg").read_text(encoding="utf-8").lower()
+    assert not re.search(r"<script|onload|onclick|<foreignobject|<image|href=\"http", svg)
