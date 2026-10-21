@@ -134,6 +134,8 @@ Versione sintetica. Il dettaglio completo (misure su dati reali, bug trovati, me
 
 ## Feature future pianificate
 
+**Rassegna 2026-10-21**: nessuna di queste voci vale lo sforzo oggi — ognuna o non ha ancora un utente/richiesta reale dietro (contributi, SDK, chiavi API, altri mercati, multilingua), o ha un impatto non visibile (ID Wikidata, regole di famiglia: `wikidata_id` non è mostrato in nessuna pagina web), o è bloccata in mancanza di un'idea (CO2 con seconda fonte), o è condizionata esplicitamente (Postgres, "se il carico lo richiede"). Decisione di Mirko: aspettare un segnale concreto (utenti reali, una richiesta, un problema trovato) prima di aprirne una, non anticipare.
+
 - Contributi degli utenti tramite pull request (flusso supervisionato descritto sopra)
 - Campi energia/EV: batteria, autonomia, ricarica
 - Dati aggiuntivi: intervalli di manutenzione, misure pneumatici, costi di gestione (TCO)
