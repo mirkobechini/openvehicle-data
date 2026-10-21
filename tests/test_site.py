@@ -124,6 +124,14 @@ def test_script_never_writes_html_and_uses_relative_urls():
     assert 'const API = "/api/v1"' in (SITE / "common.js").read_text(encoding="utf-8")
 
 
+def test_display_names_are_a_reviewed_exception_table_used_everywhere():
+    common = (SITE / "common.js").read_text(encoding="utf-8")
+    assert '"KA+": "Ka+"' in common and "KA: \"Ka\"" in common
+    for name in ("site.js", "browse.js", "coverage.js"):
+        js = (SITE / name).read_text(encoding="utf-8")
+        assert "disp(" in js and "disp } = window.OVD" in js
+
+
 def test_css_has_the_accessibility_basics():
     css = (SITE / "site.css").read_text(encoding="utf-8")
     assert "prefers-color-scheme: dark" in css and ":focus-visible" in css and "min-height: 2.75rem" in css
