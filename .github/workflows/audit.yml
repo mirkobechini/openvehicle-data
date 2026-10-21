@@ -7,6 +7,10 @@ on:
 
 permissions:
   contents: read
+  issues: write
+
+env:
+  GH_TOKEN: ${{ github.token }}
 
 jobs:
   audit:
@@ -18,3 +22,5 @@ jobs:
           python-version: "3.12"
       - run: pip install pip-audit
       - run: pip-audit --require-hashes -r requirements.lock
+      - if: failure()
+        run: gh issue create --title "Dependency audit found a vulnerability" --body "See ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
