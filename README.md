@@ -345,7 +345,9 @@ releases. Keep the 100% test coverage. Please do not put personal data in issues
 ## Documentation
 
 - [CHANGELOG.md](CHANGELOG.md): what changed in the software, version by version
-- [ADR.md](ADR.md): architecture decisions and the measurements behind them (in Italian)
+- [ADR.md](ADR.md): architecture decisions, in short (in Italian)
+- [SOURCES.md](SOURCES.md): data sources used, rejected and under evaluation (in Italian)
+- [DECISIONS-LOG.md](DECISIONS-LOG.md): the measurements and findings behind each ADR decision (in Italian)
 - [DEPLOY.md](DEPLOY.md): data releases, Render, domain and rate limiting
 - [PRIVACY.md](PRIVACY.md): what the public service processes
 - [SECURITY.md](SECURITY.md): supported versions and how to report a vulnerability
