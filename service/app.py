@@ -41,6 +41,9 @@ ASSETS = {
     "/static/favicon-32.png": ("favicon-32.png", "image/png"),
     "/static/apple-touch-icon.png": ("apple-touch-icon.png", "image/png"),
     "/favicon.ico": ("favicon-32.png", "image/png"),
+    "/static/dataset.jsonld": ("dataset.jsonld", "application/ld+json"),
+    "/robots.txt": ("robots.txt", "text/plain; charset=utf-8"),
+    "/sitemap.xml": ("sitemap.xml", "application/xml; charset=utf-8"),
 }
 
 
