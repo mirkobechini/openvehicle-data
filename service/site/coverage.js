@@ -1,5 +1,5 @@
 (() => {
-  const { $, nf, node, show, msg, get, footer } = window.OVD;
+  const { $, nf, node, show, msg, get, footer, disp } = window.OVD;
 
   const FIELDS = [
     ["type_approval", "Type-approval", "K"],
@@ -36,7 +36,7 @@
 
   const row = (b) => {
     const r = node("div", undefined, "trow");
-    r.append(node("div", b.name, "tname"));
+    r.append(node("div", disp(b.name), "tname"));
     r.append(node("div", nf.format(b.variants), "tvariants"));
     for (const [key] of FIELDS) {
       const cell = node("div", undefined, "tcell");

@@ -46,6 +46,12 @@
     other: "Other",
   };
 
+  // Reviewed exceptions only (see DECISIONS-LOG.md "Maiuscole non toccate per scelta"): guessing a
+  // general rule breaks codes like C-HR, ID.4, DS 7, GT R, so names stay as the EEA writes them
+  // unless a name is listed here by hand.
+  const DISPLAY = { KA: "Ka", "KA+": "Ka+" };
+  const disp = (name) => DISPLAY[name] || name;
+
   const has = (v) => v !== null && v !== undefined;
   const n = (v, unit) => (unit ? `${nf.format(v)} ${unit}` : nf.format(v));
 
@@ -109,7 +115,7 @@
   const card = (v) => {
     const c = node("article", undefined, "card");
     const h = node("header");
-    h.append(node("h3", `${v.brand.name} ${v.model.name}`));
+    h.append(node("h3", `${disp(v.brand.name)} ${disp(v.model.name)}`));
     h.append(node("p", summary(v.engine), "sum"));
     const codes = [v.type_code, v.variant_code, v.version_code];
     if (codes.every(Boolean)) {
@@ -210,5 +216,5 @@
       });
   };
 
-  window.OVD = { $, nf, node, show, msg, get, busy, FUELS, has, n, years, share, power, litres, summary, row, section, card, copy, variants, footer, PAGE };
+  window.OVD = { $, nf, node, show, msg, get, busy, FUELS, has, n, years, share, power, litres, summary, row, section, card, copy, variants, footer, PAGE, disp };
 })();
