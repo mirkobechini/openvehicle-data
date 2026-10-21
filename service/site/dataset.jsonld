@@ -1,0 +1,28 @@
+{
+  "@context": "https://schema.org",
+  "@type": "Dataset",
+  "name": "openvehicle-data",
+  "description": "Free, open catalogue of the passenger cars registered in Italy: versions, engines, mass, CO2, seats and emission class, each value with its source.",
+  "url": "https://openvehicle-data.onrender.com/",
+  "license": "https://creativecommons.org/licenses/by/4.0/",
+  "creator": {
+    "@type": "Organization",
+    "name": "openvehicle-data",
+    "url": "https://github.com/mirkobechini/openvehicle-data"
+  },
+  "keywords": ["vehicle data", "car catalogue", "Italy", "type approval", "open data", "CO2"],
+  "distribution": [
+    {
+      "@type": "DataDownload",
+      "name": "REST API",
+      "encodingFormat": "application/json",
+      "contentUrl": "https://openvehicle-data.onrender.com/api/v1/variants"
+    },
+    {
+      "@type": "DataDownload",
+      "name": "Dataset releases (SQLite, CSV, JSON)",
+      "encodingFormat": "application/zip",
+      "contentUrl": "https://github.com/mirkobechini/openvehicle-data/releases"
+    }
+  ]
+}

@@ -129,10 +129,33 @@ def test_css_has_the_accessibility_basics():
     assert "prefers-color-scheme: dark" in css and ":focus-visible" in css and "min-height: 2.75rem" in css
 
 
+def test_robots_txt_allows_everything_and_points_to_the_sitemap(cl):
+    r = cl.get("/robots.txt")
+    assert r.status_code == 200 and r.headers["content-type"].startswith("text/plain")
+    assert "Allow: /" in r.text and "Sitemap: https://openvehicle-data.onrender.com/sitemap.xml" in r.text
+
+
+def test_sitemap_lists_the_three_pages(cl):
+    r = cl.get("/sitemap.xml")
+    assert r.status_code == 200 and r.headers["content-type"].startswith("application/xml")
+    for path in ("/", "/browse", "/coverage"):
+        assert f"<loc>https://openvehicle-data.onrender.com{path}</loc>" in r.text
+
+
+def test_dataset_jsonld_is_valid_and_linked_from_the_home_page(cl):
+    import json
+
+    r = cl.get("/static/dataset.jsonld")
+    assert r.status_code == 200 and r.headers["content-type"].startswith("application/ld+json")
+    data = json.loads(r.text)
+    assert data["@type"] == "Dataset" and data["license"] == "https://creativecommons.org/licenses/by/4.0/"
+    assert '<script type="application/ld+json" src="/static/dataset.jsonld"></script>' in (SITE / "index.html").read_text(encoding="utf-8")
+
+
 def test_site_files_are_packaged():
     p = tomllib.loads((Path(__file__).parent.parent / "pyproject.toml").read_text(encoding="utf-8"))
     assert "site/*" in p["tool"]["setuptools"]["package-data"]["service"]
-    assert {f.name for f in SITE.iterdir()} == {"index.html", "browse.html", "coverage.html", "site.css", "site.js", "common.js", "browse.js", "coverage.js", "favicon.svg", "favicon-32.png", "apple-touch-icon.png"}
+    assert {f.name for f in SITE.iterdir()} == {"index.html", "browse.html", "coverage.html", "site.css", "site.js", "common.js", "browse.js", "coverage.js", "favicon.svg", "favicon-32.png", "apple-touch-icon.png", "robots.txt", "sitemap.xml", "dataset.jsonld"}
 
 
 def test_the_rate_limit_applies_to_the_page_too(db):

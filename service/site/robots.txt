@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://openvehicle-data.onrender.com/sitemap.xml
