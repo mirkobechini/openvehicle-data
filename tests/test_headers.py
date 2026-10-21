@@ -208,3 +208,12 @@ def test_the_default_limit_comes_from_the_environment(db, monkeypatch):
     monkeypatch.setenv("OVD_RATE_LIMIT", "1")
     c = TestClient(create_app(db))
     assert [c.get(f"{B}/brands").status_code for _ in range(2)] == [200, 429]
+
+
+def test_large_responses_are_gzip_compressed(cl):
+    r = cl.get(f"{B}/variants")
+    assert r.headers["content-encoding"] == "gzip" and r.json()["items"]
+
+
+def test_tiny_responses_are_not_compressed(cl):
+    assert "content-encoding" not in cl.get(f"{B}/health").headers

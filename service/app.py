@@ -8,6 +8,7 @@ from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from mcp.server.transport_security import TransportSecuritySettings
+from starlette.middleware.gzip import GZipMiddleware
 from starlette.routing import Route
 
 from core.coverage import Coverage
@@ -86,6 +87,7 @@ def create_app(db=None, rate=None):
         lifespan=life,
     )
     app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET"])
+    app.add_middleware(GZipMiddleware, minimum_size=500)
 
     @contextmanager
     def rd():
